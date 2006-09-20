@@ -1,0 +1,42 @@
+if fatload mmc 0 80008000 logo*.bmp ; then
+   bmp info 80008000 ;
+   bmp display 80008000 ;
+else
+   lecho "No logo present" ;
+fi
+
+if fatload mmc 0 82000000 uim* ; then
+   lecho 'load Linux'
+   if fatload mmc 0 82200000 mmcinitrd* ; then
+      echo 'using initrd' ;
+      lecho "Booting Linux"
+      set bootargs root=/dev/ram0 console=ttyS0,115200 debug=7 mtdparts=phys_mapped_flash:1024k(armboot),256k(params),-(rootfs1)
+      bootm 82000000 82200000
+   else
+      echo 'testing cramfs img' ;
+      if fatload mmc 0 82200000 cramfs* ; then
+         if cmp.b 00140000 82200000 $filesize ; then
+            echo 'cramfs images match' ;
+         else
+            lecho 'filesystems differ...' ;
+            protect off all ;
+            erase 00140000 01ffffff ;
+            cp.b 82200000 00140000 $filesize ;
+         fi
+
+         set bootargs console=ttyS0,115200 debug=7 mtdparts=phys_mapped_flash:1024k(armboot),256k(params),-(rootfs1) root=/dev/mtdblock3 rootfstype=cramfs
+         lecho "Booting Linux"
+         bootm 82000000
+      fi
+   fi
+else
+   echo "No Linux kernel" ;
+fi
+
+lecho 'No Linux, try CE'
+
+if fatload mmc 0 80030000 nk*.nb0 ; then
+   g 80030000 ;
+else
+   echo "No WinCE image" ;
+fi
