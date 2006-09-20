@@ -30,6 +30,13 @@
 #include <net.h>
 #include <ata.h>
 
+#define CONFIG_FATLOAD_TICKS
+#define CONFIG_FATLOAD_ADLER
+
+#ifdef CONFIG_FATLOAD_ADLER
+#include <zlib.h>
+#endif 
+
 #if (CONFIG_COMMANDS & CFG_CMD_FAT)
 
 #undef	DEBUG
@@ -83,6 +90,11 @@ int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	int dev=0;
 	int part=1;
 	char *ep;
+#ifdef CONFIG_FATLOAD_TICKS
+   ulong ticks1 ;
+   ulong ticks2 ;
+   ulong ticks3 ;
+#endif 
 
 	if (argc < 5) {
 		printf ("usage: fatload <interface> <dev[:part]> <addr> <filename> [bytes]\n");
@@ -110,6 +122,10 @@ int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		count = simple_strtoul (argv[5], NULL, 16);
 	else
 		count = 0;
+#ifdef CONFIG_FATLOAD_TICKS
+   ticks1 = get_timer( 0 );
+#endif 
+
 	size = file_fat_read (argv[4], (unsigned char *) offset, count);
 
 	if(size==-1) {
@@ -117,7 +133,21 @@ int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return 1;
 	}
 
-	printf ("\n%ld bytes read\n", size);
+	printf ("\n%ld bytes read", size);
+
+#ifdef CONFIG_FATLOAD_TICKS
+   ticks2 = get_timer( 0 );
+   printf( " in %lu ticks, (%lu ms)", (ticks2-ticks1), (ticks2-ticks1)/(CFG_HZ/1000) );
+#endif 
+
+#ifdef CONFIG_FATLOAD_ADLER
+   printf( ", adler == 0x" );
+   printf( "%08lx", adler32(0, (Bytef *)offset, size ) );
+   ticks3 = get_timer( 0 );
+   printf( " in %lu ticks, (%lu ms)", (ticks3-ticks2), (ticks3-ticks2)/(CFG_HZ/1000) );
+#endif 
+
+   printf( "\n" );
 
 	sprintf(buf, "%lX", size);
 	setenv("filesize", buf);

@@ -197,6 +197,10 @@ typedef void		(*ExcpHndlr) (void) ;
 #define DRCMR69		       __REG(0x40001114)  /* Request to Channel Map Register for Camera FIFO 1 Request */
 #define DRCMR70		       __REG(0x40001118)  /* Request to Channel Map Register for Camera FIFO 2 Request */
 
+#define DRCMR68		       __REG(0x40001110)  /* Request to Channel Map Register for Camera FIFO 0 Request */
+#define DRCMR69		       __REG(0x40001114)  /* Request to Channel Map Register for Camera FIFO 1 Request */
+#define DRCMR70		       __REG(0x40001118)  /* Request to Channel Map Register for Camera FIFO 2 Request */
+
 #define DRCMRRXSADR	DRCMR2
 #define DRCMRTXSADR	DRCMR3
 #define DRCMRRXBTRBR	DRCMR4
@@ -515,7 +519,6 @@ typedef void		(*ExcpHndlr) (void) ;
 /*#define SADIV		__REG(0x40400060)  /  Audio Clock Divider Register. */
 /*#define SADR		__REG(0x40400080)  /  Serial Audio Data Register (TX and RX FIFO access Register). */
 
-
 /*
  * AC97 Controller registers
  */
@@ -801,6 +804,10 @@ typedef void		(*ExcpHndlr) (void) ;
 #define UHCHIE_TAIE	(1<<10)
 #define UHCHIE_HBAIE	(1<<8)
 #define UHCHIE_RWIE	(1<<7)
+
+#define UHCCOMS_HCR	1
+#define UHCRHS_LPS	1
+#define UHCHR_SSE	(1<<5)
 
 #endif
 
@@ -1288,6 +1295,8 @@ typedef void		(*ExcpHndlr) (void) ;
 #define GFER(x)		__REG2(0x40E0003C, ((x) & 0x60) >> 3)
 #define GEDR(x)		__REG2(0x40E00048, ((x) & 0x60) >> 3)
 #define GAFR(x)		__REG2(0x40E00054, ((x) & 0x70) >> 2)
+
+#endif
 
 #endif
 
@@ -1876,6 +1885,11 @@ typedef void		(*ExcpHndlr) (void) ;
 					/*  [1..256 Tpix]		   */ \
 			(((Tpix) - 1) << FShft (LCCR1_BLW))
 
+#define LCCR3_PDFOR_0	 (0 << 30)
+#define LCCR3_PDFOR_1	 (1 << 30)
+#define LCCR3_PDFOR_2	 (2 << 30)
+#define LCCR3_PDFOR_3	 (3 << 30)
+
 
 #define LCCR2_LPP	Fld (10, 0)	/* Line Per Panel - 1		   */
 #define LCCR2_DisHght(Line)		/*  Display Height [1..1024 lines] */ \
@@ -2220,8 +2234,6 @@ typedef void		(*ExcpHndlr) (void) ;
 #define ARB_DMA_PARK		(1<<25)	   /* Be parked with DMA when idle */
 #define ARB_CORE_PARK		(1<<24)	   /* Be parked with core when idle */
 #define ARB_LOCK_FLAG		(1<<23)	   /* Only Locking masters gain access to the bus */
-
-#endif /* CONFIG_CPU_MONAHANS */
 
 /* Interrupt Controller */
 

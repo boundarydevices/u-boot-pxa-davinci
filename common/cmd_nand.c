@@ -63,24 +63,60 @@ static int nand_dump(nand_info_t *nand, ulong off)
 	printf("Page %08x dump:\n", off);
 	i = nand->oobblock >> 4; p = buf;
 	while (i--) {
-		printf( "\t%02x %02x %02x %02x %02x %02x %02x %02x"
-			"  %02x %02x %02x %02x %02x %02x %02x %02x\n",
-			p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-			p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+		printf( "%03x\t%08x %08x %08x %08x\n",(int)(p-buf),
+			((int*)p)[0], ((int*)p)[1], ((int*)p)[2], ((int*)p)[3]);
 		p += 16;
 	}
 	puts("OOB:\n");
-	i = nand->oobsize >> 3;
+	i = nand->oobsize >> 4;
 	while (i--) {
-		printf( "\t%02x %02x %02x %02x %02x %02x %02x %02x\n",
-			p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
-		p += 8;
+		printf( "%03x\t%06x %04x %02x\n\t%06x %04x %02x %08x\n",(int)(p-buf),
+			p[0]+(p[1]<<8)+(p[2]<<16), p[3]+(p[4]<<8), p[5],
+			p[6]+(p[7]<<8)+(p[8]<<16), p[9]+(p[10]<<8), p[11],
+			((int*)p)[3] );
+		p += 16;
 	}
 	free(buf);
-
 	return 0;
 }
+int nand_write_raw (struct mtd_info *mtd, loff_t to, size_t len, size_t * retlen, const u_char * buf);
 
+static int nand_testwrite(nand_info_t *nand, ulong off)
+{
+	int i;
+	u_char *buf, *p;
+	unsigned long *ulp;
+	size_t retLen;
+	int ret=0;
+
+	buf = malloc(nand->oobblock + nand->oobsize);
+	if (!buf) {
+		puts("No memory for page buffer\n");
+		return 1;
+	}
+	off &= ~(nand->oobblock - 1);
+	
+	if (nand_erase(nand,off, 0x20000)) {
+		printf("erase failure\n");
+		ret=1;
+	} else {
+		ulp = (unsigned long *)buf;
+		for (i=0; i < nand->oobblock; i+=4) {
+			*ulp++ = i;
+		}
+		p = (u_char*)ulp;
+		for (i=0; i < nand->oobsize; i++) {
+			*p++ = i;
+		}
+		i = nand_write_raw (nand, off, nand->oobblock + nand->oobsize, &retLen, buf);
+		if (i<0) {
+			printf("Error (%d) writing page %08x\n", i, off);
+			ret=1;
+		}
+	}
+	free(buf);
+	return ret;
+}
 /* ------------------------------------------------------------------------- */
 
 static void
@@ -176,11 +212,6 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		return 0;
 	}
 
-	if (strcmp(cmd, "bad") != 0 && strcmp(cmd, "erase") != 0 &&
-	    strncmp(cmd, "dump", 4) != 0 &&
-	    strncmp(cmd, "read", 4) != 0 && strncmp(cmd, "write", 5) != 0)
-		goto usage;
-
 	/* the following commands operate on the current device */
 	if (nand_curr_device < 0 || nand_curr_device >= CFG_MAX_NAND_DEVICE ||
 	    !nand_info[nand_curr_device].name) {
@@ -225,6 +256,15 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		return ret == 0 ? 1 : 0;
 
 	}
+	if (strncmp(cmd, "testwrite", 9) == 0) {
+		if (argc < 3)
+			goto usage;
+
+		s = strchr(cmd, '.');
+		off = (int)simple_strtoul(argv[2], NULL, 16);
+		ret = nand_testwrite(nand, off);
+		return ret == 0 ? 1 : 0;
+	}
 
 	/* read write */
 	if (strncmp(cmd, "read", 4) == 0 || strncmp(cmd, "write", 5) == 0) {
@@ -246,7 +286,7 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 			return 1;
 
 		i = strncmp(cmd, "read", 4) == 0;	/* 1 = read, 0 = write */
-		printf("\nNAND %s: device %d offset %u, size %u ... ",
+		printf("\nNAND %s: device %d offset %u, size %u ...\n",
 		       i ? "read" : "write", nand_curr_device, off, size);
 
 		if (i)
@@ -275,6 +315,7 @@ U_BOOT_CMD(nand, 5, 1, do_nand,
 	"    offset `off' (entire device if not specified)\n"
 	"nand bad - show bad blocks\n"
 	"nand dump[.oob] off - dump page\n"
+	"nand testwrite off - erase a block & write a page with a pattern\n"
 	"nand scrub - really clean NAND erasing bad blocks (UNSAFE)\n"
 	"nand markbad off - mark bad block at offset (UNSAFE)\n"
 	"nand biterr off - make a bit error at offset (UNSAFE)\n");
@@ -751,7 +792,7 @@ int do_nandboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 }
 
 U_BOOT_CMD(
-	nboot,	4,	1,	do_nandboot,
+	nboot,	4,	0,	do_nandboot,
 	"nboot   - boot from NAND device\n",
 	"loadAddr dev\n"
 );

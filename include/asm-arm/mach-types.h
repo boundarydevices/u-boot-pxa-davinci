@@ -345,6 +345,10 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_GONZO                330
 #define MACH_TYPE_BAST                 331
 #define MACH_TYPE_SCANPASS             332
+#define MACH_TYPE_NEON                 332
+#define MACH_TYPE_BD2003               332
+#define MACH_TYPE_HALOGEN              332
+#define MACH_TYPE_IMX31_MERCURY        332
 #define MACH_TYPE_EP7312_POOH          333
 #define MACH_TYPE_TA7S                 334
 #define MACH_TYPE_TA7V                 335
@@ -9400,6 +9404,42 @@ extern unsigned int __machine_arch_type;
 # define machine_is_mp2usb()	(machine_arch_type == MACH_TYPE_MP2USB)
 #else
 # define machine_is_mp2usb()	(0)
+#endif
+
+#ifdef CONFIG_ARCH_NEON
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_NEON
+# endif
+# define machine_is_neon()	(machine_arch_type == MACH_TYPE_NEON)
+#else
+# define machine_is_neon()	(0)
+#endif
+
+#ifdef CONFIG_ARCH_BD2003
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_BD2003
+# endif
+# define machine_is_bd2003()	(machine_arch_type == MACH_TYPE_BD2003)
+#else
+# define machine_is_bd2003()	(0)
+#endif
+
+#ifdef CONFIG_ARCH_HALOGEN
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_HALOGEN
+# endif
+# define machine_is_halogen()	(machine_arch_type == MACH_TYPE_HALOGEN)
+#else
+# define machine_is_halogen()	(0)
 #endif
 
 /*

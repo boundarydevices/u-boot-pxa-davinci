@@ -33,6 +33,7 @@
 #include <common.h>
 #include <command.h>
 #include <asm/arch/pxa-regs.h>
+#include <asm/arch/mmc.h>
 
 #ifdef CONFIG_USE_IRQ
 DECLARE_GLOBAL_DATA_PTR;
@@ -61,8 +62,12 @@ int cleanup_before_linux (void)
 
 	unsigned long i;
 
+   MMC_STRPCL = MMC_STRPCL_STOP_CLK;
+	
 	disable_interrupts ();
 
+   dcache_disable();
+	
 	/* turn off I-cache */
 	asm ("mrc p15, 0, %0, c1, c0, 0":"=r" (i));
 	i &= ~0x1000;
@@ -129,21 +134,6 @@ int icache_status (void)
 	return (i & 0x1000);
 }
 
-/* we will never enable dcache, because we have to setup MMU first */
-void dcache_enable (void)
-{
-	return;
-}
-
-void dcache_disable (void)
-{
-	return;
-}
-
-int dcache_status (void)
-{
-	return 0;					/* always off */
-}
 
 #ifndef CONFIG_CPU_MONAHANS
 void set_GPIO_mode(int gpio_mode)

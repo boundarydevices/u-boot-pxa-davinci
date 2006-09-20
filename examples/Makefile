@@ -117,12 +117,12 @@ endif
 LIBCOBJS= stubs.o
 LIBOBJS	= $(LIBAOBJS) $(LIBCOBJS)
 
-gcclibdir := $(shell dirname `$(CC) -print-libgcc-file-name`)
-clibdir := $(shell dirname `$(CC) $(CFLAGS) -print-file-name=libc.a`)
+gcclibdir := $(shell dirname "`$(CC) -print-libgcc-file-name`")
+clibdir := $(shell dirname "`$(CC) $(CFLAGS) -print-file-name=libc.a`")
 
 CPPFLAGS += -I..
 
-all:	.depend $(OBJS) $(LIB) $(SREC) $(BIN)
+all:	.depend $(LIB) 
 
 #########################################################################
 $(LIB): .depend $(LIBOBJS)

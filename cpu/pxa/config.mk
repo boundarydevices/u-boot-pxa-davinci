@@ -21,12 +21,24 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA 02111-1307 USA
 #
+sinclude ../../select.mk	# include DISPLAY_TYPE, HARDWARE_TYPE, SOFTWARE_TYPE, INCLUDE_MINIDEBUG
 
-PLATFORM_RELFLAGS += -fno-strict-aliasing  -fno-common -ffixed-r8 \
-	-msoft-float
+PLATFORM_RELFLAGS += -fno-strict-aliasing  -fno-common -ffixed-r8 
+PLATFORM_CPPFLAGS += -mapcs-32 -march=armv4
+GCC_MAJOR    := $(shell $(CC) -v 2>&1 | grep version | cut -d' ' -f3  | cut -d'.' -f1)
+GCC_MINOR    := $(shell $(CC) -v 2>&1 | grep version | cut -d' ' -f3  | cut -d'.' -f2)
 
-#PLATFORM_CPPFLAGS += -mapcs-32 -march=armv4 -mtune=strongarm1100
-PLATFORM_CPPFLAGS += -march=armv5 -mtune=xscale
+ifneq ($(GCC_MAJOR),3)
+   PLATFORM_CPPFLAGS += -mtune=strongarm1100
+   PLATFORM_RELFLAGS += -msoft-float
+else
+   PLATFORM_CPPFLAGS += -mtune=xscale
+   ifneq ($(GCC_MINOR),4)
+      PLATFORM_RELFLAGS += -msoft-float
+   endif
+endif
+
+
 # =========================================================================
 #
 # Supply options according to compiler version

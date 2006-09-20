@@ -232,10 +232,42 @@ init_fnc_t *init_sequence[] = {
 	display_dram_config,
 	NULL,
 };
+//#define DEBUG_INIT_FUNCTIONS
+#ifdef DEBUG_INIT_FUNCTIONS
+const char s_cpu_init[] = "cpu_init";
+const char s_board_init[] = "board_init";
+const char s_interrupt_init[] = "interrupt_init";
+const char s_env_init[] = "env_init";
+const char s_init_baudrate[] = "init_baudrate";
+const char s_serial_init[] = "serial_init";
+const char s_console_init_f[] = "console_init_f";
+const char s_display_banner[] = "display_banner";
+#if defined(CONFIG_DISPLAY_CPUINFO)
+const char s_print_cpuinfo[] = "print_cpuinfo";
+#endif
+#if defined(CONFIG_DISPLAY_BOARDINFO)
+const char s_checkboard[] = "checkboard";
+#endif
+const char s_dram_init[] = "dram_init";
+const char s_display_dram_config[] = "display_dram_config";
+
+const char* const initFnNames[] = {s_cpu_init,s_board_init,
+	s_interrupt_init,s_env_init,s_init_baudrate,s_serial_init,
+	s_console_init_f,s_display_banner,
+#if defined(CONFIG_DISPLAY_CPUINFO)
+	s_print_cpuinfo,
+#endif
+#if defined(CONFIG_DISPLAY_BOARDINFO)
+	s_checkboard,
+#endif
+	s_dram_init,s_display_dram_config};
+#endif	//#ifdef DEBUG_INIT_FUNCTIONS
+
+
+void DbgBreak(void);
 
 void start_armboot (void)
 {
-	init_fnc_t **init_fnc_ptr;
 	char *s;
 #ifndef CFG_NO_FLASH
 	ulong size;
@@ -245,7 +277,10 @@ void start_armboot (void)
 #endif
 
 	/* Pointer is writable since we allocated a register for it */
-	gd = (gd_t*)(_armboot_start - CFG_MALLOC_LEN - sizeof(gd_t));
+#ifndef CFG_MMU_SPACE_RESERVED
+#define CFG_MMU_SPACE_RESERVED 0
+#endif
+	gd = (gd_t*)(_armboot_start - CFG_MMU_SPACE_RESERVED - CFG_MALLOC_LEN - sizeof(gd_t));
 	/* compiler optimization barrier needed for GCC >= 3.4 */
 	__asm__ __volatile__("": : :"memory");
 
@@ -255,12 +290,32 @@ void start_armboot (void)
 
 	monitor_flash_len = _bss_start - _armboot_start;
 
-	for (init_fnc_ptr = init_sequence; *init_fnc_ptr; ++init_fnc_ptr) {
-		if ((*init_fnc_ptr)() != 0) {
-			hang ();
+	{
+		init_fnc_t **init_fnc_ptr;
+#ifdef DEBUG_INIT_FUNCTIONS
+		const char* const* s = initFnNames;
+		for (init_fnc_ptr = init_sequence; *init_fnc_ptr; ++init_fnc_ptr,s++) {
+			serial_puts(*s);
+			serial_puts("\n");
+			if ((*init_fnc_ptr)() != 0) {
+				serial_puts(*s);
+				serial_puts(" - init function failed\n");
+				DbgBreak();
+//				hang ();
+			} else {
+				serial_puts(*s);
+				serial_puts(" - init function success\n");
+			}
 		}
+#else
+		for (init_fnc_ptr = init_sequence; *init_fnc_ptr; ++init_fnc_ptr) {
+			if ((*init_fnc_ptr)() != 0) {
+				serial_puts("init function failed\n");
+				hang ();
+			}
+		}
+#endif
 	}
-
 #ifndef CFG_NO_FLASH
 	/* configure available FLASH banks */
 	size = flash_init ();
@@ -294,10 +349,9 @@ void start_armboot (void)
 #endif /* CONFIG_LCD */
 
 	/* armboot_start is defined in the board-specific linker script */
-	mem_malloc_init (_armboot_start - CFG_MALLOC_LEN);
+	mem_malloc_init (_armboot_start - CFG_MMU_SPACE_RESERVED - CFG_MALLOC_LEN);
 
 #if (CONFIG_COMMANDS & CFG_CMD_NAND)
-	puts ("NAND:  ");
 	nand_init();		/* go init the NAND */
 #endif
 

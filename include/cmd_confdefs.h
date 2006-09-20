@@ -94,8 +94,9 @@
 #define CFG_CMD_EXT2	0x1000000000000000ULL	/* EXT2 Support			*/
 #define CFG_CMD_SNTP	0x2000000000000000ULL	/* SNTP support			*/
 #define CFG_CMD_DISPLAY	0x4000000000000000ULL	/* Display support		*/
+#define CFG_CMD_NOT      0x8000000000000000ULL	/* Negate a command */
 
-#define CFG_CMD_ALL	0xFFFFFFFFFFFFFFFFULL	/* ALL commands			*/
+#define CFG_CMD_ALL	     0xFFFFFFFFFFFFFFFFULL	/* ALL commands			*/
 
 /* Commands that are considered "non-standard" for some reason
  * (memory hogs, requires special hardware, not fully tested, etc.)

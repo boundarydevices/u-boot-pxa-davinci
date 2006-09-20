@@ -31,7 +31,6 @@
 
 extern char lcd_is_enabled;
 
-extern int lcd_line_length;
 extern int lcd_color_fg;
 extern int lcd_color_bg;
 
@@ -53,6 +52,7 @@ typedef struct vidinfo {
 	ushort	vl_row;		/* Number of rows (i.e. 480) */
 	ushort	vl_width;	/* Width of display area in millimeters */
 	ushort	vl_height;	/* Height of display area in millimeters */
+	int 	vl_lcd_line_length;
 
 	/* LCD configuration register */
 	u_char	vl_clkp;	/* Clock polarity */
@@ -77,7 +77,7 @@ typedef struct vidinfo {
 
 extern vidinfo_t panel_info;
 
-#elif defined CONFIG_PXA250
+#elif defined( PXALCD )
 /*
  * PXA LCD DMA descriptor
  */
@@ -119,6 +119,7 @@ typedef struct vidinfo {
 	ushort	vl_row;		/* Number of rows (i.e. 480) */
 	ushort	vl_width;	/* Width of display area in millimeters */
 	ushort	vl_height;	/* Height of display area in millimeters */
+	int 	vl_lcd_line_length;
 
 	/* LCD configuration register */
 	u_char	vl_clkp;	/* Clock polarity */
@@ -148,14 +149,49 @@ typedef struct vidinfo {
 
 extern vidinfo_t panel_info;
 
-#endif /* CONFIG_MPC823 or CONFIG_PXA250 */
+#if defined( CONFIG_PXA250 )
+	#define PALETTEVAL_TYPE u16
+#elif defined( CONFIG_PXA270 )
+	#define PALETTEVAL_TYPE u32
+#else
+#error no processor defined
+#endif
+
+#elif defined( CONFIG_SM501 )
+
+/*
+ * LCD controller stucture for PXA CPU
+ */
+typedef struct vidinfo {
+	ushort	vl_col;		/* Number of columns (i.e. 640) */
+	ushort	vl_row;		/* Number of rows (i.e. 480) */
+	int 	vl_lcd_line_length;
+	u_char	vl_bpix;	/* Bits per pixel, 0 = 1, 1 = 2, 2 = 4, 3 = 8, 4 = 16 */
+} vidinfo_t;
+
+extern vidinfo_t panel_info;
+
+#elif defined( CONFIG_IMX31 )
+
+/*
+ * LCD controller stucture for PXA CPU
+ */
+typedef struct vidinfo {
+	ushort	vl_col;		/* Number of columns (i.e. 640) */
+	ushort	vl_row;		/* Number of rows (i.e. 480) */
+	int 	vl_lcd_line_length;
+	u_char	vl_bpix;	/* Bits per pixel, 0 = 1, 1 = 2, 2 = 4, 3 = 8, 4 = 16 */
+} vidinfo_t;
+
+extern vidinfo_t panel_info;
+
+#endif /* CONFIG_MPC823 */
 
 /* Video functions */
 
 #if defined(CONFIG_RBC823)
 void	lcd_disable	(void);
 #endif
-
 
 /* int	lcd_init	(void *lcdbase); */
 void	lcd_putc	(const char c);
@@ -261,7 +297,7 @@ void	lcd_printf	(const char *fmt, ...);
 #endif
 
 #define CONSOLE_COLS		(panel_info.vl_col / VIDEO_FONT_WIDTH)
-#define CONSOLE_ROW_SIZE	(VIDEO_FONT_HEIGHT * lcd_line_length)
+#define CONSOLE_ROW_SIZE	(VIDEO_FONT_HEIGHT * panel_info.vl_lcd_line_length)
 #define CONSOLE_ROW_FIRST	(lcd_console_address)
 #define CONSOLE_ROW_SECOND	(lcd_console_address + CONSOLE_ROW_SIZE)
 #define CONSOLE_ROW_LAST	(lcd_console_address + CONSOLE_SIZE \

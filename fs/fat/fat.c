@@ -52,6 +52,8 @@ static int cur_part = 1;
 #define DOS_PART_TBL_OFFSET	0x1be
 #define DOS_PART_MAGIC_OFFSET	0x1fe
 #define DOS_FS_TYPE_OFFSET	0x36
+#define DOS_FS_TYPE_OFFSET_FAT_16 0x36  // Code relating to this constant was changed/added by Dubner 2005-05-20 
+#define DOS_FS_TYPE_OFFSET_FAT_32 0x52  // Code relating to this constant was changed/added by Dubner 2005-05-20 
 
 int disk_read (__u32 startblock, __u32 getsize, __u8 * bufptr)
 {
@@ -64,6 +66,38 @@ int disk_read (__u32 startblock, __u32 getsize, __u8 * bufptr)
 	return -1;
 }
 
+static int isprint (unsigned char ch)
+{
+	if (ch >= 32 && ch < 127)
+		return (1);
+
+	return (0);
+}
+
+void hexdump (int cnt, unsigned char *data)
+{
+	int i;
+	int run;
+	int offset;
+
+	offset = 0;
+	while (cnt) {
+		printf ("%04X : ", offset);
+		if (cnt >= 16)
+			run = 16;
+		else
+			run = cnt;
+		cnt -= run;
+		for (i = 0; i < run; i++)
+			printf ("%02X ", (unsigned int) data[i]);
+		printf (": ");
+		for (i = 0; i < run; i++)
+			printf ("%c", isprint (data[i]) ? data[i] : '.');
+		printf ("\n");
+		data = &data[16];
+		offset += run;
+	}
+}
 
 int
 fat_register_device(block_dev_desc_t *dev_desc, int part_no)
@@ -81,9 +115,12 @@ fat_register_device(block_dev_desc_t *dev_desc, int part_no)
 	if (buffer[DOS_PART_MAGIC_OFFSET] != 0x55 ||
 		buffer[DOS_PART_MAGIC_OFFSET + 1] != 0xaa) {
 		/* no signature found */
+		printf ("** 0xaa55 not found at offset %x\n", DOS_PART_MAGIC_OFFSET);
+		hexdump (512, buffer);
 		return -1;
 	}
-	if(!strncmp((char *)&buffer[DOS_FS_TYPE_OFFSET],"FAT",3)) {
+	if(!strncmp((char *)&buffer[DOS_FS_TYPE_OFFSET_FAT_16],"FAT",3)
+		|| !strncmp (&buffer[DOS_FS_TYPE_OFFSET_FAT_32], "FAT", 3)) {
 		/* ok, we assume we are on a PBR only */
 		cur_part = 1;
 		part_offset=0;
@@ -342,7 +379,7 @@ get_contents(fsdata *mydata, dir_entry *dentptr, __u8 *buffer,
 			newclust = get_fatent(mydata, endclust);
 			if((newclust -1)!=endclust)
 				goto getit;
-			if (newclust <= 0x0001 || newclust >= 0xfff0) {
+			if (newclust <= 0x0001 ) { //  || newclust >= 0xfff0) {
 				FAT_DPRINT("curclust: 0x%x\n", newclust);
 				FAT_DPRINT("Invalid FAT entry\n");
 				return gotsize;
@@ -716,7 +753,6 @@ read_bootsectandvi(boot_sector *bs, volume_info *volinfo, int *fatsize)
 	return -1;
 }
 
-
 __u8 do_fat_read_block[MAX_CLUSTSIZE];  /* Block buffer */
 long
 do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
@@ -893,7 +929,7 @@ do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
 		dentptr++;
 		continue;
 	    }
-	    if (strcmp (fnamecopy, s_name) && strcmp (fnamecopy, l_name)) {
+	    if (fnmatch(fnamecopy, s_name,0) && fnmatch(fnamecopy, l_name,0)) {
 		FAT_DPRINT ("RootMismatch: |%s|%s|\n", s_name, l_name);
 		dentptr++;
 		continue;

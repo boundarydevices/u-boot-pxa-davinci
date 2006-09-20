@@ -182,6 +182,9 @@ int devices_init (void)
 #if defined(CONFIG_HARD_I2C) || defined(CONFIG_SOFT_I2C)
 	i2c_init (CFG_I2C_SPEED, CFG_I2C_SLAVE);
 #endif
+#ifdef CFG_PREFER_SERIAL_CONSOLE
+	drv_system_init ();
+#endif
 #ifdef CONFIG_LCD
 	drv_lcd_init ();
 #endif
@@ -194,7 +197,9 @@ int devices_init (void)
 #ifdef CONFIG_LOGBUFFER
 	drv_logbuff_init ();
 #endif
+#ifndef CFG_PREFER_SERIAL_CONSOLE
 	drv_system_init ();
+#endif
 #ifdef CONFIG_SERIAL_MULTI
 	serial_devices_init ();
 #endif

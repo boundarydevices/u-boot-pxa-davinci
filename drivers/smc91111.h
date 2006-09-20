@@ -74,7 +74,7 @@ typedef unsigned long int 		dword;
 
 #define	SMC_IO_EXTENT	16
 
-#ifdef CONFIG_PXA250
+#if defined( CONFIG_PXA250 ) || defined( CONFIG_PXA270 )
 
 #ifdef CONFIG_XSENGINE
 #define	SMC_inl(r) 	(*((volatile dword *)(SMC_BASE_ADDRESS+(r<<1))))
@@ -176,7 +176,7 @@ typedef unsigned long int 		dword;
 					};  \
 				})
 
-#else /* if not CONFIG_PXA250 */
+#else /* if not CONFIG_PXA250 or CONFIG_PXA270 */
 
 #ifndef CONFIG_SMC_USE_IOFUNCS /* these macros don't work on some boards */
 /*

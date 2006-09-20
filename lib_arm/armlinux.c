@@ -29,6 +29,7 @@
 #ifdef CONFIG_HAS_DATAFLASH
 #include <dataflash.h>
 #endif
+#include "lcd_panels.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -88,6 +89,16 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 
 #ifdef CONFIG_CMDLINE_TAG
 	char *commandline = getenv ("bootargs");
+   if( ( 0 != cur_lcd_panel ) && ( 0 != cur_lcd_panel->rotation ) )
+   {
+      char temp[80];
+      int addedLen = sprintf( temp, " fbrotation=%u", cur_lcd_panel->rotation );
+      unsigned cmdLen = strlen( commandline );
+      char *bigger = (char *)malloc( cmdLen + addedLen + 1 );
+      strcpy( bigger, commandline );
+      strcpy( bigger+cmdLen, temp );
+      commandline = bigger ;
+   }
 #endif
 
 	theKernel = (void (*)(int, int, uint))ntohl(hdr->ih_ep);
@@ -365,6 +376,7 @@ static void setup_videolfb_tag (gd_t *gd)
 	 * We only use it to pass the address and size, the other entries
 	 * in the tag_videolfb are not of interest.
 	 */
+#ifdef VESA_DISPLAY
 	params->hdr.tag = ATAG_VIDEOLFB;
 	params->hdr.size = tag_size (tag_videolfb);
 
@@ -374,6 +386,7 @@ static void setup_videolfb_tag (gd_t *gd)
 	params->u.videolfb.lfb_size = calc_fbsize();
 
 	params = tag_next (params);
+#endif
 }
 #endif /* CONFIG_VFD || CONFIG_LCD */
 

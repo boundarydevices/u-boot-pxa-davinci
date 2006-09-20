@@ -30,7 +30,6 @@
 
 #if (CONFIG_COMMANDS & CFG_CMD_NET)
 
-
 extern int do_bootm (cmd_tbl_t *, int, int, char *[]);
 
 static int netboot_common (proto_t, cmd_tbl_t *, int , char *[]);
@@ -45,6 +44,104 @@ U_BOOT_CMD(
 	"bootp\t- boot image via network using BootP/TFTP protocol\n",
 	"[loadAddress] [bootfilename]\n"
 );
+
+extern int get_rom_mac (char *v_rom_mac);
+extern int set_rom_mac (char const *v_rom_mac);
+
+/*
+ * returns -1 if not valid hex
+ */
+static int hexValue( char c )
+{
+	if( ( '0' <= c ) && ( '9' >= c ) )
+	{
+		return c-'0' ;
+	}
+	else if( ( 'A' <= c ) && ( 'F' >= c ) )
+	{
+		return c-'A'+10 ;
+	}
+	else if( ( 'a' <= c ) && ( 'f' >= c ) )
+	{
+		return c-'a'+10 ;
+	}
+	else
+		return -1 ;
+}
+
+// returns non-zero to indicate success
+static int parse_mac( char const *macString, // input
+                      char       *macaddr )  // output: not NULL-terminated
+{
+	int i ;
+	for( i = 0 ; i < 6 ; i++ )
+	{
+		char high, low, term ;
+		int  highval, lowval ;
+		high = *macString++ ;
+		
+		if( ( 0 == high ) 
+		    || 
+		    ( 0 > ( highval = hexValue(high) ) ) )
+			break ;
+		low  = *macString++ ;
+		if( ( 0 == low ) 
+		    || 
+		    ( 0 > ( lowval = hexValue(low) ) ) )
+			break ;
+		
+		term = *macString++ ;
+		if( 5 > i )
+		{
+			if( ( '-' != term ) && ( ':' != term ) )
+				break ;
+		}
+		else if( '\0' != term )
+			break ;
+			
+		*macaddr++ = (highval<<4) | lowval ;
+	}
+
+	return ( 6 == i );
+}
+
+int do_mac (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	if( 2 == argc )
+	{
+		char mac[6];
+		if( parse_mac( argv[1], mac ) )
+		{
+			printf( "setting mac address to %02x:%02x:%02x:%02x:%02x:%02x\n",
+				mac[0],mac[1],mac[2],mac[3],mac[4],mac[5] );
+			if( set_rom_mac( mac ) )
+				printf( "done\n" );
+			else
+				printf( "Error setting mac address\n" );
+		}
+		else
+			printf( "Error parsing mac: use form NN:NN:NN:NN:NN:NN\n" );
+	}
+	else
+	{
+		char mac[6];
+		if( get_rom_mac( mac ) )
+			printf( "mac address %02x:%02x:%02x:%02x:%02x:%02x\n",
+				mac[0],mac[1],mac[2],mac[3],mac[4],mac[5] );
+		else if( 0xFF == mac[0] )
+			printf( "MAC has not been programmed\n" );
+		else
+			printf( "error reading mac\n" );
+	}
+   return 0 ;
+}
+
+U_BOOT_CMD(
+	mac,	3,	1,	do_mac,
+	"mac\t- read/write mac address\n",
+	"- supply a parameter of the form NN:NN:NN:NN:NN:NN to set"
+);
+
 
 int do_tftpb (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {

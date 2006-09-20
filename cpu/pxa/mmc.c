@@ -27,6 +27,7 @@
 #include <asm/errno.h>
 #include <asm/arch/hardware.h>
 #include <part.h>
+#include <command.h>
 
 #ifdef CONFIG_MMC
 
@@ -47,32 +48,42 @@ block_dev_desc_t * mmc_get_dev(int dev)
 static uchar mmc_buf[MMC_BLOCK_SIZE];
 static mmc_csd_t mmc_csd;
 static int mmc_ready = 0;
+static int isSD = 0 ;
+static int startBlock = 0 ;
+static ushort RCA = MMC_DEFAULT_RCA ;
+static struct partition part ;
 
+static void stop_clock( void )
+{
+	MMC_STRPCL = MMC_STRPCL_STOP_CLK;
+	MMC_I_MASK = ~MMC_I_MASK_CLK_IS_OFF;
+	while (!(MMC_I_REG & MMC_I_REG_CLK_IS_OFF));
+}
 
-static uchar *
+uchar *
 /****************************************************/
-mmc_cmd(ushort cmd, ushort argh, ushort argl, ushort cmdat)
+mmc_cmd(ushort cmd, uint arg, ushort cmdat)
 /****************************************************/
 {
 	static uchar resp[20];
 	ulong status;
 	int words, i;
 
-	debug("mmc_cmd %x %x %x %x\n", cmd, argh, argl, cmdat);
-	MMC_STRPCL = MMC_STRPCL_STOP_CLK;
-	MMC_I_MASK = ~MMC_I_MASK_CLK_IS_OFF;
-	while (!(MMC_I_REG & MMC_I_REG_CLK_IS_OFF));
+	debug("mmc_cmd %x %x %x %x\n", cmd, arg, cmdat);
+   stop_clock();
+
 	MMC_CMD    = cmd;
-	MMC_ARGH   = argh;
-	MMC_ARGL   = argl;
+	MMC_ARGH   = arg>>16;
+	MMC_ARGL   = arg&0xffff;
 	MMC_CMDAT  = cmdat;
 	MMC_I_MASK = ~MMC_I_MASK_END_CMD_RES;
 	MMC_STRPCL = MMC_STRPCL_START_CLK;
 	while (!(MMC_I_REG & MMC_I_REG_END_CMD_RES));
 
 	status = MMC_STAT;
-	debug("MMC status %x\n", status);
+	debug("MMC status %lx\n", status);
 	if (status & MMC_STAT_TIME_OUT_RESPONSE) {
+		printf( "mmc_cmd timeout: cmd: 0x%x, args: 0x%08x, status 0x%lx\n", cmd, arg, status );
 		return 0;
 	}
 
@@ -83,7 +94,7 @@ mmc_cmd(ushort cmd, ushort argh, ushort argl, ushort cmdat)
 			break;
 
 		case MMC_CMDAT_R2:
-			words = 8;
+			words = 9;
 			break;
 
 		default:
@@ -96,6 +107,7 @@ mmc_cmd(ushort cmd, ushort argh, ushort argl, ushort cmdat)
 		resp[offset] = ((uchar *)&res_fifo)[0];
 		resp[offset+1] = ((uchar *)&res_fifo)[1];
 	}
+
 #ifdef MMC_DEBUG
 	for (i=0; i<words*2; i += 2) {
 		printf("MMC resp[%d] = %02x\n", i, resp[i]);
@@ -105,57 +117,49 @@ mmc_cmd(ushort cmd, ushort argh, ushort argl, ushort cmdat)
 	return resp;
 }
 
+static void mmc_setblklen( ulong blklen )
+{
+	static ulong prevLen = -1UL ;
+	if( blklen != prevLen ) {
+		/* set block len */
+		mmc_cmd( MMC_CMD_SET_BLOCKLEN, blklen, MMC_CMDAT_R1);
+		prevLen = blklen ;
+	}
+}
+
 int
 /****************************************************/
 mmc_block_read(uchar *dst, ulong src, ulong len)
 /****************************************************/
 {
 	uchar *resp;
-	ushort argh, argl;
 	ulong status;
+	unsigned char volatile *rxFIFO = (unsigned char *)&(MMC_RXFIFO);
 
 	if (len == 0) {
 		return 0;
 	}
 
-	debug("mmc_block_rd dst %lx src %lx len %d\n", (ulong)dst, src, len);
-
-	argh = len >> 16;
-	argl = len & 0xffff;
-
-	/* set block len */
-	resp = mmc_cmd(MMC_CMD_SET_BLOCKLEN, argh, argl, MMC_CMDAT_R1);
+	debug("mmc_block_rd dst %lx src %lx len %ld\n", (ulong)dst, src, len);
+	mmc_setblklen( len );
+	src += (startBlock*MMC_BLOCK_SIZE);
 
 	/* send read command */
-	argh = src >> 16;
-	argl = src & 0xffff;
 	MMC_STRPCL = MMC_STRPCL_STOP_CLK;
 	MMC_RDTO = 0xffff;
 	MMC_NOB = 1;
 	MMC_BLKLEN = len;
-	resp = mmc_cmd(MMC_CMD_READ_BLOCK, argh, argl,
+	resp = mmc_cmd(MMC_CMD_READ_BLOCK, src,
 			MMC_CMDAT_R1|MMC_CMDAT_READ|MMC_CMDAT_BLOCK|MMC_CMDAT_DATA_EN);
 
 
 	MMC_I_MASK = ~MMC_I_MASK_RXFIFO_RD_REQ;
 	while (len) {
 		if (MMC_I_REG & MMC_I_REG_RXFIFO_RD_REQ) {
-#ifdef CONFIG_PXA27X
-			int i;
-			for (i=min(len,32); i; i--) {
-				*dst++ = * ((volatile uchar *) &MMC_RXFIFO);
-				len--;
-			}
-#else
-			*dst++ = MMC_RXFIFO;
-			len--;
-#endif
-		}
-		status = MMC_STAT;
-		if (status & MMC_STAT_ERRORS) {
-			printf("MMC_STAT error %lx\n", status);
-			return -1;
-		}
+	   		int i, bytes = min(32,len);
+   			len -= bytes;
+   			for (i=0; i<bytes; i++) *dst++ = *rxFIFO ;
+		} else if (MMC_STAT & MMC_STAT_ERRORS) break;
 	}
 	MMC_I_MASK = ~MMC_I_MASK_DATA_TRAN_DONE;
 	while (!(MMC_I_REG & MMC_I_REG_DATA_TRAN_DONE));
@@ -173,7 +177,6 @@ mmc_block_write(ulong dst, uchar *src, int len)
 /****************************************************/
 {
 	uchar *resp;
-	ushort argh, argl;
 	ulong status;
 
 	if (len == 0) {
@@ -182,19 +185,14 @@ mmc_block_write(ulong dst, uchar *src, int len)
 
 	debug("mmc_block_wr dst %lx src %lx len %d\n", dst, (ulong)src, len);
 
-	argh = len >> 16;
-	argl = len & 0xffff;
-
 	/* set block len */
-	resp = mmc_cmd(MMC_CMD_SET_BLOCKLEN, argh, argl, MMC_CMDAT_R1);
+	resp = mmc_cmd(MMC_CMD_SET_BLOCKLEN, len, MMC_CMDAT_R1);
 
 	/* send write command */
-	argh = dst >> 16;
-	argl = dst & 0xffff;
 	MMC_STRPCL = MMC_STRPCL_STOP_CLK;
 	MMC_NOB = 1;
 	MMC_BLKLEN = len;
-	resp = mmc_cmd(MMC_CMD_WRITE_BLOCK, argh, argl,
+	resp = mmc_cmd(MMC_CMD_WRITE_BLOCK, dst,
 			MMC_CMDAT_R1|MMC_CMDAT_WRITE|MMC_CMDAT_BLOCK|MMC_CMDAT_DATA_EN);
 
 	MMC_I_MASK = ~MMC_I_MASK_TXFIFO_WR_REQ;
@@ -320,7 +318,7 @@ mmc_write(uchar *src, ulong dst, int size)
 	aligned_end = mmc_block_address & end;
 
 	/* all block aligned accesses */
-	debug("src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+	debug("src %p dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
 	src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
 	if (part_start) {
 		part_len = mmc_block_size - part_start;
@@ -336,19 +334,19 @@ mmc_write(uchar *src, ulong dst, int size)
 		dst += part_len;
 		src += part_len;
 	}
-	debug("src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+	debug("src %p dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
 	src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
 	for (; dst < aligned_end; src += mmc_block_size, dst += mmc_block_size) {
-		debug("al src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+		debug("al src %p dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
 		src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
 		if ((mmc_block_write(dst, (uchar *)src, mmc_block_size)) < 0) {
 			return -1;
 		}
 	}
-	debug("src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+	debug("src %p dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
 	src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
 	if (part_end && dst < end) {
-		debug("pe src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+		debug("pe src %p dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
 		src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
 		if ((mmc_block_read(mmc_buf, aligned_end, mmc_block_size)) < 0) {
 			return -1;
@@ -366,11 +364,320 @@ ulong
 mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 /****************************************************/
 {
+   debug( "read %lu blocks at block #%lu\n", blkcnt, blknr );
+   	
+   if( 0 < blkcnt )
+   {
+      if( 0 != getenv( "mblock" ) )
+      {
 	int mmc_block_size = MMC_BLOCK_SIZE;
 	ulong src = blknr * mmc_block_size + CFG_MMC_BASE;
 
 	mmc_read(src, (uchar *)dst, blkcnt*mmc_block_size);
+      }
+      else
+      {
+         ulong src = (blknr+startBlock) * MMC_BLOCK_SIZE ;
+         ulong status ;
+         uchar *dstb = (uchar *)dst ;
+         unsigned char volatile *rxFIFO = (unsigned char *)&(MMC_RXFIFO);
+
+      	MMC_RDTO   = 0xffff;
+      	MMC_BLKLEN = MMC_BLOCK_SIZE ;
+      	MMC_NOB    = blkcnt ;
+         
+         mmc_setblklen( MMC_BLOCK_SIZE );
+         mmc_cmd( MMC_CMD_RD_BLK_MULTI, src,
+                  MMC_CMDAT_R1|MMC_CMDAT_READ|MMC_CMDAT_BLOCK|MMC_CMDAT_DATA_EN );
+          
+         // read the data
+         for( blknr = 0 ; blknr < blkcnt ; blknr++ )
+         {
+            unsigned len = MMC_BLOCK_SIZE ;
+         	
+            while (len)
+            {
+            	int i ;
+               MMC_I_MASK = ~MMC_I_MASK_RXFIFO_RD_REQ;
+               while( (MMC_I_REG & MMC_I_REG_RXFIFO_RD_REQ) == 0 )
+                  {
+                  }
+
+               for (i = 0; i < 32 ; i++ )
+                  {
+                  *dstb++ = *rxFIFO ;
+                  }
+               len -= 32 ;
+            }
+         } // for each block
+         
+         MMC_I_MASK = ~MMC_I_MASK_DATA_TRAN_DONE;
+         while (!(MMC_I_REG & MMC_I_REG_DATA_TRAN_DONE));
+         status = MMC_STAT;
+         if (status & MMC_STAT_ERRORS)
+         {
+            printf("MMC_STAT error %lx\n", status);
+            return -1;
+         }
+//         printf( "completed mread... now stop\n" );
+
+      	mmc_cmd( MMC_CMD_STOP, 0, MMC_CMDAT_R1);
+
+      } // multi-block read
+   } // or why bother?
 	return blkcnt;
+}
+
+static void dumpResponse( uchar *resp, unsigned bytes )
+{
+   debug( "rsp: " );
+   if( resp )
+   {
+      while( bytes-- )
+         debug( "%02X ", *resp++ );
+      debug( "\n" );
+   }
+   else
+      debug( "NULL\n" );
+}
+
+int SDCard_test( void )
+{
+   unsigned short response ;
+   unsigned long ignore ;
+   unsigned char *resp ;
+
+	mmc_cmd(0, 0, 0);
+
+   resp = mmc_cmd(SD_APP_CMD55, 0, MMC_CMDAT_R1);
+   if( !resp )
+   {
+      printf( "SDInitErr1\n" );
+      return -ENODEV ;
+   }
+   
+   resp = mmc_cmd(SD_APP_CMD41, 0x00200000, MMC_CMDAT_INIT|MMC_CMDAT_R1);
+   if( !resp )
+   {
+      printf( "SDInitErr2\n" );
+      return -ENODEV ;
+   }
+
+   memcpy( &response, resp, sizeof( response ) );
+
+   while (response != 0x3f80)//continue doing ACMD1 until busy bit in response is set
+   {
+      //CMD55 APP_CMD
+      MMC_STRPCL = 0x00000001;//stop clock
+      while ((MMC_STAT & 0x00000100) == 0x00000100); //wait for clock to stop
+      MMC_CMD = 0x00000037;//CMD55 index APP_CMD
+      MMC_ARGH = 0x00000000;//relative card address 0x0
+      MMC_ARGL = 0x00000000;//stuff bits
+      MMC_CMDAT = 0x00000001;//expect response 1
+      MMC_STRPCL = 0x00000002;//start clock
+      while ((MMC_STAT & 0x00002000) == 0x00000000);//wait for end_cmd_res
+      //read response FIFO
+      response = MMC_RES & 0x0000ffff ;
+      ignore = MMC_RES ;
+      ignore = MMC_RES ;
+
+      //ACMD41
+      MMC_STRPCL = 0x00000001;//stop clock
+      while ((MMC_STAT & 0x00000100) == 0x00000100); //wait for clock to stop
+      MMC_CMD = 0x00000029;//ACMD41 index SD_APP_SEND_OP_COND
+      MMC_ARGH = 0x00000020;//set voltage limit of system in command argument
+      MMC_ARGL = 0x00000000;
+      MMC_CMDAT = 0x00000003;//expect response 3
+      MMC_STRPCL = 0x00000002;//start clock
+      while ((MMC_STAT & 0x00002000) == 0x00000000);//wait for end_cmd_res
+      
+      //read response FIFO
+      response = MMC_RES & 0x0000ffff ;
+      ignore = MMC_RES ;
+      ignore = MMC_RES ;
+   }
+
+   return 0 ;
+}
+
+#ifdef DEBUG
+static void print_mmc_csd( struct mmc_csd *csd )
+{
+   printf( "ecc: %u\n", csd->ecc );
+   printf( "file_format: %u\n", csd->file_format );
+   printf( "tmp_write_protect: %u\n", csd->tmp_write_protect );
+   printf( "perm_write_protect: %u\n", csd->perm_write_protect );
+   printf( "copy: %u\n", csd->copy );
+   printf( "file_format_grp: %u\n", csd->file_format_grp );
+	printf( "content_prot_app: %u\n", csd->content_prot_app );
+   printf( "rsvd3: %u\n", csd->rsvd3 );
+   printf( "write_bl_partial: %u\n", csd->write_bl_partial );
+   printf( "write_bl_len: %u\n", csd->write_bl_len );
+   printf( "r2w_factor: %u\n", csd->r2w_factor );
+   printf( "default_ecc: %u\n", csd->default_ecc );
+   printf( "wp_grp_enable: %u\n", csd->wp_grp_enable );
+   printf( "wp_grp_size: %u\n", csd->wp_grp_size );
+   printf( "erase_grp_mult: %u\n", csd->erase_grp_mult );
+   printf( "erase_grp_size: %u\n", csd->erase_grp_size );
+   printf( "c_size_mult1: %u\n", csd->c_size_mult1 );
+   printf( "vdd_w_curr_max: %u\n", csd->vdd_w_curr_max );
+   printf( "vdd_w_curr_min: %u\n", csd->vdd_w_curr_min );
+   printf( "vdd_r_curr_max: %u\n", csd->vdd_r_curr_max );
+   printf( "vdd_r_curr_min: %u\n", csd->vdd_r_curr_min );
+   printf( "c_size: %u\n", csd->c_size );
+   printf( "rsvd2: %u\n", csd->rsvd2 );
+   printf( "dsr_imp: %u\n", csd->dsr_imp );
+   printf( "read_blk_misalign: %u\n", csd->read_blk_misalign );
+   printf( "write_blk_misalign: %u\n", csd->write_blk_misalign );
+   printf( "read_bl_partial: %u\n", csd->read_bl_partial );
+   printf( "read_bl_len: %u\n", csd->read_bl_len );
+   printf( "ccc: %u\n", csd->ccc );
+   printf( "tran_speed %u\n", csd->tran_speed );
+   printf( "nsac; %u\n", csd->nsac );
+	printf( "taac; %u\n", csd->taac );
+   printf( "rsvd1: %u\n", csd->rsvd1 );
+   printf( "spec_vers: %u\n", csd->spec_vers );
+   printf( "csd_structure: %u\n",  csd->csd_structure );
+}
+#endif 
+
+#define DOS_PART_MAGIC_OFFSET	0x1fe
+#define DOS_FS_TYPE_OFFSET	0x36
+#define MSDOS_LABEL_MAGIC1	0x55
+#define MSDOS_LABEL_MAGIC2	0xAA
+
+struct bpb { // see http://staff.washington.edu/dittrich/misc/fatgen103.pdf
+   unsigned char  jump[3];
+   char           oemName[8];
+   unsigned short bytesPerSector ;
+   unsigned char  sectorsPerCluster ;
+   unsigned short reservedSectorCount ;
+   unsigned char  numFats ;
+   unsigned short rootEntCount ;
+   unsigned short totalSec16 ;
+   unsigned char  media ; // 0xF8
+   unsigned short fatSz16 ; 
+   unsigned short secPerTrack ;
+   unsigned short numHeads ;
+   unsigned long  hiddenSectors ;
+   unsigned long  totalSectors32 ;
+   unsigned char  driveNum ;
+   unsigned char  reserved1 ; // 0x00
+   unsigned char  bootSig ; // 0x29 
+   unsigned long  volumeId ;
+   char           volumeLabel[11];
+   char           fileSysType[8];
+} __attribute__((packed));
+
+#define isprint(__c) (((__c)>=0x20)&&((__c)<=0x7f))
+
+static int find_mbr( int max_blocks )
+{
+   int i ;
+   ulong addr = 0 ;
+
+printf( "---- searching %d blocks for MBR\n", max_blocks );
+
+   for( i = 0 ; i < 10 ; i++, addr += MMC_BLOCK_SIZE )
+   {
+      uchar data[MMC_BLOCK_SIZE];
+      if( 0 == mmc_block_read(data, addr, sizeof(data) ))
+      {
+        memcpy( &part, data+0x1be, sizeof(part));
+      	if( ( data[DOS_PART_MAGIC_OFFSET] == MSDOS_LABEL_MAGIC1 )
+             &&
+             ( data[DOS_PART_MAGIC_OFFSET + 1] == MSDOS_LABEL_MAGIC2 ) )
+         {            
+            if( ( ('\x00' == part.boot_ind )
+                  ||
+                  ('\x80' == part.boot_ind ) ) 
+                &&
+                ( 10 > part.head ) 
+                &&
+                ( part.end_head >= part.head ) ) 
+            {
+               printf( "partition info found at block %u\n", i );
+               printf( "boot:%02x head:%02x sec:%02x cyl:%02x sys:%02x endh:%02x ends:%02x endc:%02x start:%08x, count:%08x\n",
+                       part.boot_ind, part.head, part.sector, part.cyl,
+                       part.sys_ind, part.end_head, part.end_sector, part.end_cyl,
+                       part.start_sect, part.nr_sects );
+               printf( "MBR found at block %d\n", i );
+               return part.start_sect ;
+            }
+            else {
+               struct bpb const *bootParams = (struct bpb *)data ;
+               unsigned j ;
+               for( j = 0 ; j < sizeof(data); j++ )
+               {
+                  if( 0 == ( j & 0x0f ) )
+                     printf( "%04x   ", j );
+                  printf( "%02x ", data[j] );
+                  if( 7 == ( j & 7 ) )
+                     printf( "  " );
+                  if( 0x0f == ( j & 0x0f ) )
+                  {
+                     unsigned b ;
+                     for( b = j-15 ; b <= j ; b++ )
+                     {
+                        uchar c = data[b];
+                        if( isprint(c) )
+                           printf( "%c", c );
+                        else
+                           printf( "." );
+                        if( 7 == ( b & 7 ) )
+                           printf( " " );
+                     }
+                     printf( "\n" );
+                  }
+               }
+               printf( "Invalid MBR\n" );
+               printf( "---> Boot Parameter block\n" );
+               printf( "jump %02x %02x %02x\n", bootParams->jump[0],bootParams->jump[1],bootParams->jump[2]);
+               printf( "bytesPerSector: %04x\n", bootParams->bytesPerSector );
+               printf( "sectorsPerCluster: %02x\n", bootParams->sectorsPerCluster );
+               printf( "reservedSectors %04x\n", bootParams->reservedSectorCount );
+               printf( "numFats: %02x\n", bootParams->numFats );
+               printf( "rootEntCount: %04x\n", bootParams->rootEntCount );
+               printf( "totalSec16: %04x\n", bootParams->totalSec16 );
+               printf( "media: %02x\n", bootParams->media );
+               printf( "fatsz16: %04x", bootParams->fatSz16 );
+               printf( "secPerTrack: %04x\n", bootParams->secPerTrack );
+               printf( "numHeads = %04x\n", bootParams->numHeads );
+               printf( "hidden = %08lx\n", bootParams->hiddenSectors );
+               printf( "totalSec32 = %08lx\n", bootParams->totalSectors32 );
+               printf( "drive #%u\n", bootParams->driveNum );
+               printf( "reserved1: %02x\n", bootParams->reserved1 );
+               printf( "bootSig: %02x\n", bootParams->bootSig );
+               printf( "volume: %08lx\n", bootParams->volumeId );
+               part.boot_ind = 0 ;
+               part.head = 0 ; 
+               part.sector = 2 ;
+               part.cyl = 0 ;
+               part.sys_ind = 6 ;
+               part.end_head = bootParams->numHeads ;
+               part.end_sector = 0xe0 ;
+               part.end_cyl = 0xc9 ;
+               part.start_sect = 0 ;
+               part.nr_sects = bootParams->totalSectors32 ;
+               printf( "partition info found at block %u\n", i );
+               printf( "boot:%02x head:%02x sec:%02x cyl:%02x sys:%02x endh:%02x ends:%02x endc:%02x start:%08x, count:%08x\n",
+                       part.boot_ind, part.head, part.sector, part.cyl,
+                       part.sys_ind, part.end_head, part.end_sector, part.end_cyl,
+                       part.start_sect, part.nr_sects );
+               printf( "MBR found at block %d\n", i );
+               return 0 ;
+            }
+         }
+      }
+      else
+      {
+         printf( "!!! Error reading mmc block %u\n", i );
+         break;
+      }
+   }
+
+   printf( "MBR not found!\n" );
+   return -1 ;
 }
 
 int
@@ -380,7 +687,8 @@ mmc_init(int verbose)
 {
  	int retries, rc = -ENODEV;
 	uchar *resp;
-
+	mmc_cid_t *cid ;
+	mmc_csd_t *csd ;
 #ifdef CONFIG_LUBBOCK
 	set_GPIO_mode( GPIO6_MMCCLK_MD );
 	set_GPIO_mode( GPIO8_MMCCS0_MD );
@@ -398,72 +706,186 @@ mmc_init(int verbose)
 	MMC_RESTO  = MMC_RES_TO_MAX;
 	MMC_SPI    = MMC_SPI_DISABLE;
 
-	/* reset */
-	retries = 10;
-	resp = mmc_cmd(0, 0, 0, 0);
-	resp = mmc_cmd(1, 0x00ff, 0xc000, MMC_CMDAT_INIT|MMC_CMDAT_BUSY|MMC_CMDAT_R3);
-	while (retries-- && resp && !(resp[4] & 0x80)) {
-		debug("resp %x %x\n", resp[0], resp[1]);
+	if( 0 == SDCard_test() ) {
+		printf( "SD card detected!\n" );
+		isSD = 1 ;
+	} else {
+		isSD = 0 ;
+ 
+		/* reset */
+	   	mmc_cmd(0, 0, 0);
+		resp = mmc_cmd(1, 0x00ffc000, MMC_CMDAT_INIT|MMC_CMDAT_BUSY|MMC_CMDAT_R3);
+		if( 0 == resp ) {
+			printf( "MMC CMD1 error\n" );
+			return -1 ;
+		}
+		printf( "init: " ); dumpResponse( resp, 6 );
+		retries = 0 ;
+		do {
 #ifdef CONFIG_PXA27X
-		udelay(10000);
+			udelay(100);
 #else
-		udelay(50);
+			udelay(50);
 #endif
-		resp = mmc_cmd(1, 0x00ff, 0xff00, MMC_CMDAT_BUSY|MMC_CMDAT_R3);
+			resp = mmc_cmd(1, 0x00ffff00, MMC_CMDAT_BUSY|MMC_CMDAT_R3);
+			debug( "cmd1: " ); dumpResponse( resp, 6 );
+			retries++ ;
+		} while( resp && ( 0 == ( resp[4] & 0x80 ) ) );
+    
+		if( 0 == resp ) {
+			printf( "MMC CMD1 error2\n" );
+			return -1 ;
+		}
+      
+		do {
+			udelay(100);
+			resp = mmc_cmd(1, 0x00ffff00, MMC_CMDAT_BUSY|MMC_CMDAT_R3);
+			debug( "cmd1: " ); dumpResponse( resp, 6 );
+			retries++ ;
+		} while( resp && ( 0 != ( resp[4] & 0x80 ) ) );
+            
+		printf( "after busy: %s, %d retries\n", 
+			resp ? "have INIT response" : "no INIT response",
+			retries );
 	}
 
 	/* try to get card id */
-	resp = mmc_cmd(2, 0, 0, MMC_CMDAT_R2);
-	if (resp) {
-		/* TODO configure mmc driver depending on card attributes */
-		mmc_cid_t *cid = (mmc_cid_t *)resp;
-		if (verbose) {
-			printf("MMC found. Card desciption is:\n");
-			printf("Manufacturer ID = %02x%02x%02x\n",
-							cid->id[0], cid->id[1], cid->id[2]);
-			printf("HW/FW Revision = %x %x\n",cid->hwrev, cid->fwrev);
-			cid->hwrev = cid->fwrev = 0;	/* null terminate string */
-			printf("Product Name = %s\n",cid->name);
-			printf("Serial Number = %02x%02x%02x\n",
-							cid->sn[0], cid->sn[1], cid->sn[2]);
-			printf("Month = %d\n",cid->month);
-			printf("Year = %d\n",1997 + cid->year);
-		}
-		/* fill in device description */
-		mmc_dev.if_type = IF_TYPE_MMC;
-		mmc_dev.part_type = PART_TYPE_DOS;
-		mmc_dev.dev = 0;
-		mmc_dev.lun = 0;
-		mmc_dev.type = 0;
-		/* FIXME fill in the correct size (is set to 32MByte) */
-		mmc_dev.blksz = 512;
-		mmc_dev.lba = 0x10000;
-		sprintf(mmc_dev.vendor,"Man %02x%02x%02x Snr %02x%02x%02x",
-				cid->id[0], cid->id[1], cid->id[2],
-				cid->sn[0], cid->sn[1], cid->sn[2]);
-		sprintf(mmc_dev.product,"%s",cid->name);
-		sprintf(mmc_dev.revision,"%x %x",cid->hwrev, cid->fwrev);
-		mmc_dev.removable = 0;
-		mmc_dev.block_read = mmc_bread;
-
-		/* MMC exists, get CSD too */
-		resp = mmc_cmd(MMC_CMD_SET_RCA, MMC_DEFAULT_RCA, 0, MMC_CMDAT_R1);
-		resp = mmc_cmd(MMC_CMD_SEND_CSD, MMC_DEFAULT_RCA, 0, MMC_CMDAT_R2);
-		if (resp) {
-			mmc_csd_t *csd = (mmc_csd_t *)resp;
-			memcpy(&mmc_csd, csd, sizeof(csd));
-			rc = 0;
-			mmc_ready = 1;
-			/* FIXME add verbose printout for csd */
-		}
+	resp = mmc_cmd(2, 0, MMC_CMDAT_R2);
+	if( !resp ) {
+		printf( "Bad CMDAT_R2 response\n" );
+		return -1 ;
 	}
+	/* TODO configure mmc driver depending on card attributes */
+	cid = (mmc_cid_t *)resp;
+	if (verbose) {
+		printf("MMC found. Card desciption is:\n");
+		printf("Manufacturer ID = %02x%02x%02x\n",
+						cid->id[0], cid->id[1], cid->id[2]);
+		printf("HW/FW Revision = %x %x\n",cid->hwrev, cid->fwrev);
+		cid->hwrev = cid->fwrev = 0;	/* null terminate string */
+		printf("Product Name = %s\n",cid->name);
+		printf("Serial Number = %02x%02x%02x\n",
+						cid->sn[0], cid->sn[1], cid->sn[2]);
+		printf("Month = %d\n",cid->month);
+		printf("Year = %d\n",1997 + cid->year);
+	}
+	sprintf(mmc_dev.product,"%s",cid->name);
+	sprintf(mmc_dev.vendor,"Man %02x%02x%02x Snr %02x%02x%02x",
+		cid->id[0], cid->id[1], cid->id[2],
+		cid->sn[0], cid->sn[1], cid->sn[2]);
+	sprintf(mmc_dev.revision,"%x %x",cid->hwrev, cid->fwrev);
+
+	/* fill in device description */
+	mmc_dev.if_type = IF_TYPE_MMC;
+	mmc_dev.part_type = PART_TYPE_DOS;
+	mmc_dev.dev = 0;
+	mmc_dev.lun = 0;
+	mmc_dev.type = 0;
+	/* FIXME fill in the correct size (is set to 32MByte) */
+	mmc_dev.blksz = 512;
+	mmc_dev.lba = 0x10000;
+#if 0
+	sprintf(mmc_dev.vendor,"Man %02x%02x%02x Snr %02x%02x%02x",
+			cid->id[0], cid->id[1], cid->id[2],
+			cid->sn[0], cid->sn[1], cid->sn[2]);
+	sprintf(mmc_dev.product,"%s",cid->name);
+	sprintf(mmc_dev.revision,"%x %x",cid->hwrev, cid->fwrev);
+#endif
+	mmc_dev.removable = 0;
+	mmc_dev.block_read = mmc_bread;
+
+	/* MMC exists, get CSD too */
+	resp = mmc_cmd(MMC_CMD_SET_RCA, MMC_DEFAULT_RCA<<16, MMC_CMDAT_R1);
+   
+	if (!resp ) {
+		printf( "no SET_RCA response\n" );
+		return -1 ;
+	}
+	RCA = ( isSD )? (((ushort)resp[4] << 8 ) | resp[3]) : MMC_DEFAULT_RCA ;
+
+#if 0
+/*
+ * According to a Toshiba doc, the following is supposed to give
+ * the size of the 'protected' area (so we can ignore it).
+
+ * Unfortunately, I can't get the numbers to add up, so we walk
+ * til we find an MBR instead.
+ */
+	if ( isSD ) {
+		sd_status_t *status ;
+		int i ;
+		printf( "sending CMD55\n" );
+		resp = mmc_cmd(SD_APP_CMD55, RCA<<16, MMC_CMDAT_R1);
+		if( !resp ) {
+			printf( "Error 0x%04x sending APP CMD\n", MMC_STAT );
+			return -1 ;
+		}
+		printf( "have CMD55 response\n" );
+		memset( resp, 0, 20 );
+
+		resp = mmc_cmd(SD_STATUS, RCA<<16, MMC_CMDAT_R1 );
+		if ( !resp ) {
+			printf( "Error reading SD_STATUS\n" );
+			return -1 ;
+		}
+       	printf( "SDSTATUS returned\n" );
+       	for( i = 0 ; i < 16 ; i++ ) printf( "%02x ", resp[i] );
+		printf( "\n" );
+		status = (sd_status_t *)resp ;
+		printf( "bus_width:     %u\n", status->bus_width );
+		printf( "secured_mode:  %u\n", status->secured_mode );
+		printf( "unused0:       %x\n", status->unused0 );
+		printf( "card_type:     %x\n", status->card_type );
+		printf( "prot_size:     %lx\n", status->prot_size );
+	}
+#endif
+
+	MMC_STRPCL = MMC_STRPCL_STOP_CLK;
+	MMC_I_MASK = ~MMC_I_MASK_CLK_IS_OFF;
+	while (!(MMC_I_REG & MMC_I_REG_CLK_IS_OFF));
 
 #ifdef CONFIG_PXA27X
 	MMC_CLKRT = 1;	/* 10 MHz - see Intel errata */
 #else
 	MMC_CLKRT = 0;	/* 20 MHz */
 #endif
-	resp = mmc_cmd(7, MMC_DEFAULT_RCA, 0, MMC_CMDAT_R1);
+	resp = mmc_cmd(7, RCA<<16, MMC_CMDAT_R1);
+	if( !resp ) {
+		printf( "Error selecting RCA %x\n", RCA );
+		return -1 ;
+	}
+
+	resp = mmc_cmd(7, 0, MMC_CMDAT_R1);
+	if( !resp ) {
+		// this is normal
+	}
+
+	resp = mmc_cmd(MMC_CMD_SEND_CSD, RCA<<16, MMC_CMDAT_R2);
+	if (!resp) {
+		printf( "Error reading CSD\n" );
+		return -1 ;
+	}
+
+	csd = (mmc_csd_t *)resp;
+	memcpy(&mmc_csd, csd, sizeof(*csd));
+	rc = 0;
+
+#ifdef DEBUG
+	dumpResponse( resp, sizeof( *csd ) );
+	print_mmc_csd( csd );
+#endif 
+
+	resp = mmc_cmd(7, RCA<<16, MMC_CMDAT_R1);
+	if( !resp ) {
+		printf( "Error selecting RCA %x\n", RCA );
+		return -1 ;
+	}
+   
+	mmc_ready = 1;
+	startBlock = find_mbr(mmc_csd.c_size);
+
+	printf( "registering device: startBlock == %d, isSD ? %s\n", 
+		startBlock, isSD ? "yes" : "no" );
 
 	fat_register_device(&mmc_dev,1); /* partitions start counting with 1 */
 
@@ -485,5 +907,41 @@ mmc2info(ulong addr)
 	}
 	return 0;
 }
+
+#if (CONFIG_COMMANDS & CFG_CMD_MMC)
+
+int do_mmc_detect (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+   unsigned long gplr1 = GPLR1 ;
+   int rval = ( 0 != (gplr1 & 0x10) ); 
+#ifdef DEBUG
+   printf ("Checking for MMC card: %lx, %d\n", gplr1, rval );
+#endif
+   return rval ;
+}
+
+U_BOOT_CMD(
+	mmcdet,	  1,	0,	do_mmc_detect,
+	"mmcdet  - detect mmc card\n",
+	NULL
+);
+
+int do_mmc_wp (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+   unsigned long gplr1 = GPLR1 ;
+   int rval = ( 0 == (gplr1 & 0x40) ); 
+#ifdef DEBUG
+   printf ("Checking MMC write protect: %lx, %d\n", gplr1, rval );
+#endif   
+   return rval ;
+}
+
+U_BOOT_CMD(
+	mmcwp,	  1,	0,	do_mmc_wp,
+	"mmcwp   - detect mmc write protect\n",
+	NULL
+);
+
+#endif
 
 #endif	/* CONFIG_MMC */

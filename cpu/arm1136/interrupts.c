@@ -39,10 +39,6 @@
 
 #include <asm/proc-armv/ptrace.h>
 
-#define TIMER_LOAD_VAL 0
-
-/* macro to read the 32 bit timer */
-#define READ_TIMER (*(volatile ulong *)(CFG_TIMERBASE+TCRR))
 
 #ifdef CONFIG_USE_IRQ
 /* enable IRQ interrupts */
@@ -176,22 +172,24 @@ void do_irq (struct pt_regs *pt_regs)
 	bad_mode ();
 }
 
-#if defined(CONFIG_INTEGRATOR) && defined(CONFIG_ARCH_CINTEGRATOR)
-/* Use the IntegratorCP function from board/integratorcp.c */
-#else
 
 static ulong timestamp;
 static ulong lastinc;
 
+/* all function return values in U-Boot ticks i.e. (1/CFG_HZ) sec
+ *  - unless otherwise stated
+ */
+
 /* nothing really to do with interrupts, just starts up a counter. */
-int interrupt_init (void)
+int interrupt_init(void)
 {
-	int32_t val;
+	uint32_t * ep = (uint32_t *)EPIT1_BASE;
 
 	/* Start the counter ticking up */
-	*((int32_t *) (CFG_TIMERBASE + TLDR)) = TIMER_LOAD_VAL;	/* reload value on overflow*/
-	val = (CFG_PVT << 2) | BIT5 | BIT1 | BIT0;		/* mask to enable timer*/
-	*((int32_t *) (CFG_TIMERBASE + TCLR)) = val;	/* start timer */
+	ep[EP_CR>>2] = 0;	/* disable timer */
+	ep[EP_LR>>2] = 0xffffffff;
+	ep[EP_CMPR>>2] = 0xffffffff;
+	ep[EP_CR>>2] = (3<<24)|3;	/* start free running timer */
 
 	reset_timer_masked(); /* init the timestamp and lastinc value */
 
@@ -200,85 +198,59 @@ int interrupt_init (void)
 /*
  * timer without interrupts
  */
-void reset_timer (void)
+void reset_timer(void)
 {
-	reset_timer_masked ();
+	reset_timer_masked();
 }
 
-ulong get_timer (ulong base)
-{
-	return get_timer_masked () - base;
-}
-
-void set_timer (ulong t)
+void set_timer(ulong t)
 {
 	timestamp = t;
 }
+ulong get_timer(ulong base)
+{
+	return get_timer_masked() - base;
+}
+
+unsigned long CalcTicks(unsigned long usec)
+{
+	ulong ticks;
+	if (usec >= (0xffffffffUL/CFG_HZ)) {
+		//too big to do directly
+		ticks = ((usec/1000)*CFG_HZ)/1000;
+	} else {
+		ticks = (usec*CFG_HZ)/1000000;
+	}
+	return ticks;
+}
 
 /* delay x useconds AND perserve advance timstamp value */
-void udelay (unsigned long usec)
+void udelay(unsigned long usec)
 {
-	ulong tmo, tmp;
-
-	if (usec >= 1000) {			/* if "big" number, spread normalization to seconds */
-		tmo = usec / 1000;		/* start to normalize for usec to ticks per sec */
-		tmo *= CFG_HZ;			/* find number of "ticks" to wait to achieve target */
-		tmo /= 1000;			/* finish normalize. */
-	} else {					/* else small number, don't kill it prior to HZ multiply */
-		tmo = usec * CFG_HZ;
-		tmo /= (1000*1000);
-	}
-
-	tmp = get_timer (0);		/* get current timestamp */
-	if ( (tmo + tmp + 1) < tmp )/* if setting this forward will roll time stamp */
-		reset_timer_masked ();	/* reset "advancing" timestamp to 0, set lastinc value */
-	else
-		tmo	+= tmp;				/* else, set advancing stamp wake up time */
-	while (get_timer_masked () < tmo)/* loop till event */
-		/*NOP*/;
+	signed long remaining;
+	ulong stopVal = get_timer_masked() + CalcTicks(usec);
+	do {
+		remaining = (signed long)(stopVal - get_timer_masked());
+	} while (remaining > 0);
 }
 
 void reset_timer_masked (void)
 {
 	/* reset time */
-	lastinc = READ_TIMER;		/* capture current incrementer value time */
+	uint32_t * ep = (uint32_t *)EPIT1_BASE;
+	lastinc = -ep[EP_CNT>>2];
 	timestamp = 0;				/* start "advancing" time stamp from 0 */
 }
 
 ulong get_timer_masked (void)
 {
-	ulong now = READ_TIMER;		/* current tick value */
-
-	if (now >= lastinc)			/* normal mode (non roll) */
-		timestamp += (now - lastinc); /* move stamp fordward with absoulte diff ticks */
-	else						/* we have rollover of incrementer */
-		timestamp += (0xFFFFFFFF - lastinc) + now;
+	uint32_t * ep = (uint32_t *)EPIT1_BASE;
+	ulong now = -ep[EP_CNT>>2];
+	timestamp += (now - lastinc);
 	lastinc = now;
 	return timestamp;
 }
 
-/* waits specified delay value and resets timestamp */
-void udelay_masked (unsigned long usec)
-{
-	ulong tmo;
-	ulong endtime;
-	signed long diff;
-
-	if (usec >= 1000) {			/* if "big" number, spread normalization to seconds */
-		tmo = usec / 1000;		/* start to normalize for usec to ticks per sec */
-		tmo *= CFG_HZ;			/* find number of "ticks" to wait to achieve target */
-		tmo /= 1000;			/* finish normalize. */
-	} else {					/* else small number, don't kill it prior to HZ multiply */
-		tmo = usec * CFG_HZ;
-		tmo /= (1000*1000);
-	}
-	endtime = get_timer_masked () + tmo;
-
-	do {
-		ulong now = get_timer_masked ();
-		diff = endtime - now;
-	} while (diff >= 0);
-}
 
 /*
  * This function is derived from PowerPC code (read timebase as long long).
@@ -286,7 +258,7 @@ void udelay_masked (unsigned long usec)
  */
 unsigned long long get_ticks(void)
 {
-	return get_timer(0);
+	return get_timer_masked();
 }
 /*
  * This function is derived from PowerPC code (timebase clock frequency).
@@ -294,8 +266,5 @@ unsigned long long get_ticks(void)
  */
 ulong get_tbclk (void)
 {
-	ulong tbclk;
-	tbclk = CFG_HZ;
-	return tbclk;
+	return CFG_HZ;
 }
-#endif /* !Integrator/CP */

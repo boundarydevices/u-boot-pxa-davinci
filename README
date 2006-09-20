@@ -864,6 +864,9 @@ The following options need to be configured:
 				for differential drivers: 0x00001000
 				for single ended drivers: 0x00005000
 
+- Dynamic LCD Panel support
+      Allows the choice of an LCD panel through the environment.
+      Also allows prompting for panel characteristics.
 
 - MMC Support:
 		The MMC controller on the Intel PXA is supported. To

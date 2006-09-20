@@ -43,4 +43,66 @@ U_BOOT_CMD(
 	NULL
 );
 
+int do_mmc_cmd(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+   if( 5 == argc )
+   {
+      unsigned long args[4];
+      unsigned i ;
+      for( i = 1 ; i < 5 ; i++ )
+      {
+         char *endp ;
+         args[i-1] = simple_strtoul(argv[i], &endp, 16 );
+         if( 0 != *endp )
+         {
+            printf( "arg[%u] is not a valid hex number\n", i );
+            break;
+         }
+      }
+   
+      if( 5 == i )
+      {
+         uchar *resp = mmc_cmd( (ushort)args[0],(args[1]<<16)|args[2],
+                                (ushort)args[3] );
+         ushort numWords = 0 ;
+         switch( args[3] )
+         {
+            case MMC_CMDAT_R1:
+            case MMC_CMDAT_R3:
+               numWords = 3;
+               break;
+   
+            case MMC_CMDAT_R2:
+               numWords = 8;
+               break;
+   
+            default:
+               printf( "Invalid response type %lu, options are [1,2,3]\n", args[3] );
+               break;
+         }
+   
+         if( resp )
+         {
+            for( i = 0 ; i < numWords*2 ; i++ )
+            {
+               printf( "%02X ", resp[i] );
+            }
+            printf( "\n" );
+         }
+         else
+            printf( "no response\n" );
+      }
+   }
+   else
+      printf ("Usage:\n%s\n", cmdtp->usage);
+   
+   return 0;
+}
+
+U_BOOT_CMD(
+	mmccmd,	5,	0,	do_mmc_cmd,
+	"mmccmd - issue mmc command\n",
+	"mmccmd cmd# argh(hex) argl(hex) rsptype\n"
+);
+
 #endif	/* CFG_CMD_MMC */

@@ -45,6 +45,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #endif
 
 #undef DEBUG_ENV
+#define DEBUG_ENV
+
 #ifdef DEBUG_ENV
 #define DEBUGF(fmt,args...) printf(fmt ,##args)
 #else
@@ -252,7 +254,9 @@ void env_relocate (void)
 		gd->env_valid = 1;
 	}
 	else {
+		DEBUGF ("%s[%d] env_relocate_spec start\n", __FUNCTION__,__LINE__);
 		env_relocate_spec ();
+		DEBUGF ("%s[%d] env_relocate_spec done\n", __FUNCTION__,__LINE__);
 	}
 	gd->env_addr = (ulong)&(env_ptr->data);
 

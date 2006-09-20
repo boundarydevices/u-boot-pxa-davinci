@@ -74,13 +74,13 @@ static block_dev_desc_t *get_dev (char* ifname, int dev)
 #if ((CONFIG_COMMANDS & CFG_CMD_USB) && defined(CONFIG_USB_STORAGE))
 	if (strncmp(ifname,"usb",3)==0) {
 		extern block_dev_desc_t * usb_stor_get_dev(int dev);
-		return((dev >= USB_MAX_STOR_DEV) ? NULL : usb_stor_get_dev(dev));
+		return(usb_stor_get_dev(dev));
 	}
 #endif
 #if defined(CONFIG_MMC)
 	if (strncmp(ifname,"mmc",3)==0) {
 		extern block_dev_desc_t *  mmc_get_dev(int dev);
-		return((dev >= 1) ? NULL : mmc_get_dev(dev));
+		return(mmc_get_dev(dev));
 	}
 #endif
 #if defined(CONFIG_SYSTEMACE)

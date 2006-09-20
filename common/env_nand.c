@@ -105,113 +105,109 @@ int env_init(void)
  * The legacy NAND code saved the environment in the first NAND device i.e.,
  * nand_dev_desc + 0. This is also the behaviour using the new NAND code.
  */
+int saveenv(void)
+{
+	int ret = 0;
+	int byteCnt;
 #ifdef CFG_ENV_OFFSET_REDUND
-int saveenv(void)
-{
-	ulong total;
-	int ret = 0;
+	unsigned long offset = (gd->env_valid == 1)? CFG_ENV_OFFSET_REDUND : CFG_ENV_OFFSET;
+#else
+	const unsigned long offset = CFG_ENV_OFFSET;
+#endif
 
+#if defined(CFG_ENV_SECT_SIZE) && (CFG_ENV_SECT_SIZE > CFG_ENV_SIZE)
+	ulong total = CFG_ENV_SECT_SIZE;
+	ulong sectOffset = offset & (CFG_ENV_SECT_SIZE-1);
+	uchar env_buffer[CFG_ENV_SECT_SIZE];
+	offset &= ~(CFG_ENV_SECT_SIZE-1);		//aligned offset to sector boundary
+#else
+	ulong total = CFG_ENV_SIZE;
+	uchar *env_buffer = (uchar *)env_ptr;
+#endif	/* CFG_ENV_SECT_SIZE */
+
+#ifdef CFG_ENV_OFFSET_REDUND
 	env_ptr->flags++;
-	total = CFG_ENV_SIZE;
+	gd->env_valid ^= 3;		//1->2, 2->1
+#endif
 
-	if(gd->env_valid == 1) {
-		puts ("Erasing redundant Nand...");
-		if (nand_erase(&nand_info[0],
-			       CFG_ENV_OFFSET_REDUND, CFG_ENV_SIZE))
-			return 1;
-		puts ("Writing to redundant Nand... ");
-		ret = nand_write(&nand_info[0], CFG_ENV_OFFSET_REDUND, &total,
-				 (u_char*) env_ptr);
-	} else {
-		puts ("Erasing Nand...");
-		if (nand_erase(&nand_info[0],
-			       CFG_ENV_OFFSET, CFG_ENV_SIZE))
-			return 1;
-
-		puts ("Writing to Nand... ");
-		ret = nand_write(&nand_info[0], CFG_ENV_OFFSET, &total,
-				 (u_char*) env_ptr);
+#if defined(CFG_ENV_SECT_SIZE) && (CFG_ENV_SECT_SIZE > CFG_ENV_SIZE)
+	byteCnt = total;
+	ret = nand_read(&nand_info[0], offset, &total,env_buffer);
+	if (total < byteCnt) {
+		printf("Error: only 0x%x bytes read\n",total);
+		memset(env_buffer[total],-1,byteCnt-total);
 	}
-	if (ret || total != CFG_ENV_SIZE)
-		return 1;
-
-	puts ("done\n");
-	gd->env_valid = (gd->env_valid == 2 ? 1 : 2);
-	return ret;
-}
-#else /* ! CFG_ENV_OFFSET_REDUND */
-int saveenv(void)
-{
-	ulong total;
-	int ret = 0;
+	/* copy current environment to temporary buffer */
+	memcpy(&env_buffer[sectOffset], env_ptr, CFG_ENV_SIZE);
+	total = CFG_ENV_SECT_SIZE;
+#endif	/* CFG_ENV_SECT_SIZE */
 
 	puts ("Erasing Nand...");
-	if (nand_erase(&nand_info[0], CFG_ENV_OFFSET, CFG_ENV_SIZE))
-		return 1;
-
+	if (nand_erase(&nand_info[0],offset, total)) return 1;
 	puts ("Writing to Nand... ");
-	total = CFG_ENV_SIZE;
-	ret = nand_write(&nand_info[0], CFG_ENV_OFFSET, &total, (u_char*)env_ptr);
-	if (ret || total != CFG_ENV_SIZE)
-		return 1;
+	byteCnt = total;
+	ret = nand_write(&nand_info[0], offset, &total, (u_char*) env_ptr);
+		
+	if (ret || total != byteCnt) return 1;
 
 	puts ("done\n");
 	return ret;
 }
-#endif /* CFG_ENV_OFFSET_REDUND */
 #endif /* CMD_SAVEENV */
+
+void serial_waitTxComplete(void);
 
 #ifdef CFG_ENV_OFFSET_REDUND
 void env_relocate_spec (void)
 {
+	puts ("env_relocate_spec start REDUND\n");
 #if !defined(ENV_IS_EMBEDDED)
 	ulong total;
 	int crc1_ok = 0, crc2_ok = 0;
-	env_t *tmp_env1, *tmp_env2;
+	env_t *tmp_env2;
 
 	total = CFG_ENV_SIZE;
 
-	tmp_env1 = (env_t *) malloc(CFG_ENV_SIZE);
 	tmp_env2 = (env_t *) malloc(CFG_ENV_SIZE);
 
-	nand_read(&nand_info[0], CFG_ENV_OFFSET, &total,
-		  (u_char*) tmp_env1);
-	nand_read(&nand_info[0], CFG_ENV_OFFSET_REDUND, &total,
-		  (u_char*) tmp_env2);
+	if (tmp_env2) {
+		printf("nand_read start %s,0x%p\n",nand_info[0].name,nand_info[0].read);
+		nand_read(&nand_info[0], CFG_ENV_OFFSET, &total,(u_char*) env_ptr);
+		puts ("nand_read done\n");
+		serial_waitTxComplete();
+		printf("nand_read redund start %s,0x%p\n",nand_info[0].name,nand_info[0].read);
+		serial_waitTxComplete();
+		nand_read(&nand_info[0], CFG_ENV_OFFSET_REDUND, &total,(u_char*) tmp_env2);
+		puts ("nand_read done\n");
+		serial_waitTxComplete();
 
-	crc1_ok = (crc32(0, tmp_env1->data, ENV_SIZE) == tmp_env1->crc);
-	crc2_ok = (crc32(0, tmp_env2->data, ENV_SIZE) == tmp_env2->crc);
-
-	if(!crc1_ok && !crc2_ok)
-		return use_default();
-	else if(crc1_ok && !crc2_ok)
-		gd->env_valid = 1;
-	else if(!crc1_ok && crc2_ok)
-		gd->env_valid = 2;
-	else {
-		/* both ok - check serial */
-		if(tmp_env1->flags == 255 && tmp_env2->flags == 0)
-			gd->env_valid = 2;
-		else if(tmp_env2->flags == 255 && tmp_env1->flags == 0)
-			gd->env_valid = 1;
-		else if(tmp_env1->flags > tmp_env2->flags)
-			gd->env_valid = 1;
-		else if(tmp_env2->flags > tmp_env1->flags)
-			gd->env_valid = 2;
-		else /* flags are equal - almost impossible */
-			gd->env_valid = 1;
-
-	}
-
-	free(env_ptr);
-	if(gd->env_valid == 1) {
-		env_ptr = tmp_env1;
-		free(tmp_env2);
+		crc1_ok = (crc32(0, env_ptr->data, ENV_SIZE) == env_ptr->crc);
+		crc2_ok = (crc32(0, tmp_env2->data, ENV_SIZE) == tmp_env2->crc);
 	} else {
-		env_ptr = tmp_env2;
-		free(tmp_env1);
+		puts ("env space alloc failed\n");
 	}
 
+	if(!crc1_ok && !crc2_ok) {
+		printf("Env CRC error on both, use default\n");
+		serial_waitTxComplete();
+		use_default();
+	} else {
+		int i;
+		if(crc1_ok && !crc2_ok) i = 1;
+		else if(!crc1_ok && crc2_ok) i = 2;
+		else {
+			/* both ok - check serial */
+			if( (env_ptr->flags == 0) && (tmp_env2->flags == 255) ) i = 1;
+			else if ( (env_ptr->flags == 255) && (tmp_env2->flags == 0) ) i = 2;
+			else if( env_ptr->flags >= tmp_env2->flags) i = 1;
+			else i = 2;
+		}
+		gd->env_valid = i;
+		if(i == 2) {
+			memcpy(env_ptr,tmp_env2,CFG_ENV_SIZE);
+		}
+	}
+	if (tmp_env2) free(tmp_env2);
 #endif /* ! ENV_IS_EMBEDDED */
 }
 #else /* ! CFG_ENV_OFFSET_REDUND */
@@ -221,12 +217,15 @@ void env_relocate_spec (void)
  */
 void env_relocate_spec (void)
 {
+	puts ("env_relocate_spec start3\n");
 #if !defined(ENV_IS_EMBEDDED)
 	ulong total;
 	int ret;
 
 	total = CFG_ENV_SIZE;
+	printf("nand_read start %s\n",nand_info[0].name);
 	ret = nand_read(&nand_info[0], CFG_ENV_OFFSET, &total, (u_char*)env_ptr);
+	puts ("nand_read done\n");
   	if (ret || total != CFG_ENV_SIZE)
 		return use_default();
 

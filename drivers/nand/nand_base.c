@@ -1123,7 +1123,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 	int	oobreadlen;
 
 
-	DEBUG (MTD_DEBUG_LEVEL3, "nand_read_ecc: from = 0x%08x, len = %i\n", (unsigned int) from, (int) len);
+	DEBUG (MTD_DEBUG_LEVEL3, "nand_read_ecc: from=0x%08x, len=0x%x to=0x%p\n", (unsigned int) from, (int) len,buf);
 
 	/* Do not allow reads past end of device */
 	if ((from + len) > mtd->size) {
@@ -1218,12 +1218,15 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 #else
 			puts("Reading data from NAND FLASH without ECC is not recommended\n");
 #endif
+			DEBUG (MTD_DEBUG_LEVEL3, "NAND_ECC_NONE: read_buf: len=0x%x\n", end);
 			this->read_buf(mtd, data_poi, end);
 			break;
 		}
 
 		case NAND_ECC_SOFT:	/* Software ECC 3/256: Read in a page + oob data */
+			DEBUG (MTD_DEBUG_LEVEL3, "NAND_ECC_SOFT: read_buf: len=0x%x\n", end);
 			this->read_buf(mtd, data_poi, end);
+			DEBUG (MTD_DEBUG_LEVEL3, "eccsteps=%x ecc=0x%x\n", eccsteps,ecc);
 			for (i = 0, datidx = 0; eccsteps; eccsteps--, i+=3, datidx += ecc)
 				this->calculate_ecc(mtd, &data_poi[datidx], &ecc_calc[i]);
 			break;
@@ -1231,6 +1234,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 		default:
 			for (i = 0, datidx = 0; eccsteps; eccsteps--, i+=eccbytes, datidx += ecc) {
 				this->enable_hwecc(mtd, NAND_ECC_READ);
+//				DEBUG (MTD_DEBUG_LEVEL3, "read_buf: index=0x%x, len=0x%x\n", datidx,ecc);
 				this->read_buf(mtd, &data_poi[datidx], ecc);
 
 				/* HW ecc with syndrome calculation must read the
@@ -1239,6 +1243,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 					/* Some hw ecc generators need to know when the
 					 * syndrome is read from flash */
 					this->enable_hwecc(mtd, NAND_ECC_READSYN);
+					DEBUG (MTD_DEBUG_LEVEL3, "read_buf: oob_index=0x%x, len=0x%x\n", i,eccbytes);
 					this->read_buf(mtd, &oob_data[i], eccbytes);
 					/* We calc error correction directly, it checks the hw
 					 * generator for an error, reads back the syndrome and
@@ -1256,6 +1261,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 		}
 
 		/* read oobdata */
+//		DEBUG (MTD_DEBUG_LEVEL3, "read_buf: oob_index=0x%x, len=0x%x\n", mtd->oobsize - oobreadlen,oobreadlen);
 		this->read_buf(mtd, &oob_data[mtd->oobsize - oobreadlen], oobreadlen);
 
 		/* Skip ECC check, if not requested (ECC_NONE or HW_ECC with syndromes) */
@@ -1283,7 +1289,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 			}
 
 			if (ecc_status == -1) {
-				DEBUG (MTD_DEBUG_LEVEL0, "nand_read_ecc: " "Failed ECC read, page 0x%08x\n", page);
+				DEBUG (MTD_DEBUG_LEVEL0, "nand_read_ecc: " "Failed ECC read, Page 0x%08x\n", page);
 				ecc_failed++;
 			}
 		}
@@ -1415,6 +1421,7 @@ static int nand_read_oob (struct mtd_info *mtd, loff_t from, size_t len, size_t 
 	while (i < len) {
 		int thislen = mtd->oobsize - col;
 		thislen = min_t(int, thislen, len);
+		DEBUG (MTD_DEBUG_LEVEL3, "read_buf: index=0x%x, len=0x%x\n", i,thislen);
 		this->read_buf(mtd, &buf[i], thislen);
 		i += thislen;
 
@@ -1750,6 +1757,69 @@ out:
 	return ret;
 }
 
+int nand_write_raw(struct mtd_info *mtd, loff_t to, size_t len, size_t * retlen, const u_char * buf)
+{
+	int column, page, status, ret = -EIO, chipnr;
+	struct nand_chip *this = mtd->priv;
+
+	DEBUG (MTD_DEBUG_LEVEL3, "nand_write_raw: to = 0x%08x, len = %i\n", (unsigned int) to, (int) len);
+
+	/* Shift to get page */
+	page = (int) (to >> this->page_shift);
+	chipnr = (int) (to >> this->chip_shift);
+
+	/* Mask to get column */
+	column = to & (mtd->oobblock - 1);
+
+	/* Initialize return length value */
+	*retlen = 0;
+
+	/* Do not allow write past end of page */
+	if ((column + len) > (mtd->oobblock+mtd->oobsize)) {
+		DEBUG (MTD_DEBUG_LEVEL0, "nand_write_raw: Attempt to write past end of page\n");
+		return -EINVAL;
+	}
+
+	/* Grab the lock and see if the device is available */
+	nand_get_device (this, mtd, FL_WRITING);
+
+	/* Select the NAND device */
+	this->select_chip(mtd, chipnr);
+
+	/* Check, if it is write protected */
+	if (nand_check_wp(mtd))
+		goto out;
+
+	/* Invalidate the page cache, if we write to the cached page */
+	if (page == this->pagebuf)
+		this->pagebuf = -1;
+
+	/* Write out desired data */
+	this->cmdfunc (mtd, NAND_CMD_SEQIN, column, page & this->pagemask);
+	/* write data */
+	this->write_buf(mtd, buf, len);
+
+	/* Send command to program the OOB data */
+	this->cmdfunc (mtd, NAND_CMD_PAGEPROG, -1, -1);
+
+	status = this->waitfunc (mtd, this, FL_WRITING);
+
+	/* See if device thinks it succeeded */
+	if (status & 0x01) {
+		DEBUG (MTD_DEBUG_LEVEL0, "nand_write_raw: " "Failed write, page 0x%08x\n", page);
+		ret = -EIO;
+		goto out;
+	}
+	/* Return happy */
+	*retlen = len;
+
+	ret = 0;
+out:
+	/* Deselect and wake up anyone waiting on the device */
+	nand_release_device(mtd);
+
+	return ret;
+}
 
 /**
  * nand_write_oob - [MTD Interface] NAND write out-of-band
@@ -2149,7 +2219,7 @@ int nand_erase_nand (struct mtd_info *mtd, struct erase_info *instr, int allowbb
 	while (len) {
 #ifndef NAND_ALLOW_ERASE_ALL
 		/* Check if we have a bad block, we do not erase bad blocks ! */
-		if (nand_block_checkbad(mtd, ((loff_t) page) << this->page_shift, 0, allowbbt)) {
+		if (0) if (nand_block_checkbad(mtd, ((loff_t) page) << this->page_shift, 0, allowbbt)) {
 			printk (KERN_WARNING "nand_erase: attempt to erase a bad block at page 0x%08x\n", page);
 			instr->state = MTD_ERASE_FAILED;
 			goto erase_exit;

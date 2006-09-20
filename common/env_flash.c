@@ -85,6 +85,10 @@ static ulong end_addr_new = CFG_ENV_ADDR_REDUND + CFG_ENV_SECT_SIZE - 1;
 #define OBSOLETE_FLAG 0
 #endif /* CFG_ENV_ADDR_REDUND */
 
+#ifdef CFG_ENV_IS_IN_FLASH
+static env_t *flash_addr_new = (env_t *)CFG_ENV_ADDR ;
+#endif
+
 extern uchar default_environment[];
 extern int default_environment_size;
 

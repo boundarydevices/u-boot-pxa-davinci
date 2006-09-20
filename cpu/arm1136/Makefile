@@ -1,7 +1,4 @@
 #
-# (C) Copyright 2000-2003
-# Wolfgang Denk, DENX Software Engineering, wd@denx.de.
-#
 # See file CREDITS for list of people who contributed to this
 # project.
 #
@@ -23,21 +20,43 @@
 
 include $(TOPDIR)/config.mk
 
+CPU_TYPE=xscale
+
+ifeq ($(SOFTWARE_TYPE),WINCE)
+STACKS_VALID = -DCONFIG_STACKS_VALID
+else
+
+ifeq ($(SOFTWARE_TYPE),GAME)
+STACKS_VALID = -DCONFIG_STACKS_VALID
+else
+STACKS_VALID =
+endif
+endif
+ARM_ELF_GCC     ?= $(CROSS_COMPILE)gcc
+
 LIB	= lib$(CPU).a
 
-START	= start.o
-OBJS	= interrupts.o cpu.o
+ifeq ($(INCLUDE_MINIDEBUG),y)
+START	= minidebug.o ministart.o
+else
+START	= start.o ministart.o
+endif
+OBJS	= interrupts.o cpu.o mmc.o iomux.o 
 
-all:	.depend $(START) $(LIB)
+SOBJS =  xmodemReceive.o
 
-$(LIB):	$(OBJS)
-	$(AR) crv $@ $(OBJS)
+all:	.depend $(START) $(LIB) $(SOBJS)
 
-#########################################################################
+$(LIB):	$(OBJS) $(SOBJS)
+	$(AR) crv $@ $^
 
-.depend:	Makefile $(START:.o=.S) $(OBJS:.o=.c)
-		$(CC) -M $(CFLAGS) $(START:.o=.S) $(OBJS:.o=.c) > $@
+.depend: Makefile $(START:.o=.S) $(OBJS:.o=.c) $(SOBJS:.o=.S)
+	$(CC) -M $(CFLAGS) $(filter-out Makefile,$^) > $@
 
 sinclude .depend
 
-#########################################################################
+minidebug.o : minidebug.S Makefile
+	echo $(START)
+	$(ARM_ELF_GCC) -c $(D_GNUC) -DDISPLAY_TYPE=$(DISPLAY_TYPE) -DPLATFORM_TYPE=$(PLATFORM_TYPE) -DPLATFORM_REV=$(PLATFORM_REV) -DSOFTWARE_TYPE=$(SOFTWARE_TYPE) $(STACKS_VALID) -DCPU_CLOCK=$(CPU_CLOCK) \
+		$(SOFT_FLOAT) -I$(TOPDIR)/include -mtune=$(CPU_TYPE) -mcpu=$(CPU_TYPE) -o $@ $<
+

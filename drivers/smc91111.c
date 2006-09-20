@@ -1599,6 +1599,101 @@ int smc_get_ethaddr (bd_t * bd)
 	return (0);
 }
 
+#define SMC_GET_INT_MASK()	(SMC_inw( SMC91111_INT_REG ) >> 8)
+#define SMC_SET_INT_MASK(x)	SMC_outw( (x) << 8, SMC91111_INT_REG )
+#define SMC_CURRENT_BANK()	SMC_inw( BANK_SELECT )
+#define SMC_GET_CTL()		SMC_inw( CTL_REG )
+#define SMC_SET_CTL(x)		SMC_outw( x, CTL_REG )
+#define SMC_GET_MII()		SMC_inw( MII_REG )
+#define SMC_SET_MII(x)		SMC_outw( x, MII_REG )
+#define SMC_GET_PTR()		SMC_inw( PTR_REG )
+#define SMC_SET_PTR(x)		SMC_outw( x, PTR_REG )
+
+static int writeEEprom(int i,unsigned short val,unsigned short ctl)
+{
+	SMC_SELECT_BANK( 2 );
+	SMC_SET_PTR( i );
+	SMC_SELECT_BANK( 1 );
+	SMC_outw( val, GP_REG );
+	udelay(1);
+	SMC_SET_CTL( ctl | CTL_EEPROM_SELECT | CTL_STORE );
+	int j=0;
+	do {
+		udelay(10);
+		j++;
+		if (j>=100000) return -1;
+	} while (SMC_GET_CTL() & CTL_STORE);
+	return 0;
+}
+
+#define SMC_SET_MAC_ADDR(addr)						\
+	do {								\
+		SMC_outw( addr[0]|(addr[1] << 8), ADDR0_REG );	\
+		SMC_outw( addr[2]|(addr[3] << 8), ADDR1_REG );	\
+		SMC_outw( addr[4]|(addr[5] << 8), ADDR2_REG );	\
+	} while (0)
+
+int set_rom_mac (char const *mac)
+{
+	unsigned short saved_bank = SMC_CURRENT_BANK();
+	SMC_SELECT_BANK( 2 );
+
+	unsigned short saved_mask = SMC_GET_INT_MASK();
+	SMC_SET_INT_MASK( 0 );
+
+	unsigned short saved_ptr = SMC_GET_PTR();
+
+	SMC_SELECT_BANK( 1 );
+
+	unsigned short saved_ctl = SMC_GET_CTL();
+
+	SMC_SET_MAC_ADDR(mac);
+
+	SMC_SELECT_BANK( 3 );
+	unsigned short mii_reg = SMC_GET_MII();
+
+	SMC_SET_MII(mii_reg & ~(0x0f));
+
+	SMC_SELECT_BANK( 1 );
+
+	SMC_SET_CTL( saved_ctl | CTL_EEPROM_SELECT );
+	unsigned short cfg = CONFIG_DEFAULT
+				| CONFIG_NO_WAIT
+				| CONFIG_EPH_POWER_EN;
+	unsigned short bar = (unsigned short)( SMC_BASE_ADDRESS );
+//a4, a10,a11,a12 must be all zeros
+	bar = (bar & 0xe000) | ((bar & 0x3e0)<<3) | (0x27);
+	int i=0;
+	while (i < 0x20) {
+		if (writeEEprom(i,cfg,saved_ctl)) break;
+		if (writeEEprom(i+1,bar,saved_ctl)) break;
+		if (writeEEprom(i+2,0,saved_ctl)) break;
+		if (writeEEprom(i+3,0,saved_ctl)) break;
+		i+=4;
+	}
+
+	int j = 0;
+	if (i==0x20) {
+		while (j < 6) {
+			if (writeEEprom(i,mac[j]|(mac[j+1]<<8),saved_ctl)) break;
+			i++; j+=2;
+		}
+	}
+
+	SMC_SET_CTL( saved_ctl );
+
+	SMC_SELECT_BANK( 2 );
+	SMC_SET_PTR( saved_ptr );
+	SMC_SET_INT_MASK( saved_mask );
+	SMC_SELECT_BANK( saved_bank );
+
+	return 6 == j ;
+}
+
+static char const invalidMac[6] = {
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+};
+
 int get_rom_mac (uchar *v_rom_mac)
 {
 #ifdef HARDCODE_MAC	/* used for testing or to supress run time warnings */
@@ -1616,6 +1711,9 @@ int get_rom_mac (uchar *v_rom_mac)
 		v_rom_mac[i] = SMC_inb ((ADDR0_REG + i));
 		valid_mac |= v_rom_mac[i];
 	}
+
+	if( valid_mac )
+		valid_mac = ( 0 != memcmp( invalidMac, v_rom_mac, sizeof(invalidMac) ) );
 
 	return (valid_mac ? 1 : 0);
 #endif

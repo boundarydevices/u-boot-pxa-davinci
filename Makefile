@@ -100,6 +100,13 @@ include $(TOPDIR)/config.mk
 #########################################################################
 # U-Boot objects....order is important (i.e. start must be first)
 
+ifeq ($(CPU),arm1136)
+OBJS =
+else
+ifeq ($(CPU),pxa)
+OBJS =
+else
+
 OBJS  = cpu/$(CPU)/start.o
 ifeq ($(CPU),i386)
 OBJS += cpu/$(CPU)/start16.o
@@ -117,6 +124,8 @@ endif
 ifeq ($(CPU),bf533)
 OBJS += cpu/$(CPU)/start1.o	cpu/$(CPU)/interrupt.o	cpu/$(CPU)/cache.o
 OBJS += cpu/$(CPU)/cplbhdlr.o	cpu/$(CPU)/cplbmgr.o	cpu/$(CPU)/flush.o
+endif
+endif
 endif
 
 LIBS  = lib_generic/libgeneric.a
@@ -142,7 +151,8 @@ LIBS += $(BOARDLIBS)
 .PHONY : $(LIBS)
 
 # Add GCC lib
-PLATFORM_LIBS += -L $(shell dirname `$(CC) $(CFLAGS) -print-libgcc-file-name`) -lgcc
+LIBGCC_DIRNAME := $(shell dirname "`$(CC) $(CFLAGS) -print-libgcc-file-name`")
+PLATFORM_LIBS += --no-warn-mismatch -L "$(LIBGCC_DIRNAME)" -lgcc
 
 
 # The "tools" are needed early, so put this first
@@ -150,13 +160,14 @@ PLATFORM_LIBS += -L $(shell dirname `$(CC) $(CFLAGS) -print-libgcc-file-name`) -
 SUBDIRS	= tools \
 	  examples \
 	  post \
-	  post/cpu
+	  post/cpu \
+	  cpu/$(CPU)
 .PHONY : $(SUBDIRS)
 
 #########################################################################
 #########################################################################
 
-ALL = u-boot.srec u-boot.bin System.map
+ALL = u-boot.srec u-boot.bin System.map init.scr upgrade.scr
 
 all:		$(ALL)
 
@@ -223,6 +234,12 @@ System.map:	u-boot
 		grep -v '\(compiled\)\|\(\.o$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 		sort > System.map
 
+init.scr: board/$(BOARDDIR)/init.script
+	tools/mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "autoscript" -d $< $@
+
+upgrade.scr: upgrade.script
+	tools/mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "U-Boot upgrade script" -d $< $@
+
 #########################################################################
 else
 all install u-boot u-boot.srec depend dep:
@@ -234,6 +251,7 @@ endif
 
 unconfig:
 	@rm -f include/config.h include/config.mk board/*/config.tmp
+	@rm -f select.mk include/configs/select.h
 
 #========================================================================
 # PowerPC
@@ -1782,6 +1800,22 @@ pxa255_idp_config:	unconfig
 wepep250_config	:	unconfig
 	@./mkconfig $(@:_config=) arm pxa wepep250
 
+neon_config	:	unconfig
+	@./mkconfig $(@:_config=) arm pxa neon
+	./Configure --PLATFORM_TYPE=NEON
+
+neonb_config	:	unconfig
+	@./mkconfig neon arm pxa neon
+	./Configure --PLATFORM_TYPE=NEONB --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=DA640X240
+
+bd2003_config	:	unconfig
+	@./mkconfig $(@:_config=) arm pxa bd2003
+	./Configure --PLATFORM_TYPE=BD2003
+
+halogen_config	:	unconfig
+	@./mkconfig $(@:_config=) arm pxa halogen
+	./Configure --PLATFORM_TYPE=HALOGEN
+
 xaeniax_config	:	unconfig
 	@./mkconfig $(@:_config=) arm pxa xaeniax
 
@@ -1799,6 +1833,10 @@ zylonite_config :
 #########################################################################
 omap2420h4_config :    unconfig
 	@./mkconfig $(@:_config=) arm arm1136 omap2420h4
+
+mercury_config :    unconfig
+	@./mkconfig $(@:_config=) arm arm1136 mercury
+	./Configure --PLATFORM_TYPE=MERCURY
 
 #========================================================================
 # i386
@@ -1998,10 +2036,16 @@ dspstamp_config	:	unconfig
 #########################################################################
 #########################################################################
 
+ifeq ($(HOSTOS),cygwin)
+FIND = /bin/find
+else
+FIND = find
+endif
+
 clean:
-	find . -type f \
+	$(FIND) . -type f \
 		\( -name 'core' -o -name '*.bak' -o -name '*~' \
-		-o -name '*.o'  -o -name '*.a'  \) -print \
+		-o -name '*.o'  -o -name '*.a' -o -name '*.lst' \) -print \
 		| xargs rm -f
 	rm -f examples/hello_world examples/timer \
 	      examples/eepro100_eeprom examples/sched \
@@ -2021,7 +2065,7 @@ clean:
 	rm -f include/bmp_logo.h
 
 clobber:	clean
-	find . -type f \( -name .depend \
+	$(FIND) . -type f \( -name .depend \
 		-o -name '*.srec' -o -name '*.bin' -o -name u-boot.img \) \
 		-print0 \
 		| xargs -0 rm -f
@@ -2031,6 +2075,8 @@ clobber:	clean
 	rm -f tools/crc32.c tools/environment.c tools/env/crc32.c
 	rm -f tools/inca-swap-bytes cpu/mpc824x/bedbug_603e.c
 	rm -f include/asm/proc include/asm/arch include/asm
+	cd tools && rm -f *.exe
+	rm -f include/configs/select.h select.mk select.log
 
 mrproper \
 distclean:	clobber unconfig

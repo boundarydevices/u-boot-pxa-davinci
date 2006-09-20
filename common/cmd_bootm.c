@@ -29,8 +29,6 @@
 #include <command.h>
 #include <image.h>
 #include <malloc.h>
-#include <zlib.h>
-#include <bzlib.h>
 #include <environment.h>
 #include <asm/byteorder.h>
 
@@ -79,10 +77,12 @@ DECLARE_GLOBAL_DATA_PTR;
 # define CHUNKSZ (64 * 1024)
 #endif
 
+#ifdef CONFIG_GZIP
+#include <zlib.h>
 int  gunzip (void *, int, unsigned char *, unsigned long *);
-
 static void *zalloc(void *, unsigned, unsigned);
 static void zfree(void *, void *, unsigned);
+#endif 
 
 #if (CONFIG_COMMANDS & CFG_CMD_IMI)
 static int image_info (unsigned long addr);
@@ -341,12 +341,17 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		break;
 	case IH_COMP_GZIP:
 		printf ("   Uncompressing %s ... ", name);
+#ifdef CONFIG_GZIP
 		if (gunzip ((void *)ntohl(hdr->ih_load), unc_len,
 			    (uchar *)data, &len) != 0) {
 			puts ("GUNZIP ERROR - must RESET board to recover\n");
 			SHOW_BOOT_PROGRESS (-6);
 			do_reset (cmdtp, flag, argc, argv);
 		}
+#else
+      printf( "GUNZIP not supported\n" );
+#endif 
+
 		break;
 #ifdef CONFIG_BZIP2
 	case IH_COMP_BZIP2:
@@ -1273,6 +1278,8 @@ print_type (image_header_t *hdr)
 	printf ("%s %s %s (%s)", arch, os, type, comp);
 }
 
+#ifdef CONFIG_GZIP
+
 #define	ZALLOC_ALIGNMENT	16
 
 static void *zalloc(void *x, unsigned items, unsigned size)
@@ -1354,6 +1361,8 @@ int gunzip(void *dst, int dstlen, unsigned char *src, unsigned long *lenp)
 
 	return (0);
 }
+#endif // CONFIG_GZIP
+
 
 #ifdef CONFIG_BZIP2
 void bz_internal_error(int errcode)

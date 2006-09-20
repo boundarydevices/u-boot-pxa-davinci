@@ -66,7 +66,7 @@ void nand_init(void)
 		size += nand_info[i].size;
 		if (nand_curr_device == -1)
 			nand_curr_device = i;
-}
+	}
 	printf("%lu MiB\n", size / (1024 * 1024));
 }
 

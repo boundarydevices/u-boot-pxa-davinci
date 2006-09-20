@@ -22,6 +22,7 @@
 #
 
 #########################################################################
+sinclude $(TOPDIR)/select.mk	# include DISPLAY_TYPE, HARDWARE_TYPE, SOFTWARE_TYPE, INCLUDE_MINIDEBUG
 
 # clean the slate ...
 PLATFORM_RELFLAGS =
@@ -116,11 +117,15 @@ DBGFLAGS= -g # -DDEBUG
 OPTFLAGS= -Os #-fomit-frame-pointer
 ifndef LDSCRIPT
 #LDSCRIPT := $(TOPDIR)/board/$(BOARDDIR)/u-boot.lds.debug
+ifeq ($(INCLUDE_MINIDEBUG),y)
+LDSCRIPT := $(TOPDIR)/board/$(BOARDDIR)/u-bootmini.lds
+else
 LDSCRIPT := $(TOPDIR)/board/$(BOARDDIR)/u-boot.lds
+endif
 endif
 OBJCFLAGS += --gap-fill=0xff
 
-gccincdir := $(shell $(CC) -print-file-name=include)
+gccincdir := "$(shell $(CC) -print-file-name=include)"
 
 CPPFLAGS := $(DBGFLAGS) $(OPTFLAGS) $(RELFLAGS)		\
 	-D__KERNEL__ -DTEXT_BASE=$(TEXT_BASE)		\
@@ -192,11 +197,19 @@ export	TEXT_BASE PLATFORM_CPPFLAGS PLATFORM_RELFLAGS CPPFLAGS CFLAGS AFLAGS
 
 #########################################################################
 
+ifdef LISTINGS
+%.s:	%.S
+	$(CPP) $(AFLAGS) -Wa,-alh=$(basename $<).lst -o $@ $(CURDIR)/$<
+%.o:	%.S
+	$(CC) $(AFLAGS) -c -Wa,-alh=$(basename $<).lst -o $@ $(CURDIR)/$<
+%.o:	%.c
+	$(CC) $(CFLAGS) -c -Wa,-alh=$(basename $<).lst -o $@ $<
+else
 %.s:	%.S
 	$(CPP) $(AFLAGS) -o $@ $(CURDIR)/$<
 %.o:	%.S
 	$(CC) $(AFLAGS) -c -o $@ $(CURDIR)/$<
 %.o:	%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
-
+endif
 #########################################################################

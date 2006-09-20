@@ -36,6 +36,10 @@
 #include <lcd.h>
 #include <asm/arch/pxa-regs.h>
 
+#ifdef CONFIG_LCDPANEL
+#include <lcd_panels.h>
+#endif
+
 /* #define DEBUG */
 
 #ifdef CONFIG_LCD
@@ -147,6 +151,38 @@ vidinfo_t panel_info = {
 #endif /* CONFIG_HITACHI_SX14 */
 
 /*----------------------------------------------------------------------*/
+#ifdef CONFIG_SHARP_QVGA
+/* Sharp 1/4 VGA LCD */
+#define LCD_BPP		LCD_COLOR8
+
+/* you have to set lccr0 and lccr3 (including pcd) */
+#define REG_LCCR0	0x003008F8
+#define REG_LCCR3	(0x0040FF0C|(LCD_BPP<<24))
+
+vidinfo_t panel_info = {
+	vl_col:		320,
+	vl_row:		240,
+	vl_width:	167,
+	vl_height:	109,
+	vl_clkp:	CFG_HIGH,
+	vl_oep:		CFG_HIGH,
+	vl_hsp:		CFG_HIGH,
+	vl_vsp:		CFG_HIGH,
+	vl_dp:		CFG_HIGH,
+	vl_bpix:	LCD_BPP,
+	vl_lbw:		1,
+	vl_splt:	0,
+	vl_clor:	1,
+	vl_tft:		1,
+	vl_hpw:		64,
+	vl_blw:		34,
+	vl_elw:		1,
+	vl_vpw:		20,
+	vl_bfw:		8,
+	vl_efw:		3,
+};
+#endif /* CONFIG_SHARP_QVGA */
+
 
 #if LCD_BPP == LCD_COLOR8
 void lcd_setcolreg (ushort regno, ushort red, ushort green, ushort blue);
@@ -163,7 +199,6 @@ void lcd_getcolreg (ushort regno, ushort *red, ushort *green, ushort *blue);
 void lcd_ctrl_init	(void *lcdbase);
 void lcd_enable	(void);
 
-int lcd_line_length;
 int lcd_color_fg;
 int lcd_color_bg;
 
@@ -185,10 +220,28 @@ static int pxafb_init (vidinfo_t *vid);
 
 void lcd_ctrl_init (void *lcdbase)
 {
+#ifdef CONFIG_LCDPANEL
+   char const *panelName = getenv( "panel" );
+   if( panelName )
+   {
+      struct lcd_panel_info_t const *panel ;
+      panel = find_lcd_panel( panelName );
+      if( panel )
+      {
+         printf( "panel %s found: %u x %u\n", panelName, panel->xres, panel->yres );
+	 panel_info.pxa.screen = (u_long)lcdbase;
+         set_lcd_panel( panel ); 
+      }
+      else
+         printf( "panel %s not found\n", panelName );
+   }
+#else   
 	pxafb_init_mem(lcdbase, &panel_info);
 	pxafb_init(&panel_info);
 	pxafb_setup_gpio(&panel_info);
 	pxafb_enable_controller(&panel_info);
+#endif
+
 }
 
 /*----------------------------------------------------------------------*/
@@ -201,9 +254,9 @@ lcd_getcolreg (ushort regno, ushort *red, ushort *green, ushort *blue)
 
 /*----------------------------------------------------------------------*/
 #if LCD_BPP == LCD_COLOR8
-void
-lcd_setcolreg (ushort regno, ushort red, ushort green, ushort blue)
+void lcd_setcolreg (ushort regno, ushort red, ushort green, ushort blue)
 {
+#if defined( CONFIG_PXA250 )
 	struct pxafb_info *fbi = &panel_info.pxa;
 	unsigned short *palette = (unsigned short *)fbi->palette;
 	u_int val;
@@ -219,12 +272,51 @@ lcd_setcolreg (ushort regno, ushort red, ushort green, ushort blue)
 		palette[regno] = val;
 #endif
 	}
+#elif defined( CONFIG_PXA270 )
+	struct pxafb_info *fbi = &panel_info.pxa;
+	u32 *palette = (u32 *)fbi->palette;
+	u32 val;
 
+	if (regno < fbi->palette_size) {
+		val = 0xFF000000 ; // transparency
+		val |= (red << 16);
+		val |= (green << 8);
+		val |= blue ;
+
+		palette[regno] = val;
+	}
+#else
+#error no processor defined
+#endif
 	debug ("setcolreg: reg %2d @ %p: R=%02X G=%02X B=%02X => %04X\n",
 		regno, &palette[regno],
 		red, green, blue,
 		palette[regno]);
 }
+
+#ifdef CONFIG_PXA270
+//each entry is in ARGB format, alpha high byte, blue low byte
+void lcd_SetPalette(ulong* palette,int colorCnt)
+{
+	struct pxafb_info *fbi = &;
+	PALETTEVAL_TYPE *cmap = (PALETTEVAL_TYPE *)panel_info.pxa.palette;
+	while (colorCnt--) {
+		*cmap++ = *palette++;
+	}
+}
+#else
+//each entry is in ARGB format, alpha high byte, blue low byte
+void lcd_SetPalette(ulong* palette,int colorCnt)
+{
+	PALETTEVAL_TYPE *cmap = (PALETTEVAL_TYPE *)panel_info.pxa.palette;
+	while (colorCnt--) {
+		ulong tmp = *palette++;	//5,6,5 format
+		*cmap++ =	( (tmp>>8) & 0xf800) |
+					( (tmp>>5) & 0x07e0) |
+					( (tmp>>3) & 0x001f) ;
+	}
+}
+#endif
 #endif /* LCD_COLOR8 */
 
 /*----------------------------------------------------------------------*/
@@ -284,7 +376,7 @@ static int pxafb_init_mem (void *lcdbase, vidinfo_t *vid)
 	fbi->screen = (u_long)lcdbase;
 
 	fbi->palette_size = NBITS(vid->vl_bpix) == 8 ? 256 : 16;
-	palette_mem_size = fbi->palette_size * sizeof(u16);
+	palette_mem_size = fbi->palette_size * sizeof(PALETTEVAL_TYPE);
 
 	debug("palette_mem_size = 0x%08lx\n", (u_long) palette_mem_size);
 	/* locate palette and descs at end of page following fb */
@@ -376,11 +468,16 @@ static void pxafb_enable_controller (vidinfo_t *vid)
 static int pxafb_init (vidinfo_t *vid)
 {
 	struct pxafb_info *fbi = &vid->pxa;
+   unsigned long const REG_LCCR3 = 0x0040FF0C|(LCD_BPP<<24);
 
 	debug("Configuring PXA LCD\n");
 
-	fbi->reg_lccr0 = REG_LCCR0;
-	fbi->reg_lccr3 = REG_LCCR3;
+#if defined( CONFIG_PXA270 )
+	LCCR4 = 0x00010000 ;
+#endif
+
+	fbi->reg_lccr0 = 0x003008F8;
+	fbi->reg_lccr3 = REG_LCCR3 ;
 
 	debug("vid: vl_col=%d hslen=%d lm=%d rm=%d\n",
 		vid->vl_col, vid->vl_hpw,
@@ -429,7 +526,7 @@ static int pxafb_init (vidinfo_t *vid)
 
 	fbi->dmadesc_palette->fsadr = fbi->palette;
 	fbi->dmadesc_palette->fidr  = 0;
-	fbi->dmadesc_palette->ldcmd = (fbi->palette_size * 2) | LDCMD_PAL;
+	fbi->dmadesc_palette->ldcmd = (fbi->palette_size * sizeof(PALETTEVAL_TYPE)) | LDCMD_PAL;
 
 	if( NBITS(vid->vl_bpix) < 12)
 	{
@@ -464,6 +561,39 @@ static int pxafb_init (vidinfo_t *vid)
 
 	return 0;
 }
+
+
+#ifdef CONFIG_LCDPANEL
+
+void set_lcd_panel( struct lcd_panel_info_t const *panel )
+{
+   panel_info.vl_col = panel->xres ;
+   panel_info.vl_row = panel->yres ;
+   panel_info.vl_clkp = panel->act_high ;
+   panel_info.vl_oep  = panel->act_high ;
+   panel_info.vl_hsp  = panel->act_high ;
+   panel_info.vl_vsp  = panel->act_high ;
+   panel_info.vl_dp   = panel->act_high ;
+   panel_info.vl_bpix = LCD_BPP ;
+   panel_info.vl_lcd_line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) >> 3;
+   panel_info.vl_lbw  = 1 ;
+   panel_info.vl_splt = 0 ;
+   panel_info.vl_clor = 1 ;
+   panel_info.vl_tft = panel->active ;
+   panel_info.vl_hpw = panel->hsync_len ;
+   panel_info.vl_blw = panel->left_margin ;
+   panel_info.vl_elw = panel->right_margin ;
+   panel_info.vl_vpw = panel->vsync_len ;
+   panel_info.vl_bfw = panel->upper_margin ;
+   panel_info.vl_efw = panel->lower_margin ;
+
+   pxafb_init_mem( (void *)panel_info.pxa.screen, &panel_info);
+   pxafb_init(&panel_info);
+   pxafb_setup_gpio(&panel_info);
+   pxafb_enable_controller(&panel_info);
+}
+
+#endif // dynamic LCD panel support
 
 /************************************************************************/
 /************************************************************************/

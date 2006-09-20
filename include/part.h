@@ -24,6 +24,48 @@
 #define _PART_H
 #include <ide.h>
 
+enum {
+/* These three have identical behaviour; use the second one if DOS fdisk gets
+   confused about extended/logical partitions starting past cylinder 1023. */
+	DOS_EXTENDED_PARTITION = 5,
+	LINUX_EXTENDED_PARTITION = 0x85,
+	WIN98_EXTENDED_PARTITION = 0x0f,
+
+	LINUX_SWAP_PARTITION = 0x82,
+	LINUX_RAID_PARTITION = 0xfd,	/* autodetect RAID partition */
+
+	SOLARIS_X86_PARTITION =	LINUX_SWAP_PARTITION,
+
+	DM6_PARTITION =	0x54,	/* has DDO: use xlated geom & offset */
+	EZD_PARTITION =	0x55,	/* EZ-DRIVE */
+	DM6_AUX1PARTITION = 0x51,	/* no DDO:  use xlated geom */
+	DM6_AUX3PARTITION = 0x53,	/* no DDO:  use xlated geom */
+
+	FREEBSD_PARTITION = 0xa5,    /* FreeBSD Partition ID */
+	OPENBSD_PARTITION = 0xa6,    /* OpenBSD Partition ID */
+	NETBSD_PARTITION = 0xa9,   /* NetBSD Partition ID */
+	BSDI_PARTITION = 0xb7,    /* BSDI Partition ID */
+/* Ours is not to wonder why.. */
+	BSD_PARTITION =	FREEBSD_PARTITION,
+	MINIX_PARTITION = 0x81,  /* Minix Partition ID */
+	PLAN9_PARTITION = 0x39,  /* Plan 9 Partition ID */
+	UNIXWARE_PARTITION = 0x63,		/* Partition ID, same as */
+						/* GNU_HURD and SCO Unix */
+};
+
+struct partition {
+	unsigned char boot_ind;		/* 0x80 - active */
+	unsigned char head;		/* starting head */
+	unsigned char sector;		/* starting sector */
+	unsigned char cyl;		/* starting cylinder */
+	unsigned char sys_ind;		/* What partition type */
+	unsigned char end_head;		/* end head */
+	unsigned char end_sector;	/* end sector */
+	unsigned char end_cyl;		/* end cylinder */
+	unsigned int start_sect;	/* starting sector counting from 0 */
+	unsigned int nr_sects;		/* nr of sectors in partition */
+} __attribute__((packed));
+
 typedef struct block_dev_desc {
 	int		if_type;	/* type of the interface */
 	int	        dev;	  	/* device number */
@@ -117,5 +159,16 @@ int get_partition_info_amiga (block_dev_desc_t * dev_desc, int part, disk_partit
 void print_part_amiga (block_dev_desc_t *dev_desc);
 int   test_part_amiga (block_dev_desc_t *dev_desc);
 #endif
+
+/* Value returned by `fnmatch' if STRING does not match PATTERN.  */
+#define	FNM_NOMATCH	1
+
+/* Bits set in the FLAGS argument to `fnmatch'.  */
+#define	FNM_PATHNAME	(1 << 0) /* No wildcard can ever match `/'.  */
+#define	FNM_NOESCAPE	(1 << 1) /* Backslashes don't quote special chars.  */
+#define	FNM_PERIOD	(1 << 2) /* Leading `.' is matched only explicitly.  */
+#define FNM_NOSYS	(-1)
+
+int fnmatch(const char *pattern, const char *string, int flags);
 
 #endif /* _PART_H */

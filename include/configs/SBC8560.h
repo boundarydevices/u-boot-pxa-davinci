@@ -33,12 +33,6 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#if XXX
-#define DEBUG		      /* General debug */
-#define ET_DEBUG
-#endif
-#define TSEC_DEBUG
-
 /* High Level Configuration Options */
 #define CONFIG_BOOKE		1	/* BOOKE			*/
 #define CONFIG_E500		1	/* BOOKE e500 family		*/
@@ -47,9 +41,10 @@
 
 
 #define CONFIG_CPM2		1	/* has CPM2 */
-#define CONFIG_SBC8560      	1   	/* configuration for SBC8560 board */
+#define CONFIG_SBC8560		1	/* configuration for SBC8560 board */
 
-#define CONFIG_MPC8560ADS	1	/* MPC8560ADS board specific (supplement)	*/
+/* XXX flagging this as something I might want to delete */
+#define CONFIG_MPC8560ADS	1	/* MPC8560ADS board specific	*/
 
 #define CONFIG_TSEC_ENET		/* tsec ethernet support	*/
 #undef	CONFIG_PCI			/* pci ethernet support		*/
@@ -182,7 +177,7 @@
 #undef  CONFIG_CONS_ON_SCC			/* define if console on SCC */
 #undef	CONFIG_CONS_NONE			/* define if console on something else */
 
-#define CONFIG_CONS_INDEX     1
+#define CONFIG_CONS_INDEX	1
 #undef	CONFIG_SERIAL_SOFTWARE_FIFO
 #define CFG_NS16550
 #define CFG_NS16550_SERIAL
@@ -223,7 +218,6 @@
 #  define TSEC1_PHYIDX		0
 /* Options are: TSEC0 */
 #  define CONFIG_ETHPRIME		"TSEC0"
-
 
 #elif defined(CONFIG_ETHER_ON_FCC)	/* CPM FCC Ethernet */
 
@@ -392,19 +386,19 @@
 
 /*Note: change below for your network setting!!! */
 #if defined(CONFIG_TSEC_ENET) || defined(CONFIG_ETHER_ON_FCC)
-#  define CONFIG_ETHADDR	00:vv:ww:xx:yy:8a
+#  define CONFIG_ETHADDR	00:01:af:07:9b:8a
 #  define CONFIG_HAS_ETH1
-#  define CONFIG_ETH1ADDR	00:vv:ww:xx:yy:8b
+#  define CONFIG_ETH1ADDR	00:01:af:07:9b:8b
 #  define CONFIG_HAS_ETH2
-#  define CONFIG_ETH2ADDR	00:vv:ww:xx:yy:8c
+#  define CONFIG_ETH2ADDR	00:01:af:07:9b:8c
 #endif
 
-#define CONFIG_SERVERIP		YourServerIP
-#define CONFIG_IPADDR		YourTargetIP
-#define CONFIG_GATEWAYIP	YourGatewayIP
+#define CONFIG_SERVERIP		192.168.0.131
+#define CONFIG_IPADDR		192.168.0.105
+#define CONFIG_GATEWAYIP	0.0.0.0
 #define CONFIG_NETMASK		255.255.255.0
 #define CONFIG_HOSTNAME		SBC8560
-#define CONFIG_ROOTPATH		YourRootPath
-#define CONFIG_BOOTFILE		YourImageName
+#define CONFIG_ROOTPATH		/home/ppc
+#define CONFIG_BOOTFILE		pImage
 
 #endif	/* __CONFIG_H */

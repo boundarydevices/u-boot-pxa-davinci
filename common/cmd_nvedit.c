@@ -543,8 +543,6 @@ int do_saveenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	return (saveenv() ? 1 : 0);
 }
-
-
 #endif
 
 
