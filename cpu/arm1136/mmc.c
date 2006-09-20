@@ -226,11 +226,13 @@ int mmc_block_read(uchar *dst, ulong src, ulong len)
    				len -= bytes;
    				bytes &= ~3;
    				while(bytes){
-   					*((unsigned int*)dst)++ = *rxFIFO ;
+   					*((unsigned int*)dst) = *rxFIFO ; dst+=4;
    					bytes -= 4;
    				}
-				if (rem&2) *((unsigned short *)dst)++ = *(unsigned short volatile *)rxFIFO;
-				if (rem&1) *((unsigned char  *)dst)++ = *(unsigned char  volatile *)rxFIFO;
+				if (rem&2) {
+					*((unsigned short *)dst) = *(unsigned short volatile *)rxFIFO; dst+=2;
+				}
+				if (rem&1) *dst++ = *(unsigned char  volatile *)rxFIFO;
 			} else if (stat & MMC_STAT_ERRORS) break;
 			else {
 //				debug("w%x",stat);
@@ -301,10 +303,12 @@ mmc_block_write(ulong dst, uchar *src, int len)
    				len -= bytes;
    				bytes &= ~3;
    				while(bytes){
-   					*txFIFO = *((unsigned int*)src)++;
+   					*txFIFO = *((unsigned int*)src); src+=4;
    					bytes -= 4;
    				}
-				if (rem&2) *((unsigned short volatile *)txFIFO) = *((unsigned short *)src)++;
+				if (rem&2) {
+					*((unsigned short volatile *)txFIFO) = *((unsigned short *)src); src+=2;
+				}
 				if (rem&1) *((unsigned char  volatile *)txFIFO) = *((unsigned char  *)src);
 			} else if (MMC_STAT & MMC_STAT_ERRORS) break;
 		}
@@ -515,11 +519,13 @@ mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 							len -= bytes;
 							bytes &= ~3;
 							while(bytes){
-								*((unsigned int *)dstb)++ = *rxFIFO ;
+								*((unsigned int *)dstb) = *rxFIFO ; dstb+=4;
 								bytes -= 4;
 							}
-							if (rem&2) *((unsigned short *)dstb)++ = *(unsigned short volatile *)rxFIFO;
-							if (rem&1) *((unsigned char  *)dstb)++ = *(unsigned char  volatile *)rxFIFO;
+							if (rem&2) {
+								*((unsigned short *)dstb) = *(unsigned short volatile *)rxFIFO; dstb+=2;
+							}
+							if (rem&1) *dstb++ = *(unsigned char  volatile *)rxFIFO;
 						} else if (MMC_STAT & MMC_STAT_ERRORS) break;
 					}
 				} // for each block
