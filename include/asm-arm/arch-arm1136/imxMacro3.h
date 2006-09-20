@@ -144,10 +144,6 @@
 .macro HandleRestoreBP rRestoreBP
 .endm
 
-.macro	CP14_DSCR	ins,rx
-	\ins	p14,0,\rx,c0,c1,0	//debug control and status register
-.endm
-
 //Out: r1 - Method of entry
 .macro GetMethodOfEntry
 	CP14_DSCR mrc,sp

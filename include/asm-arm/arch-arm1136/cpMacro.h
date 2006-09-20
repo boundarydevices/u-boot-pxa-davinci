@@ -3,7 +3,7 @@
 	\ins	p14,0,\rx,c0,c0,0
 .endm
 .macro	CP14_DSCR	ins,rx
-	\ins	p14,0,\rx,c0,c1,0
+	\ins	p14,0,\rx,c0,c1,0	//debug control and status register
 .endm
 .macro	CP14_DTR	ins,rx
 	\ins	p14,0,\rx,c0,c5,0
