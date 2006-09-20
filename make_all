@@ -1,0 +1,31 @@
+#!/bin/sh
+halogen1_clock="416"
+halogen2_clock="416"
+bd2003_clock="400"
+neon_clock="400"
+neonb_clock="400"
+
+SOFTWARE="LINUX"
+
+targets="halogen1 halogen2 bd2003 neon neonb"
+for suff in $targets ; do 
+   make distclean ;
+   REV=""
+   PLATFORM="$suff"
+   if [ $suff = "halogen1" ] ; then REV="1\n"; PLATFORM="halogen"
+   	else
+		if [ $suff = "halogen2" ] ;	then REV="2\n"; PLATFORM="halogen"
+		fi
+	fi
+   eval clock=\$$suff"_clock"
+   echo -e "DA640X240\n$REV$SOFTWARE\ny\n$clock\n" | make $PLATFORM"_config" ;
+   make u-boot.bin ;
+   mv u-boot.bin u-boot-$suff
+done
+
+
+for suff in $targets ; do 
+   mv u-boot-$suff u-boot-$suff.bin
+done
+
+zip u-boot-binaries.zip u-boot-*.bin

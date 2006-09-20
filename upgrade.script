@@ -1,0 +1,32 @@
+lecho "---------> upgrade to newest U-Boot"
+echo "---------> upgrade to newest U-Boot"
+if fatload mmc 0 a0008000 u-boot-*.bin ; then
+         if cmp.b 0 a0008000 $filesize ; then
+            fatload mmc 0 a0008000 *.bmp
+            bmp display a0008000
+            lecho 'Already upgraded. Latest U-Boot is installed' ;
+            echo 'Already upgraded. Latest U-Boot is installed' ;
+            if mmcwp ; then 
+               lecho "write protected" ; 
+            else 
+               lecho "not write protected" ; 
+            fi
+         else
+            lecho 'Old U-Boot found. Upgrading' ;
+            echo 'Old U-Boot found. Upgrading' ;
+            protect off all ;
+            lecho 'Erasing' ;
+            echo 'Erasing' ;
+            erase 0 3FFFF ;
+            lecho 'Programming' ;
+            echo 'Programming' ;
+            cp.b a0008000 0 $filesize ;
+            lecho 'Done programming. Cycle power' ;
+            echo 'Done programming. Cycle power' ;
+         fi
+else
+        lecho 'Error loading new U-Boot from SD card'
+        echo 'Error loading new U-Boot from SD card'
+        lecho 'Should have u-boot-neon-something.bin'
+        echo 'Should have u-boot-neon-something.bin'
+fi
