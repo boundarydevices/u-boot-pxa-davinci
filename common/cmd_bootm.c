@@ -30,8 +30,6 @@
 #include <command.h>
 #include <image.h>
 #include <malloc.h>
-#include <zlib.h>
-#include <bzlib.h>
 #include <environment.h>
 #include <lmb.h>
 #include <asm/byteorder.h>

@@ -48,10 +48,21 @@ typedef unsigned long mm_segment_t;		/* domain register	*/
 #include <asm/proc/processor.h>
 #include <asm/types.h>
 
+#ifdef arm
+#warning arm defined by preprocessor
+#define armX arm
+#undef arm
+#endif
+
 union debug_insn {
 	u32	arm;
 	u16	thumb;
 };
+
+#ifdef armX
+#define arm
+#undef armX
+#endif
 
 struct debug_entry {
 	u32			address;

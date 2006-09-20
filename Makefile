@@ -184,6 +184,13 @@ include $(TOPDIR)/config.mk
 #########################################################################
 # U-Boot objects....order is important (i.e. start must be first)
 
+ifeq ($(CPU),arm1136)
+OBJS =
+else
+ifeq ($(CPU),pxa)
+OBJS =
+else
+
 OBJS  = cpu/$(CPU)/start.o
 ifeq ($(CPU),i386)
 OBJS += cpu/$(CPU)/start16.o
@@ -252,7 +259,8 @@ LIBBOARD = board/$(BOARDDIR)/lib$(BOARD).a
 LIBBOARD := $(addprefix $(obj),$(LIBBOARD))
 
 # Add GCC lib
-PLATFORM_LIBS += -L $(shell dirname `$(CC) $(CFLAGS) -print-libgcc-file-name`) -lgcc
+LIBGCC_DIRNAME := $(shell dirname "`$(CC) $(CFLAGS) -print-libgcc-file-name`")
+PLATFORM_LIBS += --no-warn-mismatch -L "$(LIBGCC_DIRNAME)" -lgcc
 
 # The "tools" are needed early, so put this first
 # Don't include stuff already done in $(LIBS)
@@ -282,6 +290,7 @@ ALL += $(obj)u-boot.srec $(obj)u-boot.bin $(obj)System.map $(U_BOOT_NAND) $(U_BO
 ifeq ($(ARCH),blackfin)
 ALL += $(obj)u-boot.ldr
 endif
+ALL += init.scr upgrade.scr
 
 all:		$(ALL)
 
@@ -442,6 +451,12 @@ $(obj)include/autoconf.mk: $(obj)include/config.h
 
 sinclude $(obj)include/autoconf.mk.dep
 
+init.scr: board/$(BOARDDIR)/init.script
+	tools/mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "autoscript" -d $< $@
+
+upgrade.scr: upgrade.script
+	tools/mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "U-Boot upgrade script" -d $< $@
+
 #########################################################################
 else	# !config.mk
 all $(obj)u-boot.hex $(obj)u-boot.srec $(obj)u-boot.bin \
@@ -462,7 +477,8 @@ CHANGELOG:
 unconfig:
 	@rm -f $(obj)include/config.h $(obj)include/config.mk \
 		$(obj)board/*/config.tmp $(obj)board/*/*/config.tmp \
-		$(obj)include/autoconf.mk $(obj)include/autoconf.mk.dep
+		$(obj)include/autoconf.mk $(obj)include/autoconf.mk.dep \
+		select.mk include/configs/select.h
 
 #========================================================================
 # PowerPC
@@ -2631,6 +2647,22 @@ trizepsiv_config	:	unconfig
 wepep250_config	:	unconfig
 	@$(MKCONFIG) $(@:_config=) arm pxa wepep250
 
+neon_config	:	unconfig
+	@./mkconfig $(@:_config=) arm pxa neon
+	./Configure --PLATFORM_TYPE=NEON
+
+neonb_config	:	unconfig
+	@./mkconfig neon arm pxa neon
+	./Configure --PLATFORM_TYPE=NEONB --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=DA640X240
+
+bd2003_config	:	unconfig
+	@./mkconfig $(@:_config=) arm pxa bd2003
+	./Configure --PLATFORM_TYPE=BD2003
+
+halogen_config	:	unconfig
+	@./mkconfig $(@:_config=) arm pxa halogen
+	./Configure --PLATFORM_TYPE=HALOGEN
+
 xaeniax_config	:	unconfig
 	@$(MKCONFIG) $(@:_config=) arm pxa xaeniax
 
@@ -2663,6 +2695,10 @@ imx31_phycore_config	: unconfig
 
 mx31ads_config		: unconfig
 	@$(MKCONFIG) $(@:_config=) arm arm1136 mx31ads NULL mx31
+
+mercury_config :    unconfig
+	@./mkconfig $(@:_config=) arm arm1136 mercury
+	./Configure --PLATFORM_TYPE=MERCURY
 
 #========================================================================
 # i386
@@ -2985,6 +3021,12 @@ grsim_leon2_config : unconfig
 #########################################################################
 #########################################################################
 
+ifeq ($(HOSTOS),cygwin)
+FIND = /bin/find
+else
+FIND = find
+endif
+
 clean:
 	@rm -f $(obj)examples/82559_eeprom $(obj)examples/eepro100_eeprom \
 	       $(obj)examples/hello_world  $(obj)examples/interrupt	  \
@@ -3010,7 +3052,7 @@ clean:
 	@rm -f $(obj)api_examples/demo $(VERSION_FILE)
 	@find $(OBJTREE) -type f \
 		\( -name 'core' -o -name '*.bak' -o -name '*~' \
-		-o -name '*.o'	-o -name '*.a'	\) -print \
+		-o -name '*.o'	-o -name '*.a' -o -name '*.lst'	\) -print \
 		| xargs rm -f
 
 clobber:	clean
@@ -3026,6 +3068,8 @@ clobber:	clean
 	@rm -f $(obj)tools/{fdt_wip.c,libfdt_internal.h}
 	@rm -f $(obj)cpu/mpc824x/bedbug_603e.c
 	@rm -f $(obj)include/asm/proc $(obj)include/asm/arch $(obj)include/asm
+	@rm -f include/configs/select.h select.mk select.log
+	@rm -fr *.*~
 	@[ ! -d $(obj)nand_spl ] || find $(obj)nand_spl -lname "*" -print | xargs rm -f
 	@[ ! -d $(obj)onenand_ipl ] || find $(obj)onenand_ipl -lname "*" -print | xargs rm -f
 	@[ ! -d $(obj)api_examples ] || find $(obj)api_examples -lname "*" -print | xargs rm -f

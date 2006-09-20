@@ -23,13 +23,48 @@
 
 include $(TOPDIR)/config.mk
 
+CPU_TYPE=xscale
+
+ifeq ($(SOFTWARE_TYPE),WINCE)
+STACKS_VALID = -DCONFIG_STACKS_VALID
+else
+
+ifeq ($(SOFTWARE_TYPE),GAME)
+STACKS_VALID = -DCONFIG_STACKS_VALID
+else
+STACKS_VALID =
+endif
+endif
+ARM_ELF_GCC     ?= $(CROSS_COMPILE)gcc
+
 LIB	= $(obj)lib$(CPU).a
 
-START	= start.o
-COBJS	= serial.o interrupts.o cpu.o i2c.o pxafb.o mmc.o usb.o
+ifeq ($(INCLUDE_MINIDEBUG),y)
+START	= minidebug.o ministart.o
+else
+START	= start.o ministart.o
+endif
+COBJS	= serial.o interrupts.o cpu.o i2c.o mmc.o
+
+ifdef CONFIG_PXALCD
+   COBJS += pxafb.o
+endif
+
+ifeq ($(PLATFORM_TYPE),HALOGEN)
+   COBJS += usb_ohci.o
+else
+ifeq ($(PLATFORM_TYPE),NEON)
+   COBJS += usb_ohci.o
+else
+ifeq ($(PLATFORM_TYPE),NEONB)
+   COBJS += usb_ohci.o
+else
+endif
+endif
+endif
 
 SRCS	:= $(START:.o=.S) $(SOBJS:.o=.S) $(COBJS:.o=.c)
-OBJS	:= $(addprefix $(obj),$(SOBJS) $(COBJS))
+COBJS	:= $(addprefix $(obj),$(SOBJS) $(COBJS))
 START	:= $(addprefix $(obj),$(START))
 
 all:	$(obj).depend $(START) $(LIB)
@@ -43,5 +78,9 @@ $(LIB):	$(OBJS)
 include $(SRCTREE)/rules.mk
 
 sinclude $(obj).depend
+
+minidebug.o : minidebug.S Makefile
+	$(ARM_ELF_GCC) -c $(D_GNUC) -DUBOOT=1 -DDISPLAY_TYPE=$(DISPLAY_TYPE) -DPLATFORM_TYPE=$(PLATFORM_TYPE) -DPLATFORM_REV=$(PLATFORM_REV) -DSOFTWARE_TYPE=$(SOFTWARE_TYPE) $(STACKS_VALID) -DCPU_CLOCK=$(CPU_CLOCK) \
+		$(SOFT_FLOAT) -I$(TOPDIR)/include -mtune=$(CPU_TYPE) -mcpu=$(CPU_TYPE) -o $@ $<
 
 #########################################################################

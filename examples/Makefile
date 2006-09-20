@@ -155,8 +155,8 @@ ELF	:= $(addprefix $(obj),$(ELF))
 BIN	:= $(addprefix $(obj),$(BIN))
 SREC	:= $(addprefix $(obj),$(SREC))
 
-gcclibdir := $(shell dirname `$(CC) -print-libgcc-file-name`)
-clibdir := $(shell dirname `$(CC) $(CFLAGS) -print-file-name=libc.a`)
+gcclibdir := $(shell dirname "`$(CC) -print-libgcc-file-name`")
+clibdir := $(shell dirname "`$(CC) $(CFLAGS) -print-file-name=libc.a`")
 
 CPPFLAGS += -I..
 

@@ -42,7 +42,7 @@
 #include <lcd.h>
 #include <watchdog.h>
 
-#if defined(CONFIG_PXA250)
+#if defined(CONFIG_PXA250) || defined(CONFIG_PXA270)
 #include <asm/byteorder.h>
 #endif
 
@@ -100,7 +100,9 @@ static int lcd_getbgcolor (void);
 static void lcd_setfgcolor (int color);
 static void lcd_setbgcolor (int color);
 
+
 char lcd_is_enabled = 0;
+
 extern vidinfo_t panel_info;
 
 #ifdef	NOT_USED_SO_FAR
@@ -109,8 +111,46 @@ static void lcd_getcolreg (ushort regno,
 static int lcd_getfgcolor (void);
 #endif	/* NOT_USED_SO_FAR */
 
-/************************************************************************/
+static int luminance( int red, int green, int blue )
+{
+   //
+   // I've seen a couple of different algorithms here:
+   // (max+min)/2
+/*
 
+   int max = MAX( red, MAX( green, blue ) );
+   int min = MIN( red, MIN( green, blue ) );
+   return (max+min)/2 ;
+*/
+
+   // A more mathematically-correct version
+// return (int)(c.R*0.3 + c.G*0.59+ c.B*0.11);
+
+   // Just return 'green'
+   // return green;
+
+   // and one that uses shifts and adds to come close to the above
+   //
+   //    red   = 5/16= 0.3125    == 1/4 + 1/16
+   //    green = 9/16= 0.5625    == 1/2 + 1/16
+   //    blue  = 1/8 = 0.125
+   //
+   if( 0 < red )
+      red = (red>>2) + (red>>4);
+   else
+      red = 0 ;
+   if( 0 < green )
+      green = (green>>1) + (green>>4) ;
+   else
+      green = 0 ;
+   if( 0 < blue )
+      blue = blue >> 3 ;
+   else
+      blue = 0 ;
+   return red+green+blue ;
+}
+
+/************************************************************************/
 /*----------------------------------------------------------------------*/
 
 static void console_scrollup (void)
@@ -236,10 +276,10 @@ static void lcd_drawchars (ushort x, ushort y, uchar *str, int count)
 	uchar *dest;
 	ushort off, row;
 
-	dest = (uchar *)(lcd_base + y * lcd_line_length + x * (1 << LCD_BPP) / 8);
+	dest = (uchar *)(lcd_base + y * panel_info.vl_lcd_line_length + x * (1 << LCD_BPP) / 8);
 	off  = x * (1 << LCD_BPP) % 8;
 
-	for (row=0;  row < VIDEO_FONT_HEIGHT;  ++row, dest += lcd_line_length)  {
+	for (row=0;  row < VIDEO_FONT_HEIGHT;  ++row, dest += panel_info.vl_lcd_line_length)  {
 		uchar *s = str;
 		uchar *d = dest;
 		int i;
@@ -350,8 +390,6 @@ int drv_lcd_init (void)
 
 	lcd_base = (void *)(gd->fb_base);
 
-	lcd_line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) / 8;
-
 	lcd_init (lcd_base);		/* LCD initialization */
 
 	/* Device initialization */
@@ -402,7 +440,7 @@ static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 	/* set framebuffer to background color */
 	memset ((char *)lcd_base,
 		COLOR_MASK(lcd_getbgcolor()),
-		lcd_line_length*panel_info.vl_row);
+		panel_info.vl_lcd_line_length*panel_info.vl_row);
 #endif
 	/* Paint the logo and retrieve LCD base address */
 	debug ("[LCD] Drawing the logo...\n");
@@ -530,7 +568,8 @@ void bitmap_plot (int x, int y)
 	uchar *bmap;
 	uchar *fb;
 	ushort *fb16;
-#if defined(CONFIG_PXA250)
+
+#if defined(CONFIG_PXALCD)
 	struct pxafb_info *fbi = &panel_info.pxa;
 #elif defined(CONFIG_MPC823)
 	volatile immap_t *immr = (immap_t *) CFG_IMMR;
@@ -539,15 +578,15 @@ void bitmap_plot (int x, int y)
 
 	debug ("Logo: width %d  height %d  colors %d  cmap %d\n",
 		BMP_LOGO_WIDTH, BMP_LOGO_HEIGHT, BMP_LOGO_COLORS,
-		sizeof(bmp_logo_palette)/(sizeof(ushort)));
+		sizeof(bmp_logo_palette)/(sizeof(PALETTEVAL_TYPE)));
 
 	bmap = &bmp_logo_bitmap[0];
-	fb   = (uchar *)(lcd_base + y * lcd_line_length + x);
+	fb   = (uchar *)(lcd_base + y * panel_info.vl_lcd_line_length + x);
 
 	if (NBITS(panel_info.vl_bpix) < 12) {
 		/* Leave room for default color map */
-#if defined(CONFIG_PXA250)
-		cmap = (ushort *)fbi->palette;
+#if defined(CONFIG_PXALCD)
+		cmap = (PALETTEVAL_TYPE *)fbi->palette;
 #elif defined(CONFIG_MPC823)
 		cmap = (ushort *)&(cp->lcd_cmap[BMP_LOGO_OFFSET*sizeof(ushort)]);
 #elif defined(CONFIG_ATMEL_LCD)
@@ -576,7 +615,11 @@ void bitmap_plot (int x, int y)
 #ifdef  CFG_INVERT_COLORS
 			*cmap++ = 0xffff - colreg;
 #else
+   #ifdef  CFG_INVERT_COLORS
+			*cmap++ = 0xffff - colreg;
+   #else
 			*cmap++ = colreg;
+   #endif
 #endif
 #endif /* CONFIG_ATMEL_LCD */
 		}
@@ -590,7 +633,7 @@ void bitmap_plot (int x, int y)
 		}
 	}
 	else { /* true color mode */
-		fb16 = (ushort *)(lcd_base + y * lcd_line_length + x);
+		fb16 = (ushort *)(lcd_base + y * panel_info.vl_lcd_line_length + x);
 		for (i=0; i<BMP_LOGO_HEIGHT; ++i) {
 			for (j=0; j<BMP_LOGO_WIDTH; j++) {
 				fb16[j] = bmp_logo_palette[(bmap[j])];
@@ -626,18 +669,16 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	unsigned long pwidth = panel_info.vl_col;
 	unsigned colors,bpix;
 	unsigned long compression;
-#if defined(CONFIG_PXA250)
-	struct pxafb_info *fbi = &panel_info.pxa;
-#elif defined(CONFIG_MPC823)
-	volatile immap_t *immr = (immap_t *) CFG_IMMR;
-	volatile cpm8xx_t *cp = &(immr->im_cpm);
-#endif
+	int     maxLum = 0 ;
+	int     bgCol = 0 ;
+	int     minLum = 0xFFFF ;
+	int     fgCol = 0 ;
 
 	if (!((bmp->header.signature[0]=='B') &&
 		(bmp->header.signature[1]=='M'))) {
 		printf ("Error: no valid bmp image at %lx\n", bmp_image);
 		return 1;
-}
+	}
 
 	width = le32_to_cpu (bmp->header.width);
 	height = le32_to_cpu (bmp->header.height);
@@ -677,22 +718,23 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
 		/* Set color map */
 		for (i=0; i<colors; ++i) {
+			int lum ;
 			bmp_color_table_entry_t cte = bmp->color_table[i];
-			ushort colreg =
-				( ((cte.red)   << 8) & 0xf800) |
-				( ((cte.green) << 3) & 0x07e0) |
-				( ((cte.blue)  >> 3) & 0x001f) ;
-#ifdef CFG_INVERT_COLORS
-			*cmap = 0xffff - colreg;
-#else
-			*cmap = colreg;
-#endif
-#if defined(CONFIG_PXA250)
-			cmap++;
-#elif defined(CONFIG_MPC823)
-			cmap--;
-#endif
+			*cmap++ = cte.blue | (cte.green << 8) | (cte.red << 16) | 0xFF000000;
+			lum = luminance( cte.red, cte.green, cte.blue );
+			if( lum > maxLum ) {
+				maxLum = lum ;
+				bgCol = i ;
+			}
+			if( lum < minLum ) {
+				minLum = lum ;
+				fgCol = i ;
+			}
 		}
+		lcd_SetPalette(palette,colors);
+		printf( "bgcolor %u, fg %u\n", bgCol, fgCol );
+		lcd_color_fg = fgCol ;
+		lcd_color_bg = bgCol ;
 	}
 #endif
 
@@ -715,25 +757,27 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	}
 #endif
 
-	padded_line = (width&0x3) ? ((width&~0x3)+4) : (width);
-	if ((x + width)>pwidth)
-		width = pwidth - x;
+	padded_line = (width+3)&~0x3;
+	if ((x + width)>panel_info.vl_col)
+		width = panel_info.vl_col - x;
 	if ((y + height)>panel_info.vl_row)
 		height = panel_info.vl_row - y;
 
 	bmap = (uchar *)bmp + le32_to_cpu (bmp->header.data_offset);
 	fb   = (uchar *) (lcd_base +
-		(y + height - 1) * lcd_line_length + x);
+		(y + height - 1) * panel_info.vl_lcd_line_length + x);
+//	printf("fb:0x%p,lcd_base:0x%p,x:%i,y:%i,width:%i,height:%i,colums:%i\n",
+//		fb,lcd_base,x,y,width,height,panel_info.vl_lcd_line_length);
 	for (i = 0; i < height; ++i) {
 		WATCHDOG_RESET();
 		for (j = 0; j < width ; j++)
-#if defined(CONFIG_PXA250)
-			*(fb++)=*(bmap++);
-#elif defined(CONFIG_MPC823) || defined(CONFIG_MCC200)
+#if defined(CONFIG_MPC823) || defined(CONFIG_MCC200)
 			*(fb++)=255-*(bmap++);
+#else
+			*fb++=*bmap++;
 #endif
-		bmap += (width - padded_line);
-		fb   -= (width + lcd_line_length);
+		bmap += (padded_line-width);
+		fb   -= (width + panel_info.vl_lcd_line_length);
 	}
 
 	return (0);
@@ -842,7 +886,7 @@ static void *lcd_logo (void)
 
 
 #if defined(CONFIG_LCD_LOGO) && !defined(CONFIG_LCD_INFO_BELOW_LOGO)
-	return ((void *)((ulong)lcd_base + BMP_LOGO_HEIGHT * lcd_line_length));
+	return ((void *)((ulong)lcd_base + BMP_LOGO_HEIGHT * panel_info.vl_lcd_line_length));
 #else
 	return ((void *)lcd_base);
 #endif /* CONFIG_LCD_LOGO && !CONFIG_LCD_INFO_BELOW_LOGO */

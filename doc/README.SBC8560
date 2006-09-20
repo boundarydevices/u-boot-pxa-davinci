@@ -1,6 +1,5 @@
-The port was tested on Wind River System Sbc8560 board
-<www.windriver.com>. U-Boot was installed on the flash memory of the
-CPU card (no the SODIMM).
+The port was tested on Wind River System Sbc8560 board <www.windriver.com>.
+U-Boot was installed on the flash memory of the CPU card (no the SODIMM).
 
 NOTE: Please configure uboot compile to the proper PCI frequency and
 setup the appropriate DIP switch settings.
@@ -9,7 +8,7 @@ SBC8560 board:
 
 Make sure boards switches are set to their appropriate conditions.
 Refer to the Engineering Reference Guide ERG-00300-002. Of particular
-importance are: 1) the settings for JP4 (JP4 1-3 and 2-4), which
+importance are: 1)Tthe settings for JP4 (JP4 1-3 and 2-4), which
 select the on-board FLASH device (Intel 28F128Jx); 2) The settings
 for the Clock SW9 (33 MHz or 66 MHz).
 
@@ -25,26 +24,23 @@ for the Clock SW9 (33 MHz or 66 MHz).
 
 Flashing the FLASH device with the "Wind River ICE":
 
-1) Properly connect and configure the Wind River ICE to the target
-   JTAG port. This includes running the SBC8560 register script. Make
-   sure target memory can be read and written.
+1) Properly connect and configure the Wind River ICE to the
+   target JTAG port. This includes running the SBC8560 register script.
+   Make sure target memory can be read and written.
 
 2) Build the u-boot image:
 	make distclean
 	make SBC8560_66_config or SBC8560_33_config
 	make CROSS_COMPILE=.../ELDK3.0/ppc_8xx-/ all
 
-   Note: reference is made to the ELDK3.0 compiler. Further, it seems
-	 the ppc_8xx compiler is required for the 85xx (no 85xx
-	 designated compiler in ELDK3.0)
+   Note: reference is made to the ELDK3.0 compiler but any 85xx cross-compiler
+	 should suffice.
 
-3) Convert the uboot (.elf) file to a uboot.bin file (using
-   visionClick converter). The bin file should be converted from
-   fffc0000 to ffffffff
+3) Convert the uboot (.elf) file to a uboot.bin file (using visionClick converter).
+   The bin file should be converted from fffc0000 to ffffffff
 
 4) Setup the Flash Utility (tools menu) for:
 
-   Do a "dc clr" [visionClick] to load the default register settings
    Determine the clock speed of the PCI bus and set SW9 accordingly
 	Note: the speed of the PCI bus defaults to the slowest PCI card
    PlayBack the "default" register file for the SBC8560

@@ -22,6 +22,7 @@
 #
 
 #########################################################################
+sinclude $(TOPDIR)/select.mk	# include DISPLAY_TYPE, HARDWARE_TYPE, SOFTWARE_TYPE, INCLUDE_MINIDEBUG
 
 ifneq ($(OBJTREE),$(SRCTREE))
 ifeq ($(CURDIR),$(SRCTREE))
@@ -139,17 +140,22 @@ endif
 RELFLAGS= $(PLATFORM_RELFLAGS)
 DBGFLAGS= -g # -DDEBUG
 OPTFLAGS= -Os #-fomit-frame-pointer
+
 ifndef LDSCRIPT
 #LDSCRIPT := $(TOPDIR)/board/$(BOARDDIR)/u-boot.lds.debug
 ifeq ($(CONFIG_NAND_U_BOOT),y)
 LDSCRIPT := $(TOPDIR)/board/$(BOARDDIR)/u-boot-nand.lds
 else
+ifeq ($(INCLUDE_MINIDEBUG),y)
+LDSCRIPT := $(TOPDIR)/board/$(BOARDDIR)/u-bootmini.lds
+else
 LDSCRIPT := $(TOPDIR)/board/$(BOARDDIR)/u-boot.lds
+endif
 endif
 endif
 OBJCFLAGS += --gap-fill=0xff
 
-gccincdir := $(shell $(CC) -print-file-name=include)
+gccincdir := "$(shell $(CC) -print-file-name=include)"
 
 CPPFLAGS := $(DBGFLAGS) $(OPTFLAGS) $(RELFLAGS)		\
 	-D__KERNEL__
@@ -252,5 +258,4 @@ $(obj)%.o:	%.S
 $(obj)%.o:	%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 endif
-
 #########################################################################

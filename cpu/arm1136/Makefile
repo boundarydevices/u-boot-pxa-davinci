@@ -23,25 +23,48 @@
 
 include $(TOPDIR)/config.mk
 
+CPU_TYPE=xscale
+
+ifeq ($(SOFTWARE_TYPE),WINCE)
+STACKS_VALID = -DCONFIG_STACKS_VALID
+else
+
+ifeq ($(SOFTWARE_TYPE),GAME)
+STACKS_VALID = -DCONFIG_STACKS_VALID
+else
+STACKS_VALID =
+endif
+endif
+ARM_ELF_GCC     ?= $(CROSS_COMPILE)gcc
+
 LIB	= $(obj)lib$(CPU).a
 
-START	= start.o
+ifeq ($(INCLUDE_MINIDEBUG),y)
+START	= minidebug.o ministart.o
+else
+START	= start.o ministart.o
+endif
+COBJS	= interrupts.o cpu.o mmc.o iomux.o
 COBJS	= cpu.o
 
 SRCS	:= $(START:.o=.S) $(SOBJS:.o=.S) $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS) $(SOBJS))
 START	:= $(addprefix $(obj),$(START))
+SOBJS =  xmodemReceive.o
 
-all:	$(obj).depend $(START) $(LIB)
+all:	$(obj).depend $(START) $(LIB) $(SOBJS)
 
-$(LIB):	$(OBJS)
+$(LIB):	$(OBJS) $(SOBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
 
-#########################################################################
 
 # defines $(obj).depend target
 include $(SRCTREE)/rules.mk
 
 sinclude $(obj).depend
 
-#########################################################################
+minidebug.o : minidebug.S Makefile
+	echo $(START)
+	$(ARM_ELF_GCC) -c $(D_GNUC) -DDISPLAY_TYPE=$(DISPLAY_TYPE) -DPLATFORM_TYPE=$(PLATFORM_TYPE) -DPLATFORM_REV=$(PLATFORM_REV) -DSOFTWARE_TYPE=$(SOFTWARE_TYPE) $(STACKS_VALID) -DCPU_CLOCK=$(CPU_CLOCK) \
+		$(SOFT_FLOAT) -I$(TOPDIR)/include -mtune=$(CPU_TYPE) -mcpu=$(CPU_TYPE) -o $@ $<
+

@@ -4,7 +4,7 @@
  *  Author: Vladimir Shebordaev, Igor Oblakov
  *  Copyright:  MontaVista Software Inc.
  *
- *  $Id: mmc_pxa.h,v 0.3.1.6 2002/09/25 19:25:48 ted Exp ted $
+ *  $Id: mmc.h,v 1.3 2005/04/16 17:05:19 ericn Exp $
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -117,6 +117,7 @@
 #define MMC_CMD_SELECT_CARD		7
 #define MMC_CMD_SEND_CSD		9
 #define MMC_CMD_SEND_CID		10
+#define MMC_CMD_STOP		12
 #define MMC_CMD_SEND_STATUS		13
 #define MMC_CMD_SET_BLOCKLEN		16
 #define MMC_CMD_READ_BLOCK		17
@@ -126,6 +127,10 @@
 
 #define SD_CMD_APP_SET_BUS_WIDTH	6
 #define SD_CMD_APP_OP_COND		41
+
+#define SD_APP_CMD55  55         /* 0x37 */
+#define SD_APP_CMD41  41         /* 0x29 */
+#define SD_STATUS     13         /* 0x0D */
 
 #define MMC_MAX_BLOCK_SIZE		512
 
@@ -202,5 +207,15 @@ typedef struct mmc_csd
 			file_format:2,
 			ecc:2;
 } mmc_csd_t;
+
+typedef struct sd_status {
+   ulong  prot_size ;
+   ushort card_type ;
+   ushort bus_width:2,
+          secured_mode:1,
+          unused0: 13 ;
+} sd_status_t ;
+
+extern uchar * mmc_cmd(ushort cmd, uint arg, ushort cmdat);
 
 #endif /* __MMC_PXA_P_H__ */
