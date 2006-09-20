@@ -189,7 +189,8 @@ static void dfc_read_buf(struct mtd_info *mtd, u_char* buf, int len)
 				}
 			} else {
 				while (cp>3) {
-					*((unsigned int*)t)++ = *((unsigned int*)nfcBuf)++;
+					*((unsigned int*)t) = *((unsigned int*)nfcBuf);
+					t+=2; nfcBuf+=2;
 					cp -= 4;
 				}
 				if (cp & 2) *t++ = *nfcBuf++;
@@ -229,7 +230,8 @@ static void dfc_write_buf(struct mtd_info *mtd, const u_char *buf, int len)
 		}
 	} else {
 		while (len>3) {
-			*((unsigned int*)nfcBuf)++ = *((unsigned int*)t)++;
+			*((unsigned int*)nfcBuf) = *((unsigned int*)t);
+			nfcBuf+=2; t+=2;
 			len -= 4;
 		}
 		if (len & 2) *nfcBuf++ = *t++;
@@ -408,8 +410,8 @@ static void dfc_cmdfunc(struct mtd_info *mtd, unsigned command,
 		int limit = (CFG_NAND_2K_PAGE)? 4:1;
 		nfc->flashConfig1 = CFG1_ECC_EN;	//automatically fill in correct ECC to write
 		while (i<limit) {
-			unsigned long* nfcBuf =  (unsigned long*)(NFC_BUFFER_BASE + (i<<9));
-			unsigned long* nfcSpare = (unsigned long*)(NFC_SPARE_BASE + (i<<4));
+//			unsigned long* nfcBuf =  (unsigned long*)(NFC_BUFFER_BASE + (i<<9));
+//			unsigned long* nfcSpare = (unsigned long*)(NFC_SPARE_BASE + (i<<4));
 //			DFC_DEBUG2("NAND_CMD_PAGEPROG,  1st buffer val:0x%8x spare:0x%8x\n", *nfcBuf,*nfcSpare);
 			nfc->bufAddr = i++;	//1st buffer
 			nfc->flashConfig2 = CFG2_FDI;
