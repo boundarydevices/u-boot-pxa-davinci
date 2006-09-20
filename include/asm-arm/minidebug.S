@@ -139,20 +139,21 @@ V_PrefetchAbort:
 	tst	rWork,#1		//test MMU
 
 	BigMovNe	rWork,DEBUG_BASE+DBG_ABORT_PC	//only if mmu is on
-	swpne	rWork,lr,[rWork]	//save lr as a flag so not infinite errors, if mmu on
-	cmpne	rWork,lr
+	swpne	rBranch,lr,[rWork]	//save lr as a flag so not infinite errors, if mmu on
+	cmpne	rBranch,lr
 
 	.if STACKS_VALID
 	ldrne	rBranch,[sp,#4]
 	ldrne	rWork,[sp],#12
 	subnes	pc,lr,#4		//retry access
 	.else
+	//rBranch is sp, so need to restore invalid stack
 	ldrne	rWork,[rWork,#DBG_TEMP-DBG_ABORT_PC]
 	subnes	pc,lr,#4		//retry access
 	GetDebugMagic 	rWork
 	.endif
 
-	add	rBranch,rBranch,#8
+	mov		rBranch,#(SIG_PREFETCH_ABORT<<2)+8
 	JOIN2 b
 
 //stacks aren't kept valid
