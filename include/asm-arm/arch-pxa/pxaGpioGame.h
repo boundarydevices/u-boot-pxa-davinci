@@ -1,0 +1,361 @@
+
+#define ALT_LCD 0
+#define LCD_CS_STATE LOW
+
+
+
+//CP  - Clock and Power Management Unit
+//MMC - Multimedia Card Controller
+//MC  - Memory Controller
+//SIU - System Integration Unit
+//SSP - Synchronous Serial Port
+//AC  - Audio Controller (AC97)
+//FF  - Full Function UART
+//BT  - Blue Tooth UART
+//ST  - standard UART Port
+//LCD - LCD Controller
+
+//A - GAME_CONTROLLER_PLAITED_A1
+//B - GAME_CONTROLLER
+//C - GAME_WITH_SMC
+//Z OLD_GAME_CONTROLLER on BD2003
+
+//A,B, & C can run the same software.
+//Therefore if a gpio is an input for one, it starts as an input for all.
+//If it should be an output, the direction is changed later by the program.
+#define _A 1
+#define _B 4
+#define _C 0x10
+#define _Z 0x40
+#define _AB (_A|_B)
+#define _AC (_A|_C)
+#define _AZ (_A|_Z)
+#define _BC (_B|_C)
+#define _BZ (_B|_Z)
+#define _CZ (_C|_Z)
+#define _ABC (_A|_B|_C)
+#define _ABZ (_A|_B|_Z)
+#define _ACZ (_A|_C|_Z)
+#define _BCZ (_B|_C|_Z)
+#define _ABCZ (_A|_B|_C|_Z)
+#define ALL _ABCZ
+
+	.ifdef __ARMASM
+.macro	SPEC_ mask,gp_,dir,level,alt
+	.if (\mask&_A)<>0
+SPECA_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
+	.endif
+	.if (\mask&_B)<>0
+SPECB_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
+	.endif
+	.if (\mask&_C)<>0
+SPECC_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
+	.endif
+	.if (\mask&_Z)<>0
+SPECZ_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
+	.endif
+.endm
+	.else
+.macro	SPEC_ mask,gp_,dir,level,alt
+	.if \mask&_A
+	.set	SPECA_\gp_,\dir+(\level<<8)+(\alt<<16)
+	.endif
+	.if \mask&_B
+	.set	SPECB_\gp_,\dir+(\level<<8)+(\alt<<16)
+	.endif
+	.if \mask&_C
+	.set	SPECC_\gp_,\dir+(\level<<8)+(\alt<<16)
+	.endif
+	.if \mask&_Z
+	.set	SPECZ_\gp_,\dir+(\level<<8)+(\alt<<16)
+	.endif
+.endm
+	.endif
+
+
+	SPEC_	ALL,  0,IN, HIGH,0		//        flash ready low 16, or magStripe T1 Clk(SMC)
+	SPEC_	ALL,  1,IN, HIGH,0		//CP_RST, flash ready high 16, or magStripe T2 Clk(SMC)
+
+	SPEC_	_ABZ, 2,OUT,LOW, 0		//DRY_CONTACT2 
+	SPEC_	_C,   2,IN, HIGH,0		//magStripe T1 data(smc)
+
+	SPEC_	_ABZ, 3,OUT,HIGH,0		//nc
+	SPEC_	_C,   3,IN, HIGH,0		//magStripe T2 data(smc)
+
+	SPEC_	_ABC, 4,OUT,HIGH,0		//nc
+	SPEC_	_Z,   4,IN, HIGH,0		//interrupt for USB irq 1
+
+	SPEC_	_ABC, 5,OUT,HIGH,0		//nc
+	SPEC_	_Z,   5,IN, HIGH,0		//interrupt for USB irq 2,  or SM501
+
+	SPEC_	ALL,  6,OUT,HIGH,1		//MMC_CLK
+
+	SPEC_	_ABC, 7,IN, HIGH,0		//CP_48MHZ, 	TICKET IN
+	SPEC_	_Z,   7,OUT,HIGH,0		//CP_48MHZ	!!! red led
+
+	SPEC_	_ABC, 8,OUT,HIGH,1		//MMC_CCS0
+	SPEC_	_Z,   8,IN, LOW, 0		//MMC_CCS0, Service in
+
+	SPEC_	ALL,  9,OUT,LOW, 0		//MMC_CCS1, !!! doorlock, or OUT_DRY_CONTACT1
+	SPEC_	ALL, 10,OUT,HIGH,0		//SIU_RTCCLK, nc
+
+	SPEC_	_AC, 11,OUT,HIGH,0		//CP_3600KHZ, nc
+	SPEC_	_B,  11,IN, HIGH,0		//CP_3600KHZ, magStripe Cardload
+	SPEC_	_Z,  11,IN, HIGH,0		//CP_3600KHZ, suspend USB slave
+
+	SPEC_	_ABC,12,OUT,HIGH,0		//CP_32KHZ, nc
+	SPEC_	_Z,  12,IN, HIGH,0		//CP_32KHZ, suspend USB host
+
+	SPEC_	ALL, 13,OUT,HIGH,0		//MC_MBGNT, USB wakeup slave
+
+	SPEC_	_A,  14,OUT,HIGH,0		//MC_MBREQ, nc
+	SPEC_	_C,  14,OUT,LOW, 0		//MC_MBREQ, DC2 (output, direction changed in program)
+	SPEC_	_BZ, 14,IN, HIGH,0		//MC_MBREQ, magStripe T2 Clock,UCB1400 IRQ
+
+	SPEC_	_AB, 15,OUT,HIGH,0		//MC_nCS1, motor out
+	SPEC_	_C,  15,OUT,HIGH,2		//MC_nCS1, nCS1
+	SPEC_	_Z,  15,OUT,LOW, 0		//MC_nCS1, !!! amber led, right out
+
+	SPEC_	_ABC,16,IN, HIGH,0		//SIU_PWM0, !!! feedback2, left in
+	SPEC_	_Z,  16,IN, LOW, 0		//SIU_PWM0, !!! feedback2, left in
+
+	SPEC_	_ABC,17,IN, HIGH,0		//SIU_PWM1, !!! feedback1, right in
+	SPEC_	_Z,  17,IN, LOW, 0		//SIU_PWM1, !!! feedback1, right in
+
+	SPEC_	ALL, 18,IN, HIGH,1		//MC_RDY, VIO_READY
+
+	SPEC_	_ABC,19,OUT,HIGH,0		//MC_DREQ1, nc
+	SPEC_	_Z,  19,IN, HIGH,1		//MC_DREQ1, DMA request for USB DC
+
+	SPEC_	_ABC,20,OUT,HIGH,1		//MC_DREQ0, nc
+	SPEC_	_Z,  20,IN, HIGH,1		//MC_DREQ0, DMA request for USB HC
+
+	SPEC_	ALL, 21,IN, HIGH,0		//	pcmcia card detect
+	SPEC_	ALL, 22,IN, HIGH,0		//	pcmcia intr (active low)
+
+	SPEC_	_ABZ,23,OUT,HIGH,0		//SSP_SCLK, nc
+	SPEC_	_C,  23,IN, LOW, 0		//SSP_SCLK, in service
+
+	SPEC_	_ABZ,24,OUT,HIGH,0		//SSP_SFRM, nc
+	SPEC_	_C,  24,IN, LOW, 0		//SSP_SFRM, SCM interrupt (active high)
+
+	SPEC_	ALL, 25,OUT,HIGH,0		//SSP_TXD, nc
+	SPEC_	ALL, 26,OUT,HIGH,0		//SSP_RXD, nc
+	SPEC_	ALL, 27,OUT,LOW, 0		//SSP_EXTCLK, DC1 (SMC)
+
+	SPEC_	_ABC,28,OUT,HIGH,0		//AC_BITCLK, nc
+	SPEC_	_Z,  28,IN, HIGH,1		//AC_BITCLK,	ac97 bitclk
+
+	SPEC_	_ABC,29,OUT,HIGH,0		//AC_SDATAIN0, nc
+	SPEC_	_Z,  29,IN, HIGH,1		//AC_SDATAIN0,	ac97 datain0
+
+	SPEC_	_ABC,30,OUT,HIGH,0		//AC_SDATAOUT, OUT6
+	SPEC_	_Z,  30,OUT,HIGH,2		//AC_SDATAOUT,	ac97 data out
+
+	SPEC_	_ABC,31,OUT,HIGH,0		//AC_SYNC, nc
+	SPEC_	_Z,  31,OUT,HIGH,2		//AC_SYNC,	ac97 sync
+// ************************************************************************
+
+	SPEC_	_ABC,32,OUT,LOW, 0		//AC_SDATAIN1, right light
+	SPEC_	_Z,  32,OUT,HIGH,0		//AC_SDATAIN1, wet contact
+
+	SPEC_	ALL, 33,OUT,LOW, 0		//MC_nCS5, green led (left)
+	SPEC_	ALL, 34,IN, HIGH,1		//FF_RXD
+
+	SPEC_	_AC, 35,OUT,HIGH,0		//FF_CTS, nc
+	SPEC_	_BZ, 35,IN, HIGH,0		//FF_CTS, magStripe T1 data, motor in
+
+	SPEC_	_ABC,36,OUT,HIGH,0		//FF_DCD, OUT5
+	SPEC_	_Z,  36,IN, HIGH,0		//FF_DCD, MMC Write Protect
+
+	SPEC_	_AC, 37,OUT,HIGH,0		//FF_DSR, nc
+	SPEC_	_B,  37,IN, HIGH,0		//FF_DSR, magStripe T1 clock
+	SPEC_	_Z,  37,IN, HIGH,1		//FF_DSR
+
+	SPEC_	_ABC,38,OUT,HIGH,0		//FF_RI, nc
+	SPEC_	_Z,  38,IN, HIGH,0		//FF_RI, MMC Card Detect
+
+	SPEC_	ALL, 39,OUT,HIGH,2		//FF_TXD
+	SPEC_	ALL, 40,OUT,HIGH,2		//FF_DTR
+	SPEC_	ALL, 41,OUT,HIGH,2		//FF_RTS
+	SPEC_	ALL, 42,IN, HIGH,1		//BT_RXD
+	SPEC_	ALL, 43,OUT,HIGH,2		//BT_TXD
+
+	SPEC_	_ABC,44,OUT,HIGH,0		//BT_CTS, ticket out
+	SPEC_	_Z,  44,OUT,HIGH,0		//BT_CTS, USB wakeup host
+
+	SPEC_	_ABC,45,OUT,LOW,0		//BT_RTS, left light
+	SPEC_	_Z,  45,OUT,LOW,0		//BT_RTS, HIGH 2
+
+	SPEC_	_ABC,46,IN,HIGH,2		//ST_RXD
+	SPEC_	_Z,  46,IN,HIGH,0		//ST_RXD, ticket count in
+
+	SPEC_	ALL, 47,OUT,HIGH,1		//ST_TXD
+	SPEC_	ALL, 48,OUT,HIGH,2		//MC_nPOE,    pcmcia
+	SPEC_	ALL, 49,OUT,HIGH,2		//MC_nPWE,    pcmcia
+	SPEC_	ALL, 50,OUT,HIGH,2		//MC_nPIOR,   pcmcia
+	SPEC_	ALL, 51,OUT,HIGH,2		//MC_nPIOW,   pcmcia
+	SPEC_	ALL, 52,OUT,HIGH,2		//MC_nPCE1,   pcmcia
+	SPEC_	ALL, 53,OUT,HIGH,2		//MC_nPCE2,   pcmcia
+	SPEC_	ALL, 54,OUT,HIGH,2		//MC_nPSKTSEL, nc
+	SPEC_	ALL, 55,OUT,HIGH,2		//MC_nPREG,   pcmcia attribe vs Io space
+	SPEC_	ALL, 56,IN, HIGH,1		//MC_nPWAIT   pcmcia busy
+	SPEC_	ALL, 57,IN, HIGH,1		//MC_nIOIS16, pcmcia 16 bit wide
+	SPEC_	ALL, 58,OUT,HIGH,ALT_LCD	//LCD_LDD0, also GP_PIX_D0
+	SPEC_	ALL, 59,OUT,HIGH,ALT_LCD	//LCD_LDD1, also GP_PIX_D1
+	SPEC_	ALL, 60,OUT,HIGH,ALT_LCD	//LCD_LDD2, also GP_PIX_D2
+	SPEC_	ALL, 61,OUT,HIGH,ALT_LCD	//LCD_LDD3, also GP_PIX_D3
+	SPEC_	ALL, 62,OUT,HIGH,ALT_LCD	//LCD_LDD4, also GP_PIX_D4
+	SPEC_	ALL, 63,OUT,HIGH,ALT_LCD	//LCD_LDD5, also GP_PIX_D5
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+
+
+	SPEC_	ALL, 64,OUT,HIGH,ALT_LCD	//LCD_LDD6, also GP_PIX_D6
+	SPEC_	ALL, 65,OUT,HIGH,ALT_LCD	//LCD_LDD7, also GP_PIX_D7
+	SPEC_	ALL, 66,OUT,HIGH,ALT_LCD	//LCD_LDD8, also GP_PIX_RESET
+
+	SPEC_	_AC, 67,OUT,HIGH,0		//LCD_LDD9, nc
+	SPEC_	_B,  67,IN, HIGH,0		//LCD_LDD9, magStripe T2 Data
+	SPEC_	_Z,  67,OUT,HIGH,ALT_LCD	//LCD_LDD9
+
+	SPEC_	ALL, 68,OUT,HIGH,ALT_LCD	//LCD_LDD10
+
+	SPEC_	_AB, 69,IN, LOW, 0		//LCD_LDD11, service in
+	SPEC_	_C,  69,OUT,HIGH,0		//LCD_LDD11, nc
+	SPEC_	_Z,  69,OUT,HIGH,ALT_LCD	//LCD_LDD11
+
+	SPEC_	ALL, 70,OUT,HIGH,ALT_LCD	//LCD_LDD12
+
+	SPEC_	_ABC,71,IN, HIGH,0		//LCD_LDD13, motor in
+	SPEC_	_Z,  71,OUT,HIGH,ALT_LCD		//LCD_LDD13
+
+	SPEC_	ALL, 72,OUT,HIGH,ALT_LCD	//LCD_LDD14
+	SPEC_	ALL, 73,OUT,HIGH,ALT_LCD	//LCD_LDD15
+	SPEC_	ALL, 74,OUT,HIGH,ALT_LCD	//LCD_FCLK, also GP_PIX_READ
+	SPEC_	ALL, 75,OUT,LCD_CS_STATE,ALT_LCD	//LCD_LCLK, also GP_PIX_CS1
+	SPEC_	ALL, 76,OUT,LCD_CS_STATE,ALT_LCD	//LCD_PCLK, also GP_PIX_CS0
+	SPEC_	ALL, 77,OUT,HIGH,ALT_LCD	//LCD_ACBIAS, also GP_PIX_A0
+	SPEC_	ALL, 78,OUT,HIGH,2		//nCS2, DMA acknowledge channel 1 for USB, SMC91c111 Chip Select nDATACS
+	SPEC_	ALL, 79,OUT,HIGH,2		//nCS3, DMA acknowledge channel 2 for USB, SM501 Chip Select
+	SPEC_	ALL, 80,OUT,HIGH,2		//nCS4, USB chip select, SMC91c111 Chip Select
+	SPEC_	ALL, 81,IN, LOW, 0		//GND (pin F16), pxa255 has 9 extra gpios
+	SPEC_	ALL, 82,IN, LOW, 0		//GND (pin E16)
+	SPEC_	ALL, 83,IN, LOW, 0		//GND (pin E15)
+	SPEC_	ALL, 84,IN, LOW, 0		//GND (pin D16)
+	SPEC_	ALL, 85,IN, LOW, 0		//GND (pin F15)
+	SPEC_	ALL, 86,OUT,HIGH,0		//SDCS2 (pin G3)
+	SPEC_	ALL, 87,OUT,HIGH,0		//SDCS3 (pin F2)
+	SPEC_	ALL, 88,OUT,HIGH,0		//old RDnWR(pin D3)
+	SPEC_	ALL, 89,OUT,HIGH,0		//old ac97_reset(pin D10)
+	SPEC_	ALL, 90,IN, LOW, 0		//undefined
+	SPEC_	ALL, 91,IN, LOW, 0		//undefined
+	SPEC_	ALL, 92,IN, LOW, 0		//undefined
+	SPEC_	ALL, 93,IN, LOW, 0		//undefined
+	SPEC_	ALL, 94,IN, LOW, 0		//undefined
+	SPEC_	ALL, 95,IN, LOW, 0		//undefined
+
+// ****************************************************************************
+	CREATE_MASK_DIR		DRVALa0, SPECA_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+	CREATE_MASK_LEVEL	SRVALa0, SPECA_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+	CREATE_MASK_ALT		AFVALa0, SPECA_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+	CREATE_MASK_ALT		AFVALa16,SPECA_,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+
+	CREATE_MASK_DIR		DRVALa32,SPECA_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+	CREATE_MASK_LEVEL	SRVALa32,SPECA_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+	CREATE_MASK_ALT		AFVALa32,SPECA_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47
+	CREATE_MASK_ALT		AFVALa48,SPECA_,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+
+	CREATE_MASK_DIR		DRVALa64,SPECA_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+	CREATE_MASK_LEVEL	SRVALa64,SPECA_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+	CREATE_MASK_ALT		AFVALa64,SPECA_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79
+	CREATE_MASK_ALT		AFVALa80,SPECA_,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+
+// ****************************************************************************
+	CREATE_MASK_DIR		DRVALb0, SPECB_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+	CREATE_MASK_LEVEL	SRVALb0, SPECB_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+	CREATE_MASK_ALT		AFVALb0, SPECB_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+	CREATE_MASK_ALT		AFVALb16,SPECB_,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+
+	CREATE_MASK_DIR		DRVALb32,SPECB_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+	CREATE_MASK_LEVEL	SRVALb32,SPECB_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+	CREATE_MASK_ALT		AFVALb32,SPECB_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47
+	CREATE_MASK_ALT		AFVALb48,SPECB_,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+
+	CREATE_MASK_DIR		DRVALb64,SPECB_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+	CREATE_MASK_LEVEL	SRVALb64,SPECB_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+	CREATE_MASK_ALT		AFVALb64,SPECB_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79
+	CREATE_MASK_ALT		AFVALb80,SPECB_,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+
+// ****************************************************************************
+	CREATE_MASK_DIR		DRVALc0, SPECC_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+	CREATE_MASK_LEVEL	SRVALc0, SPECC_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+	CREATE_MASK_ALT		AFVALc0, SPECC_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+	CREATE_MASK_ALT		AFVALc16,SPECC_,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+
+	CREATE_MASK_DIR		DRVALc32,SPECC_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+	CREATE_MASK_LEVEL	SRVALc32,SPECC_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+	CREATE_MASK_ALT		AFVALc32,SPECC_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47
+	CREATE_MASK_ALT		AFVALc48,SPECC_,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+
+	CREATE_MASK_DIR		DRVALc64,SPECC_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+	CREATE_MASK_LEVEL	SRVALc64,SPECC_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+	CREATE_MASK_ALT		AFVALc64,SPECC_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79
+	CREATE_MASK_ALT		AFVALc80,SPECC_,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+
+// ****************************************************************************
+	CREATE_MASK_DIR		DRVALz0, SPECZ_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+	CREATE_MASK_LEVEL	SRVALz0, SPECZ_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+	CREATE_MASK_ALT		AFVALz0, SPECZ_, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+	CREATE_MASK_ALT		AFVALz16,SPECZ_,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+
+	CREATE_MASK_DIR		DRVALz32,SPECZ_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+	CREATE_MASK_LEVEL	SRVALz32,SPECZ_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+	CREATE_MASK_ALT		AFVALz32,SPECZ_,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47
+	CREATE_MASK_ALT		AFVALz48,SPECZ_,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
+
+	CREATE_MASK_DIR		DRVALz64,SPECZ_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+	CREATE_MASK_LEVEL	SRVALz64,SPECZ_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+	CREATE_MASK_ALT		AFVALz64,SPECZ_,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79
+	CREATE_MASK_ALT		AFVALz80,SPECZ_,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95
+
+
+#if (PLATFORM_TYPE==OLD_GAME_CONTROLLER)
+#define DRVAL0  DRVALz0
+#define SRVAL0  SRVALz0
+#define AFVAL0  AFVALz0
+#define AFVAL16 AFVALz16
+
+#define DRVAL32 DRVALz32
+#define SRVAL32 SRVALz32
+#define AFVAL32 AFVALz32
+#define AFVAL48 AFVALz48
+
+#define DRVAL64 DRVALz64
+#define SRVAL64 SRVALz64
+#define AFVAL64 AFVALz64
+#define AFVAL80 AFVALz80
+
+#else
+	.ifdef __ARMASM
+DRVAL0	EQU  (DRVALa0&DRVALb0&DRVALc0)
+DRVAL32 EQU	 (DRVALa32&DRVALb32&DRVALc32)
+DRVAL64 EQU	 (DRVALa64&DRVALb64&DRVALc64)
+	.else
+	.set	DRVAL0,(DRVALa0&DRVALb0&DRVALc0)
+	.set	DRVAL32,(DRVALa32&DRVALb32&DRVALc32)
+	.set	DRVAL64,(DRVALa64&DRVALb64&DRVALc64)
+	.endif
+#define SRVAL0  SRVALc0
+#define AFVAL0  AFVALc0
+#define AFVAL16 AFVALc16
+
+#define SRVAL32 SRVALc32
+#define AFVAL32 AFVALc32
+#define AFVAL48 AFVALc48
+
+#define SRVAL64 SRVALc64
+#define AFVAL64 AFVALc64
+#define AFVAL80 AFVALc80
+#endif

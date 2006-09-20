@@ -1,0 +1,60 @@
+#ifndef __PXA250BASE_H__
+#define __PXA250BASE_H__ 1
+
+#ifdef __ARMASM
+#define USE_PHYSICAL 1
+#else
+#ifndef _MSC_VER
+#define USE_PHYSICAL 1
+#endif
+#endif
+	
+
+#ifndef USE_PHYSICAL
+#if EBOOT_PHYS
+#define USE_PHYSICAL 1
+#endif
+#endif
+
+#if USE_PHYSICAL
+#define PCMCIA_CARD0_IO     0x20000000
+#define PCMCIA_CARD0_ATTR   0x28000000
+#define PCMCIA_CARD0_MEM    0x2c000000
+
+#define PCMCIA_CARD1_IO     0x30000000
+#define PCMCIA_CARD1_ATTR   0x38000000
+#define PCMCIA_CARD1_MEM    0x3c000000
+
+#define FFUART_BASE         0x40100000
+#define BTUART_BASE         0x40200000
+#define STUART_BASE         0x40700000
+#define UART_BASE           FFUART_BASE
+//#define UART_BASE           BTUART_BASE
+
+#define OS_TIMER_BASE       0x40a00000
+#define IC_BASE             0x40D00000
+#define GPIO_BASE           0x40E00000
+#define PWR_MANAGER_BASE    0x40F00000
+#define CLK_MANAGER_BASE    0x41300000
+#define LCD_CONTROL_BASE    0x44000000
+#define MEMORY_CONTROL_BASE 0x48000000
+
+#define MEM_START           0xa0000000
+
+
+#else
+#include "xsc1.h"
+
+#define PCMCIA_CARD0_IO     PCMCIA_S0_IO_U_VIRTUAL
+#define PCMCIA_CARD0_ATTR   PCMCIA_S0_ATTR_U_VIRTUAL
+#define PCMCIA_CARD0_MEM    PCMCIA_S0_CMN_U_VIRTUAL
+
+#define PCMCIA_CARD1_IO     PCMCIA_S1_IO_U_VIRTUAL
+#define PCMCIA_CARD1_ATTR   PCMCIA_S1_ATTR_U_VIRTUAL
+#define PCMCIA_CARD1_MEM    PCMCIA_S0_CMN_U_VIRTUAL
+
+#define MEMORY_CONTROL_BASE MEMC_BASE_U_VIRTUAL
+#define GPIO_BASE           GPIO_BASE_U_VIRTUAL
+#endif
+
+#endif
