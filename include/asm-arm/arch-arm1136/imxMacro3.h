@@ -388,68 +388,26 @@
 .macro	InitChangeCPUSpeed rTemp
 .endm
 
-.macro InitRam	rBase,rVal,rMem
-	BigMov	\rBase,ESD_BASE
-//esdcfg0: 4 clocks before new command,2 clocks changing from write to read,
-//3 clocks row precharge,2 clocks after load mode,2clocks write to precharge,
-//7 clocks active to precharge,2 clocks switching banks,3 clocks CAS latency
-//4 clocks row to column delay,10 clocks row cycle delay
-	BigMov	\rVal,0x0079e73a
-	str		\rVal,[\rBase,#ESDCFG0]
-
-//esdctl0: sde-enabled,pre-charge,13 rows, 9 cols
-	BigMov	\rVal,0x92100000
-	str		\rVal,[\rBase,#ESDCTL0]
-
-	BigMov	\rMem,MEM_START
-	BigMov	\rVal,0x12344321
-	str		\rVal,[\rMem,#0xf00]
-	
-//esdctl0: auto refresh
-	BigMov	\rVal,0xa2100000
-	str		\rVal,[\rBase,#ESDCTL0]
-
-	BigMov	\rVal,0x12344321
-	str		\rVal,[\rMem]
-	str		\rVal,[\rMem]
-
-//esdctl0: load mode register
-	BigMov	\rVal,0xb2100000
-	str		\rVal,[\rBase,#ESDCTL0]
-
-	BigMov	\rVal,0xda
-	strb	\rVal,[\rMem,#0x37]
-
-	BigMov	\rVal,0xff
-	BigMov	\rMem,MEM_START+(16<<20)
-	strb	\rVal,[\rMem]
-
-//esdctl0: sde-enabled,normal,13 rows,9 cols, 32bit width, 
-//4 rows each refresh clock,full page burst, burst of 8,
-	BigMov	\rVal,0x82126180
-	str		\rVal,[\rBase,#ESDCTL0]
-	
-	BigMov	\rMem,MEM_START
-	BigMov	\rVal,0xdeadbeef
-	str		\rVal,[\rMem]
-.endm
 
 //d b8001004 79e73a
 //d b8001000 92126180
 //d 80000f00 92126180
 //d b8001000 a2126180
 //d 80000000 a2126180
-//d 80000000 a2126180
-//d 80000000 a2126180
-//d 80000000 a2126180
-//d 80000000 a2126180
-//d 80000000 a2126180
-//d 80000000 a2126180
-//d b8001000 b2126180
+//d 80000000 92126180
+//d 80000000 82126180
+//d 80000000 72126180
+//d 80000000 62126180
+//d 80000000 52126180
+//d 80000000 42126180
+//d 80000000 32126180
+//d b8001000 22126180
+//d b8001000 12126180
+//d b8001000 02126180
 //d 80000037 80
 //d b8001000 82126180
 
-.macro InitRam1	rBase,rVal,rMem,rTmp
+.macro InitRam	rBase,rVal,rMem
 	BigMov	\rBase,ESD_BASE
 //esdcfg0: 4 clocks before new command,2 clocks changing from write to read,
 //3 clocks row precharge,2 clocks after load mode,2clocks write to precharge,
@@ -469,13 +427,12 @@
 	eor		\rVal,\rVal,#0xa0000000^0x90000000	//change 9 to A (SMODE=010)
 	str		\rVal,[\rBase,#ESDCTL0]
 
-	mov		\rTmp,#7
-90:	str		\rVal,[\rMem]		//start auto-refresh cycle
-	subs	\rTmp,\rTmp,#1
-	bne		90b
+90:	str		\rVal,[\rMem]		//start auto-refresh cycle, 11 writes
+	subs	\rVal,\rVal,#0x10000000
+	bhs		90b					//br if NO borrow (c-1)
 
 //esdctl0: load mode register
-	eor		\rVal,\rVal,#0xb0000000^0xa0000000	//change A to B(SMODE=011)
+	eor		\rVal,\rVal,#0xb0000000^0xf0000000	//change F to B(SMODE=011)
 	str		\rVal,[\rBase,#ESDCTL0]
 
 	strb	\rVal,[\rMem,#0x37]		//set mode register with address line values
