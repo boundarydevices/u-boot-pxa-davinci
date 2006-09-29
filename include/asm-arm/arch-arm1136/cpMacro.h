@@ -52,7 +52,7 @@
 	\ins	p15,0,\rx,c1,c0,2
 .endm
 
-.macro	CP15_TTBR	ins,rx
+.macro	CP15_TTBR0	ins,rx
 	\ins	p15,0,\rx,c2,c0,0		//translation table base
 .endm
 .macro	CP15_TTBR1	ins,rx

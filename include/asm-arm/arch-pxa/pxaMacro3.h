@@ -5,6 +5,42 @@
 	.endif
 	.set	TAGGED_LIST,0xa0000100	//physical address of start of list
 
+	.ifdef __ARMASM
+	GBLA STACKS_VALID
+	GBLA CONFIG_STACKS_VALID
+	.set	CONFIG_STACKS_VALID,1
+	.endif
+
+#if (SOFTWARE_TYPE==WINCE)
+	.set	STACKS_VALID,1
+	.ifdef __ARMASM
+	.else
+#ifndef CONFIG_STACKS_VALID
+#define CONFIG_STACKS_VALID 1
+#endif
+	.endif
+
+	.equiv	SDRAM_BASE_C_VIRTUAL, 0xA0000000		//0x80000000 is cached mapped, 0xa0000000 is uncacheable
+	.equiv	UART_VIRT_BASE, 0xAA100000
+	.equiv	VMA_DEBUG, (0xfff00000)
+	.equiv	VIRTUAL_CS0, 0xa8000000
+	.equiv	VIRTUAL_CS1, 0xa8000000
+
+#else
+#ifdef CONFIG_STACKS_VALID
+	.set	STACKS_VALID,1
+#else
+	.set	STACKS_VALID,0
+#endif
+	.equiv	SDRAM_BASE_C_VIRTUAL, 0xC0000000
+	.equiv	UART_VIRT_BASE, 0xf8100000
+//	.equiv	VMA_DEBUG, (0xff000000)
+//!!!!!for some reason the above base causes bizarre problems
+	.equiv	VMA_DEBUG, (0xfff00000)
+	.equiv	VIRTUAL_CS0, 0xff000000
+	.equiv	VIRTUAL_CS1, 0xff000000		//changed in 2.6.16 0xff100000
+#endif
+
 .macro EmulateJmpFIQ rWork,rBranch
 	CheckBranch \rWork,\rBranch
 	V_VectorExitCC \rWork,\rBranch,eq,eqia,ne
@@ -250,6 +286,10 @@
 	CleanInvalidateDataCache	\rTmp0,\rTmp1
 .endm
 
+//No L2 cache
+.macro	DisableL2Cache	rBase,rVal
+.endm
+
 //rTmp is trashed
 .macro	InvalidateICacheRange rStart,rEnd,rTmp
 	bic	\rTmp,\rStart,#0x1f
@@ -410,6 +450,10 @@
 //  using Big will generate no instructions if Wince, throwing off my reloc vector
 //	BigAdd2Ne r1,\physToVirtOffset
 	addne	r1,r1,#\physToVirtOffset	//convert this physical address to a virtual address if relocation vector ON
+.endm
+
+.macro SetupTTBR rBase,rTmp
+	CP15_TTBR mcr,\rBase
 .endm
 
 .macro	GetDebugMagicPhys	rTemp
