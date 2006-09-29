@@ -12,43 +12,6 @@
 	.equiv	MACH_TYPE_SCANPASS,332
 	.equiv	ATAG_CORE,	0x54410001
 	.equiv	ATAG_MEM,	0x54410002
-	
-
-	.ifdef __ARMASM
-	GBLA STACKS_VALID
-	GBLA CONFIG_STACKS_VALID
-	.set	CONFIG_STACKS_VALID,1
-	.endif
-
-#if (SOFTWARE_TYPE==WINCE)
-	.set	STACKS_VALID,1
-	.ifdef __ARMASM
-	.else
-#ifndef CONFIG_STACKS_VALID
-#define CONFIG_STACKS_VALID 1
-#endif
-	.endif
-
-	.equiv	SDRAM_BASE_C_VIRTUAL, 0xA0000000		//0x80000000 is cached mapped, 0xa0000000 is uncacheable
-	.equiv	UART_VIRT_BASE, 0xAA100000
-	.equiv	VMA_DEBUG, (0xfff00000)
-	.equiv	VIRTUAL_CS0, 0xa8000000
-	.equiv	VIRTUAL_CS1, 0xa8000000
-
-#else
-#ifdef CONFIG_STACKS_VALID
-	.set	STACKS_VALID,1
-#else
-	.set	STACKS_VALID,0
-#endif
-	.equiv	SDRAM_BASE_C_VIRTUAL, 0xC0000000
-	.equiv	UART_VIRT_BASE, 0xf8100000
-//	.equiv	VMA_DEBUG, (0xff000000)
-//!!!!!for some reason the above base causes bizarre problems
-	.equiv	VMA_DEBUG, (0xfff00000)
-	.equiv	VIRTUAL_CS0, 0xff000000
-	.equiv	VIRTUAL_CS1, 0xff000000		//changed in 2.6.16 0xff100000
-#endif
 
 	.equiv	PHYS_TO_VIRT, (SDRAM_BASE_C_VIRTUAL-MEM_START)
 #define V_rWork r2
@@ -172,19 +135,26 @@
 //	.equiv	SYM_SPSR,NN	//nice to have, but do it later
 //	.equiv	SYM_FPS,NN
 	.equiv	SYM_FP0,(NN)		//40 bits, 5
-	.equiv	SYM_FSR,(NN+1)
-	.equiv	SYM_FAR,(NN+2)
-	.equiv	SYM_DCSR,(NN+3)
-	.equiv	SYM_TTBR,(NN+4)
-	.equiv	SYM_CTRL,(NN+5)
 
-	.equiv	SYM_LAST,(NN+5)
+	.ifdef CONFIG_ARM1136
+	.equiv	SYM_TTB0,(NN+1)
+	.equiv	SYM_TTB1,(NN+2)
+	.equiv	SYM_TTBC,(NN+3)
+	.equiv	NN2,(NN+4)
+	.else
+	.equiv	SYM_TTBR,(NN+1)
+	.equiv	NN2,(NN+2)
+	.endif
 
-#if 1
+	.equiv	SYM_FSR,(NN2)
+	.equiv	SYM_FAR,(NN2+1)
+	.equiv	SYM_DCSR,(NN2+2)
+	.equiv	SYM_CTRL,(NN2+3)
+
+	.equiv	SYM_LAST,(NN2+3)
+
+	.equiv	SYM_FIRST_SPECIAL,SYM_FP0	//1st symbol not in memory
 	.equiv	SYM_LAST_RCMD,(SYM_CPSR)	//last symbol printed by R cmd
-#else
-	.equiv	SYM_LAST_RCMD,(SYM_FP0)
-#endif
 
 
 	.equiv	SIG_RESET,			0

@@ -145,6 +145,7 @@ FlushCache:
 dcache_disable:
 	mov	r3,lr
 	bl	FlushCache
+	DisableL2Cache r0,r1
 	CP15_CONTROL mrc,r1
 
 	BigBic2	r1, 0x2805	//disable high vector, branch target buffer, disable data cache, MMU
@@ -215,7 +216,7 @@ dcache_enable:
 	BigMov	r0,0xffffffff
 	CP15_DACR mcr,r0
 
-	CP15_TTBR mcr,r6
+	SetupTTBR	r6,r1
 //enable MMU
 	ResetTLB r0
 

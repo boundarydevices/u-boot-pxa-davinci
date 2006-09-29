@@ -1,8 +1,31 @@
 #include "cpMacro.h"
 	.ifdef __ARMASM
 	GBLA	TAGGED_LIST
+	GBLA	CONFIG_ARM1136
 	.endif
+	.set	CONFIG_ARM1136,1
 	.set	TAGGED_LIST,0x80000100		//physical address of start of list
+
+	.ifdef __ARMASM
+	GBLA STACKS_VALID
+	GBLA CONFIG_STACKS_VALID
+	.set	CONFIG_STACKS_VALID,1
+	.endif
+//force stacks valid
+#define CONFIG_STACKS_VALID 1
+	.set	STACKS_VALID,1
+
+#if (SOFTWARE_TYPE==WINCE)
+	.equiv	SDRAM_BASE_C_VIRTUAL, 0xA0000000		//0x80000000 is cached mapped, 0xa0000000 is uncacheable
+	.equiv	UART_VIRT_BASE, 0xAA190000
+	.equiv	VMA_DEBUG, (0xfff00000)
+#else
+	.equiv	SDRAM_BASE_C_VIRTUAL, 0xC0000000
+	.equiv	UART_VIRT_BASE, 0xD4090000
+//	.equiv	VMA_DEBUG, (0xff000000)
+//!!!!!for some reason the above base causes bizarre problems
+	.equiv	VMA_DEBUG, (0xfff00000)
+#endif
 
 	.equiv	MEM_START,	   0x80000000
 	.equiv	LOCAL_RAM,     0x1fffc000
@@ -60,6 +83,7 @@
 	.equiv	L2CC_CONTROL, 0x100
 	.equiv	L2CC_AUXCTL,  0x104
 	.equiv	L2CC_INVALIDATE,	0x77c
+	.equiv	L2CC_CLEAN_INVALIDATE, 0x7fc
 
 
 	.equiv	GPIO_BASE1, 0x53fcc000
@@ -215,27 +239,27 @@
 .endm
 
 	.equiv	Fref_K,32768		//Fref = 32768*1024 = 33,554,432 = 33.5M
-	.equiv	MP_PD,1
-	.equiv	MP_MFd,0
 	.equiv	MP_MFi,6
+	.equiv	MP_MFd,0
 	.equiv	MP_MFn,0		//MFn <= MFd
+	.equiv	MP_PD,1
 	.equiv	MP_VAL,(MP_PD<<26)|(MP_MFd<<16)|(MP_MFi<<10)|MP_MFn		//MPCTL=0x04001800
 // Fref x 2 x ((MFi + MFn/(MFd+1))/(PD+1)) = Fvco
 // Fref_K x ((MFi*2048 + MFn*2048/(MFd+1))/(PD+1)) = Fvco
 	.equiv	MP_CLKRATE,(Fref_K*( (MP_MFi*2048)+( (MP_MFn*2048)/(MP_MFd+1))))/(MP_PD+1)	//33.5M x 2 x (6/2) = 201326592 Hz = 201.3 MHz
 
 //USB PLL control
+	.equiv	UP_MFi,7
+	.equiv	UP_MFd,58
+	.equiv	UP_MFn,9		//MFn <= MFd
 	.equiv	UP_PD,1
-	.equiv	UP_MFd,21		//was 17
-	.equiv	UP_MFi,8
-	.equiv	UP_MFn,20		//MFn <= MFd
 	.equiv	UP_VAL,(UP_PD<<26)|(UP_MFd<<16)|(UP_MFi<<10)|UP_MFn		//was UPCTL=0x04112014
-	.equiv	UP_CLKRATE,(Fref_K*( (UP_MFi*2048)+( (UP_MFn*2048)/(UP_MFd+1))))/(UP_PD+1)	//33.5M x 2 x ((  8 +  20/(17+1))/(1+1)) = fraction error
+	.equiv	UP_CLKRATE,(Fref_K*( (UP_MFi*2048)+( (UP_MFn*2048)/(UP_MFd+1))))/(UP_PD+1)	//about 240MHz
 
-	.equiv	SP_PD,1
-	.equiv	SP_MFd,4
 	.equiv	SP_MFi,12
+	.equiv	SP_MFd,4
 	.equiv	SP_MFn,1		//MFn <= MFd
+	.equiv	SP_PD,1
 	.equiv	SP_VAL,(SP_PD<<26)|(SP_MFd<<16)|(SP_MFi<<10)|SP_MFn		//SPCTL=0x04043001
 	.equiv	SP_CLKRATE,(Fref_K*( (SP_MFi*2048)+( (SP_MFn*2048)/(SP_MFd+1))))/(SP_PD+1)	//33.5M x 12.2 = 409364070 Hz = 409.3 MHz
 
@@ -272,6 +296,9 @@
 
 .macro InitIC_Clocks rBase,rTemp
 	BigMov	\rBase,CLOCK_BASE
+	BigMov	\rTemp,UP_VAL
+	str		\rTemp,[\rBase,#CLK_UPCTL]
+
 	ldr		\rTemp,[\rBase,#CLK_CCMR]
 	bic		\rTemp,\rTemp,#0xe
 	str		\rTemp,[\rBase,#CLK_CCMR]	//disable MCU PLL
@@ -555,11 +582,30 @@
 .macro Lock_Data_Cache_Range	rStart,rCacheLines,rTmp
 .endm
 
-.macro	CleanInvalidateDataCache	rTmp0,rTmp1
-	CP15_CF_CLEAN_INVAL_DCACHE	mcr,\rTmp0
+.macro	CleanInvalidateDataCache	rBase,rVal
+	BigMov	\rBase,L2CC_BASE
+	ldr		\rVal,[\rBase,#L2CC_CONTROL]
+	tst		\rVal,#1
+	beq		99f						//br if L2 cache is disabled
+	mov		\rVal,#0xff
+	str		\rVal,[\rBase,#L2CC_CLEAN_INVALIDATE]
+98:	ldr		\rVal,[\rBase,#L2CC_CLEAN_INVALIDATE]
+	cmp		\rVal,#0
+	bne		98b
+99:	
+	CP15_CF_CLEAN_INVAL_DCACHE	mcr,\rBase
 .endm
-.macro	CleanInvalidateDataCache1	rTmp0,rTmp1,rDbg
-	CP15_CF_CLEAN_INVAL_DCACHE	mcr,\rTmp0
+.macro	CleanInvalidateDataCache1	rBase,rVal,rDbg
+//	CleanInvalidateDataCache \rBase,\rVal
+//Virtual memory is probably on but 1 to 1 mapping for L2 cache control
+//may not be. So, don't worry about L2 cache
+	CP15_CF_CLEAN_INVAL_DCACHE	mcr,\rBase
+.endm
+
+.macro	DisableL2Cache	rBase,rVal
+	BigMov	\rBase,L2CC_BASE
+	mov		\rVal,#0
+	str		\rVal,[\rBase,#L2CC_CONTROL]	//disable L2 cache
 .endm
 
 //rTmp is trashed
@@ -759,12 +805,24 @@
 
 //r1 - CP15_CONTROL
 .macro GetPageTableStart rTmp,physToVirtOffset
-	tst	r1,#1<<13		//assume 1:1 mapping for TTBR if relocation vector is off
+	movs	r1,r1,LSR #13+1		//assume 1:1 mapping for TTBR if relocation vector is off
+								//mov bit 13 to carry flag
 // see if identity mapping is enabled
-	CP15_TTBR mrc,r1
+	CP15_TTBR_CONTROL	mrc,r1
+	tst	r1,#0x7
+	CP15_TTBR0 mrceq,r1
+	CP15_TTBR1 mrcne,r1
+	bic	r1,r1,#0xff		//clear caching attributes, and shared memory flag
+	
 //  using Big will generate no instructions if Wince, throwing off my reloc vector
 //	BigAdd2Ne r1,\physToVirtOffset
-	addne	r1,r1,#\physToVirtOffset	//convert this physical address to a virtual address if relocation vector ON
+	addcs	r1,r1,#\physToVirtOffset	//convert this physical address to a virtual address if relocation vector ON
+.endm
+
+.macro SetupTTBR rBase,rTmp
+	CP15_TTBR0 mcr,\rBase
+	mov	\rTmp,#0
+	CP15_TTBR_CONTROL	mrc,\rTmp
 .endm
 
 .macro	GetDebugMagicPhys	rTemp

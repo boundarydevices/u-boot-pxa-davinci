@@ -110,6 +110,7 @@ int cleanup_before_linux (void)
 	unsigned long i;
 
 	disable_interrupts ();
+	dcache_disable();	//this will flush it out
 
 #ifdef CONFIG_LCD
 	{

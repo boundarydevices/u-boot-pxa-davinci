@@ -10,7 +10,7 @@ if fatload mmc 0 82000000 uim* ; then
    if fatload mmc 0 82200000 mmcinitrd* ; then
       echo 'using initrd' ;
       lecho "Booting Linux"
-      set bootargs root=/dev/ram0 console=ttyS0,115200 debug=7 mtdparts=phys_mapped_flash:1024k(armboot),256k(params),-(rootfs1)
+      set bootargs root=/dev/ram0 console=ttymxc0,115200 debug=7 ENV=/etc/bashrc
       bootm 82000000 82200000
    else
       echo 'testing cramfs img' ;
@@ -24,7 +24,7 @@ if fatload mmc 0 82000000 uim* ; then
             cp.b 82200000 00140000 $filesize ;
          fi
 
-         set bootargs console=ttyS0,115200 debug=7 mtdparts=phys_mapped_flash:1024k(armboot),256k(params),-(rootfs1) root=/dev/mtdblock3 rootfstype=cramfs
+         set bootargs console=ttymxc0,115200 debug=7 root=/dev/mtdblock3 rootfstype=cramfs
          lecho "Booting Linux"
          bootm 82000000
       fi

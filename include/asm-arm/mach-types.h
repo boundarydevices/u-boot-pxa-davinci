@@ -348,7 +348,7 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_NEON                 332
 #define MACH_TYPE_BD2003               332
 #define MACH_TYPE_HALOGEN              332
-#define MACH_TYPE_IMX31_MERCURY        332
+#define MACH_TYPE_IMX31_MERCURY        447	//this is MX31ADS value
 #define MACH_TYPE_EP7312_POOH          333
 #define MACH_TYPE_TA7S                 334
 #define MACH_TYPE_TA7V                 335

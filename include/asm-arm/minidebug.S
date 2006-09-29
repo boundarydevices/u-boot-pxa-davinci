@@ -397,7 +397,7 @@ Receive1:
 //IN: r2 - symbol #
 //OUT: r1:r0 - value,
 GetRegVal:
-	cmp	r2,#SYM_FP0
+	cmp	r2,#SYM_FIRST_SPECIAL
 	bcs	GetSpecialReg
 #if DBG_R0
 	add	r1,rDBG,#DBG_R0
@@ -558,7 +558,7 @@ gdb_lastSignal1:
 // ******************************************************************************************
 
 
-//IN: r2 - symbol #, z-1 if SYM_FP0
+//IN: r2 - symbol #, z-1 if SYM_FIRST_SPECIAL
 //OUT: r1:r0 - value,
 GetSpecialReg:
 	bne	2f
@@ -571,14 +571,26 @@ GetSpecialReg:
 	mac_AfterPCPrint 1
 	.endif
 
-2:	cmp	r2,#SYM_FSR
+2:
+	.ifdef CONFIG_ARM1136
+	cmp	r2,#SYM_TTB0
+	CP15_TTBR0 mrceq,r0
+	cmp	r2,#SYM_TTB1
+	CP15_TTBR1 mrceq,r0
+	cmp	r2,#SYM_TTBC
+	CP15_TTBR_CONTROL mrceq,r0
+
+	.else
+	cmp	r2,#SYM_TTBR
+	CP15_TTBR mrceq,r0
+	.endif
+
+	cmp	r2,#SYM_FSR
 	CP15_FSR mrceq,r0
 	cmp	r2,#SYM_FAR
 	CP15_FAR mrceq,r0
 	cmp	r2,#SYM_DCSR
 	GetIfEq_DCSR
-	cmp	r2,#SYM_TTBR
-	CP15_TTBR mrceq,r0
 	cmp	r2,#SYM_CTRL
 	CP15_CONTROL mrceq,r0
 	mov	r1,#0
@@ -2074,10 +2086,28 @@ GetSymbolNumber:
 	moveq	r2,#SYM_DCSR
 	beq	1f
 
+	.ifdef CONFIG_ARM1136
+	BigMov	r1,C4(T,T,B,0)
+	cmp	r1,r0
+	moveq	r2,#SYM_TTB0
+	beq	1f
+
+	BigEor2	r1,C4(T,T,B,0)^C4(T,T,B,1)
+	cmp	r1,r0
+	moveq	r2,#SYM_TTB1
+	beq	1f
+
+	BigEor2	r1,C4(T,T,B,1)^C4(T,T,B,C)
+	cmp	r1,r0
+	moveq	r2,#SYM_TTBC
+	beq	1f
+
+	.else
 	BigMov	r1,C4(T,T,B,R)
 	cmp	r1,r0
 	moveq	r2,#SYM_TTBR
 	beq	1f
+	.endif
 
 	BigMov	r1,C4(C,T,R,L)
 	cmp	r1,r0
@@ -2150,14 +2180,29 @@ PrintRegName:
 	BigMovEq r0,L4(C,P,S,R)
 	cmp	r1,#SYM_DCSR
 	BigMovEq r0,L4(D,C,S,R)
+
+	.ifdef CONFIG_ARM1136
+	cmp	r1,#SYM_TTB0
+	cmpne	r1,#SYM_TTB1
+	cmpne	r1,#SYM_TTBC
+	BigMovEq r0,L4(T,T,B,0)
+	cmp	r1,#SYM_TTB1
+	BigEor2Eq r0,L4(T,T,B,0)^L4(T,T,B,1)
+	cmp	r1,#SYM_TTBC
+	BigEor2Eq r0,L4(T,T,B,0)^L4(T,T,B,C)
+	.else
 	cmp	r1,#SYM_TTBR
 	BigMovEq r0,L4(T,T,B,R)
+	.endif
+	
 	cmp	r1,#SYM_CTRL
 	BigMovEq r0,L4(C,T,R,L)
+
 	.if	USE_HCPS
 	cmp	r1,#SYM_HCPS
 	BigMovEq r0,L4(H,C,P,S)
 	.endif
+
 	b	Transmit
 
 
@@ -2199,8 +2244,20 @@ StoreRegVal:
 	CP15_FAR mcreq,r0
 	cmp	r2,#SYM_DCSR
 	StoreIfEq_DCSR
+
+	.ifdef CONFIG_ARM1136
+	cmp	r2,#SYM_TTB0
+	CP15_TTBR0 mcreq,r0
+	cmp	r2,#SYM_TTB1
+	CP15_TTBR1 mcreq,r0
+	cmp	r2,#SYM_TTBC
+	CP15_TTBR_CONTROL mcreq,r0
+	
+	.else
 	cmp	r2,#SYM_TTBR
 	CP15_TTBR mcreq,r0
+	.endif
+	
 	cmp	r2,#SYM_CTRL
 	CP15_CONTROL mcreq,r0
 	mov	pc,lr
@@ -2641,7 +2698,8 @@ InitializeCont2:
 	CP15_DACR mcr,r0
 
 	BigSub	r0,r3,0xc000			//MEM_END-0xc000
-	CP15_TTBR mcr,r0
+	SetupTTBR	r0,r1
+	
 //enable MMU
 	ResetTLB r0
 
