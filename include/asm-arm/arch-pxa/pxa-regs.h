@@ -757,6 +757,7 @@ typedef void		(*ExcpHndlr) (void) ;
 /*
  * USB Host Controller
  */
+#define USBH_BASE	0x4C000000
 #define UHCREV		__REG(0x4C000000)
 #define UHCHCON		__REG(0x4C000004)
 #define UHCCOMS		__REG(0x4C000008)

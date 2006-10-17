@@ -54,7 +54,7 @@ flash_info_t flash_info[CFG_MAX_FLASH_BANKS];	/* info for FLASH chips    */
 /*-----------------------------------------------------------------------
  * Functions
  */
-static ulong flash_get_size (FPW *addr, flash_info_t *info);
+static ulong flash_get_size (volatile FPW *addr, flash_info_t *info);
 static int write_data (flash_info_t *info, ulong dest, FPW data);
 static void flash_get_offsets (ulong base, flash_info_t *info);
 void inline spin_wheel_init(ulong addr, ulong cnt);
@@ -75,7 +75,7 @@ unsigned long flash_init (void)
 		base = bases[j++];
 		flash_info[i].start[0] = 0;
 		if (base & 1) break;
-		if (flash_get_size ((FPW *) base, &flash_info[i])) {
+		if (flash_get_size ((volatile FPW *) base, &flash_info[i])) {
 			flash_get_offsets (base, &flash_info[i]);
 			size += flash_info[i].size;
 			i++;
@@ -165,13 +165,13 @@ void flash_print_info (flash_info_t *info)
 /*
  * The following code cannot be run from FLASH!
  */
-static ulong flash_get_size (FPW *addr, flash_info_t *info)
+static ulong flash_get_size (volatile FPW *addr, flash_info_t *info)
 {
-	volatile FPW value;
+	FPW manVal,devVal;
 	volatile unsigned long *mc = (unsigned long *)MEMORY_CONTROL_BASE;
 	unsigned long val = 1<<3;
 
-   info->flash_id = FLASH_UNKNOWN;
+	info->flash_id = FLASH_UNKNOWN;
 	info->sector_count = 0;
 	info->size = 0;
 
@@ -184,14 +184,14 @@ static ulong flash_get_size (FPW *addr, flash_info_t *info)
 	addr[0x5555] = (FPW) 0x00AA00AA;
 	addr[0x2AAA] = (FPW) 0x00550055;
 	addr[0x5555] = (FPW) 0x00900090;
+	udelay(1);
+	manVal = addr[0];
+	devVal = addr[1];			/* device ID        */
+	addr[0] = (FPW) 0x00FF00FF;		/* restore read mode */
 
-	mb ();
-	value = addr[0];
-
-	switch (value) {
-
+	switch (manVal) {
 	case (FPW) 0:
-   case (FPW) STM_MANUFACT:
+	case (FPW) STM_MANUFACT:
 	case (FPW) INTEL_MANUFACT & 0xFF0000 :
 	case (FPW) INTEL_MANUFACT & 0x0000FF :
 	case (FPW) INTEL_MANUFACT:
@@ -199,15 +199,12 @@ static ulong flash_get_size (FPW *addr, flash_info_t *info)
 		break;
 
 	default:
-printf( "Invalid flash manufacturer %x\n", value );
-		addr[0] = (FPW) 0x00FF00FF;	/* restore read mode */
+		printf( "Invalid flash manufacturer %x, %x\n", manVal,devVal );
 		return (0);			/* no or unknown flash  */
 	}
 
-	mb ();
-	value = addr[1];			/* device ID        */
 
-	switch (value) {
+	switch (devVal) {
 
 	case (FPW) 0:
 	case (FPW) INTEL_ID_28F128J3A & 0xFF0000 :
@@ -223,7 +220,7 @@ printf( "Invalid flash manufacturer %x\n", value );
 		info->size = 0x800000 ;
 		break;				/* => 4 MB x 2 */
 	default:
-printf( "Unknown flash device %x\n", value );
+		printf( "Unknown flash device %x,%x\n", manVal,devVal );
 		info->flash_id = FLASH_UNKNOWN;
 		break;
 	}
@@ -234,7 +231,6 @@ printf( "Unknown flash device %x\n", value );
 		info->sector_count = CFG_MAX_FLASH_SECT;
 	}
 
-	addr[0] = (FPW) 0x00FF00FF;		/* restore read mode */
 
 	return (info->size);
 }

@@ -19,6 +19,7 @@ for suff in $targets ; do
 	fi
    eval clock=\$$suff"_clock"
    echo -e "DA640X240\n$REV$SOFTWARE\ny\n$clock\n" | make $PLATFORM"_config" ;
+   make version
    make u-boot.bin ;
    mv u-boot.bin u-boot-$suff
 done
