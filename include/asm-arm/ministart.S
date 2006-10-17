@@ -208,7 +208,8 @@ dcache_enable:
 
 	mov	r0,pc,LSR #20
 	mov	r0,r0,LSL #20
-#define MEM_READONLY_SECTION 0x000a		//map as read-only(ap=0,r=1,s=0), cacheable, section
+#define MEM_READONLY_SECTION 0x0402		//map as read/write, non-cacheable, section (flash id query)
+//#define MEM_READONLY_SECTION 0x000a		//map as read-only(ap=0,r=1,s=0), cacheable, section
 //#define MEM_READONLY_SECTION 0x840a	//set imx31 APX bit
 	BigOrr2	r0,MEM_READONLY_SECTION
 	str	r0,[r6]			//remap 1st meg to this code

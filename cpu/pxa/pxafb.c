@@ -298,7 +298,6 @@ void lcd_setcolreg (ushort regno, ushort red, ushort green, ushort blue)
 //each entry is in ARGB format, alpha high byte, blue low byte
 void lcd_SetPalette(ulong* palette,int colorCnt)
 {
-	struct pxafb_info *fbi = &;
 	PALETTEVAL_TYPE *cmap = (PALETTEVAL_TYPE *)panel_info.pxa.palette;
 	while (colorCnt--) {
 		*cmap++ = *palette++;
