@@ -384,7 +384,7 @@
 	str	\rTemp,[\rBase,#OSCC]
 .endm
 
-.macro	InitChangeCPUSpeed rTemp
+.macro	InitChangeCPUSpeed rTemp,rBase,rTemp2
 #if (PLATFORM_TYPE==HALOGEN)
 	mov	\rTemp,#(CLKCFG_FAST_BUS<<CLKCFG_FAST_BUS_BIT)+(CLKCFG_TURBO<<CLKCFG_TURBO_BIT)+(1<<CLKCFG_FREQUENCY_CHANGE_BIT)
 	CP14_CCLKCFG	mcr,\rTemp

@@ -64,7 +64,7 @@ void _lcd_ctrl_init(void *lcdbase);
 
 void lcd_ctrl_init(void *lcdbase)
 {
-	printf( "lcd_ctrl_init, framebuffer:%p\n",lcdbase);
+	printf( "lcd_ctrl_init, framebuffer:%p %ix%ix%i\n",lcdbase,panel_info.vl_col,panel_info.vl_row,NBITS(LCD_BPP));
 	lcd_base = lcdbase;
 	_lcd_ctrl_init(lcdbase);
 //	printf( "lcd init done\n");

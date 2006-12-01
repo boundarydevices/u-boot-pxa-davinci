@@ -237,16 +237,156 @@
 	mov		r1,#0x0				//set all as input
 	str		r1,[r4,#GPIO_DIR]
 .endm
-
 	.equiv	Fref_K,32768		//Fref = 32768*1024 = 33,554,432 = 33.5M
+//					   HSP	NFC IPG HCLK MCU
+//PDR0 0xff870b48 : 00 001  011 01  001  000
+//NOTE:!!! MFI  must be >= 5, 5 : 15
+//NOTE:!!! MFN can be negative, -512 : 511
+//NOTE:!!! if (MFN) if ((abs(MFN/MFD)<0.1)||(abs(MFN/MFD)>0.9) BRMO should be set
+#if (CPU_CLOCK==100)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(4-1)	//Fref/(PD+1) = input frequency
 	.equiv	MP_MFi,6
-	.equiv	MP_MFd,0
-	.equiv	MP_MFn,0		//MFn <= MFd
-	.equiv	MP_PD,1
-	.equiv	MP_VAL,(MP_PD<<26)|(MP_MFd<<16)|(MP_MFi<<10)|MP_MFn		//MPCTL=0x04001800
+	.equiv	MP_MFn,0
+	.equiv	MP_MFd,0	//yields 100.663296MHz
+	.equiv	HCLK_PODF,(1-1)
+	.equiv	HSP_PODF,(1-1)
+#else
+#if (CPU_CLOCK==104)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(4-1)
+	.equiv	MP_MFi,6	//continued fraction for 6 +.198883056640625 (104000000/(32768*1024*2/4))
+//   5  35   1   1   1   1    2    1    2     1     2
+//0  1  35  36  71 107 178  463  641 1745  2386  6517
+//1  5 176 181 357 538 895 2328 3223 8774 11997 32768
+	.equiv	MP_MFn,178
+	.equiv	MP_MFd,(895-1)		//yields 103.999993MHz
+	.equiv	HCLK_PODF,(1-1)
+	.equiv	HSP_PODF,(1-1)
+#else
+#if (CPU_CLOCK==200)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(2-1)
+	.equiv	MP_MFi,6
+	.equiv	MP_MFn,0
+	.equiv	MP_MFd,0	//yields 201.326592MHz
+	.equiv	HCLK_PODF,(2-1)
+	.equiv	HSP_PODF,(2-1)
+#else
+#if (CPU_CLOCK==208)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(2-1)
+	.equiv	MP_MFi,6	//continued fraction for 6 +.198883056640625 (208000000/(32768*1024*2/2))
+	.equiv	MP_MFn,178
+	.equiv	MP_MFd,(895-1)	//yields 207.999987MHz
+	.equiv	MP_PD,(1-1)
+
+	.equiv	HCLK_PODF,(2-1)
+	.equiv	HSP_PODF,(2-1)
+#else
+#if (CPU_CLOCK==300)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(2-1)
+	.equiv	MP_MFi,9
+	.equiv	MP_MFn,0
+	.equiv	MP_MFd,0	//yields 301.989888MHz
+	.equiv	HCLK_PODF,(3-1)
+	.equiv	HSP_PODF,(3-1)
+#else
+#if (CPU_CLOCK==312)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(2-1)
+	.equiv	MP_MFi,9	//continued fraction for 9 +.2983245849609375 (312000000/(32768*1024*2/2))
+//   3 2  1  5   3   1   2   1    1    2    16
+//0  1 2  3 17  54  71 196 267  463 1193 19551
+//1  3 7 10 57 181 238 657 895 1552 3999 65536
+	.equiv	MP_MFn,267
+	.equiv	MP_MFd,(895-1)	//yields 311.999981MHz
+	.equiv	HCLK_PODF,(3-1)
+	.equiv	HSP_PODF,(3-1)
+#else
+#if (CPU_CLOCK==400)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(1-1)
+	.equiv	MP_MFi,6
+	.equiv	MP_MFn,0
+	.equiv	MP_MFd,0	//yields 402.653184MHz
+	.equiv	HCLK_PODF,(4-1)
+	.equiv	HSP_PODF,(4-1)
+#else
+#if (CPU_CLOCK==416)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(1-1)
+	.equiv	MP_MFi,6	//continued fraction for 6 +.198883056640625 (416000000/(32768*1024*2))
+//   5  35   1   1   1   1    2    1    2     1   2
+//0  1  35  36  71 107 178  463  641 1745  2386  6517
+//1  5 176 181 357 538 895 2328 3223 8774 11997 32768
+	.equiv	MP_MFn,178
+	.equiv	MP_MFd,(895-1)	//yields 415.999974MHz
+	
+	.equiv	HCLK_PODF,(4-1)
+	.equiv	HSP_PODF,(4-1)
+#else
+#if (CPU_CLOCK==500)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(2-1)
+	.equiv	MP_MFi,15
+	.equiv	MP_MFn,0
+	.equiv	MP_MFd,0	//yields 503.316480MHz
+	.equiv	HCLK_PODF,(5-1)
+	.equiv	HSP_PODF,(5-1)
+#else
+#if (CPU_CLOCK==520)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(1-1)
+	.equiv	MP_MFi,7	//continued fraction for 7 +.74860382080078125 (520000000/(32768*1024*2))
+//   1 2 1  44    66     1     1      5
+//0  1 2 3 134  8847  8981 17828  98121
+//1  1 3 4 179 11818 11997 23815 131072
+	.equiv	MP_MFn,134
+	.equiv	MP_MFd,(179-1)	//yields 519.999968MHz
+	.equiv	HCLK_PODF,(5-1)
+	.equiv	HSP_PODF,(5-1)
+#else
+#if (CPU_CLOCK==600)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(1-1)
+	.equiv	MP_MFi,9
+	.equiv	MP_MFn,0
+	.equiv	MP_MFd,0	//yields 603.979776MHz
+	.equiv	HCLK_PODF,(6-1)
+	.equiv	HSP_PODF,(6-1)
+#else
+#if (CPU_CLOCK==624)
+	.equiv	MP_BRMO,0
+	.equiv	MP_PD,(1-1)
+	.equiv	MP_MFi,9	//continued fraction for 9 +.2983245849609375 (624000000/(32768*1024*2))
+//   3 2  1  5   3   1   2   1    1    2    16
+//0  1 2  3 17  54  71 196 267  463 1193 19551
+//1  3 7 10 57 181 238 657 895 1552 3999 65536
+	.equiv	MP_MFn,267
+	.equiv	MP_MFd,(895-1)	//yields 623.999962MHz
+	.equiv	HCLK_PODF,(6-1)
+	.equiv	HSP_PODF,(6-1)
+#endif	//624
+#endif	//600
+#endif	//520
+#endif	//500
+#endif	//416
+#endif	//400
+#endif	//312
+#endif	//300
+#endif	//208
+#endif	//200
+#endif	//104
+#endif	//100
+	.equiv	MP_VAL,(MP_BRMO<<31)|(MP_PD<<26)|(MP_MFd<<16)|(MP_MFi<<10)|MP_MFn		//MPCTL=0x04001800
 // Fref x 2 x ((MFi + MFn/(MFd+1))/(PD+1)) = Fvco
 // Fref_K x ((MFi*2048 + MFn*2048/(MFd+1))/(PD+1)) = Fvco
 	.equiv	MP_CLKRATE,(Fref_K*( (MP_MFi*2048)+( (MP_MFn*2048)/(MP_MFd+1))))/(MP_PD+1)	//33.5M x 2 x (6/2) = 201326592 Hz = 201.3 MHz
+	.equiv	NFC_PODF,(4-1)
+	.equiv	IPG_PODF,(2-1)
+	.equiv	MCU_PODF,(1-1)
 
 //USB PLL control
 	.equiv	UP_MFi,7
@@ -263,8 +403,9 @@
 	.equiv	SP_VAL,(SP_PD<<26)|(SP_MFd<<16)|(SP_MFi<<10)|SP_MFn		//SPCTL=0x04043001
 	.equiv	SP_CLKRATE,(Fref_K*( (SP_MFi*2048)+( (SP_MFn*2048)/(SP_MFd+1))))/(SP_PD+1)	//33.5M x 12.2 = 409364070 Hz = 409.3 MHz
 
-	.equiv	PER_PODF,7	//this is reset value in CLK_PDR0
+	.equiv	PER_PODF,(8-1)	//this is reset value in CLK_PDR0
 	.equiv	PERIF_CLOCK,(SP_CLKRATE/(PER_PODF+1))	//409.3/(7+1) = 51.170508 MHz
+	.equiv	PDR0_VAL,(0xff800000|MCU_PODF|(HCLK_PODF<<3)|(IPG_PODF<<6)|(NFC_PODF<<8)|(HSP_PODF<<11)|(PER_PODF<<16))
 
 	.equiv	CLOCK_BASE,0x53f80000 //Romval   reset value
 	.equiv	CLK_CCMR, 0x00		//0x074b0b7b 0x074b0b79 choose FPM clock source
@@ -298,14 +439,55 @@
 	BigMov	\rBase,CLOCK_BASE
 	BigMov	\rTemp,UP_VAL
 	str		\rTemp,[\rBase,#CLK_UPCTL]
-
+.endm
+.macro IPL_InitIC_Clocks rBase,rTemp
 	ldr		\rTemp,[\rBase,#CLK_CCMR]
-	bic		\rTemp,\rTemp,#0xe
+	bic		\rTemp,\rTemp,#0x8
 	str		\rTemp,[\rBase,#CLK_CCMR]	//disable MCU PLL
+	bic		\rTemp,\rTemp,#0xe
 	orr		\rTemp,\rTemp,#0x3
 	str		\rTemp,[\rBase,#CLK_CCMR]	//switch to FPM
 	orr		\rTemp,\rTemp,#0xb
 	str		\rTemp,[\rBase,#CLK_CCMR]	//reenable
+.endm
+
+.macro	InitChangeCPUSpeed rBase,rTemp,rTemp2
+.endm
+
+.macro	FinalInitChangeCPUSpeed rBase,rTemp,rTemp2
+	.if 1
+//	BigMov	\rBase,ESD_BASE
+//	ldr		\rTemp,[\rBase,#ESDCTL0]
+//	bic		\rTemp,\rTemp,0xf0000000
+//	orr		\rTemp,\rTemp,0xa0000000
+//	str		\rTemp,[\rBase,#ESDCTL0]
+
+	BigMov	\rBase,CLOCK_BASE
+	movs	\rTemp,#0	//set Z, instructions not in cache yet
+
+	ldr		\rTemp,[\rBase,#CLK_CCMR]
+98:	bic		\rTemp,\rTemp,#0x8
+	orr		\rTemp,\rTemp,#0x80
+	BigMov	\rTemp2,0xff800000|(IPG_PODF<<6)	//IPG should not = HCLK
+	strne	\rTemp,[\rBase,#CLK_CCMR]	//disable MCU PLL
+	strne	\rTemp2,[\rBase,#CLK_PDR0]	//speed up the slow clocks while waiting for LOCK
+	BigMov	\rTemp2,MP_VAL
+	strne	\rTemp2,[\rBase,#CLK_MPCTL]
+
+	orr		\rTemp,\rTemp,#0x8
+	strne	\rTemp,[\rBase,#CLK_CCMR]	//reenable pll
+	bicne	\rTemp,\rTemp,#0x80			//select pll as source
+//wait for lock
+	mov		\rTemp2,#0x1000
+99:	subnes	\rTemp2,\rTemp2,#1			//delay after stores
+	bne		99b
+	tst		\rTemp,#0x80	//pll as source?
+	BigMov	\rTemp2,PDR0_VAL
+	streq	\rTemp2,[\rBase,#CLK_PDR0]
+	streq	\rTemp,[\rBase,#CLK_CCMR]	//maybe select pll as source
+	bne		98b							//br if 1st time through
+90:
+	.endif
 .endm
 
 .macro InitUART rBase,rTemp,uartaddr,baudrate
@@ -412,8 +594,6 @@
 99:	
 .endm
 
-.macro	InitChangeCPUSpeed rTemp
-.endm
 
 
 //d b8001004 79e73a

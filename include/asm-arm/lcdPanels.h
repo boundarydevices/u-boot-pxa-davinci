@@ -8,8 +8,19 @@
 #define LCD_PANEL 0
 #define CRT 1
 
-//pixel clock frequency = LCLK / (2*(PCD+1))
+#ifdef __ARMASM
+#define SET_BYTES_PER_PIXEL 1
+#else
+
 #ifndef BYTES_PER_PIXEL
+#define SET_BYTES_PER_PIXEL 1
+#else
+#define SET_BYTES_PER_PIXEL 0
+#endif
+#endif
+
+//pixel clock frequency = LCLK / (2*(PCD+1))
+#if SET_BYTES_PER_PIXEL
 
 #if (PLATFORM_TYPE==MERCURY)
 #define BYTES_PER_PIXEL 1	//1, 2, or 3 for mercury

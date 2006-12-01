@@ -38,7 +38,7 @@ lowlevel_init:
 	InitGPIO	r0,sp
 	InitIC_Clocks	r0,sp
 	InitUARTs	r0,sp,BAUDRATE,BAUDRATE,9600
-	InitChangeCPUSpeed r0
+	InitChangeCPUSpeed r0,r1,sp
 	InitMemory	r0,sp,r1
     mov     pc, lr
 
@@ -47,5 +47,6 @@ lowlevel_init:
 _lcd_ctrl_init:
 	stmdb	sp!,{r4,lr}
 	SetupLcd	r0,r1,r2,r3,r4,lr
+	FinalInitChangeCPUSpeed r0,r1,r2	//don't change without dma active???
 	ldmia	sp!,{r4,pc}
 

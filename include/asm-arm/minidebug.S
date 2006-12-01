@@ -664,12 +664,14 @@ PrintHexEndian12:
 
 
 MainInitializationCode:
+#if (PLATFORM_TYPE==MERCURY)
+#else
 	cmp		pc,#MEM_START
 	biclo	sp,pc,#FLASH_BASE_ADDRESS
 	rsblos	sp,sp,#0x4000
 	movlo	r1,#0
 	blo		InitializeCont2		//br if not ram and not from reset vector
-
+#endif
 //pc - 0-0x4000, 0x04000000-0x04004000, MEM_START-0xffffffff
 	InitCS0_CS1	r0,sp
 	InitGPIO	r0,sp
@@ -2593,7 +2595,7 @@ InitializeCont1:
 //pc - 0-0x4000, 0x04000000-0x04004000, MEM_START-0xffffffff
 	InitIC_Clocks	r0,sp
 	InitUARTs	r0,sp,BAUDRATE,BAUDRATE,9600
-	InitChangeCPUSpeed r0
+	InitChangeCPUSpeed r0,r1,sp
 	InitMemory	r0,sp,r1
 	BigMov	r1,MACH_TYPE_SCANPASS
 	SaveRegisters	r0,sp
@@ -2601,8 +2603,15 @@ InitializeCont1:
 	InitMMU		r0,r1
 	InitPWR		r0,r1,sp	//out: r1 RCSR
 InitializeCont2:
+#if (PLATFORM_TYPE==MERCURY)
+	mov	r2,#FUNC_REQ_GL
+	tst r1,#RCSR_SLEEP_RESET
+	beq 87f		//;  Not sleep.
+	mov	r2,#FUNC_REQ_WAKEUP
+#else
 	cmp	pc,#MEM_START
 	bhs	89f				//if in ram, must be mdebug
+
 	bic	sp,pc,#FLASH_BASE_ADDRESS
 	cmp	sp,#0x4000
 	mov	r2,#FUNC_REQ_GL
@@ -2610,6 +2619,7 @@ InitializeCont2:
 	tst r1,#RCSR_SLEEP_RESET
 	beq 89f		//;  Not sleep.
 	mov	r2,#FUNC_REQ_WAKEUP
+#endif
 87:	adr	r7,88f
 	adr	lr,89f
 	mov	r10,r1	//RCSR
@@ -2752,11 +2762,16 @@ InitializeCont2:
 	.endif
 #if (DO_GPTEST==0)
 //	TransMacro L1(U)
+#ifdef __ARMASM
+	GBLA	SKIP_LCD_SETUP
+	.set	SKIP_LCD_SETUP,0
+#endif
 #ifndef SKIP_LCD_SETUP
 Setup_Lcd:
 	sub	r3,r3,#0x100000		//last meg-8k for video ram
 	SetupLcd	r3,r0,r1,r2,sp,lr		//r0-r2,sp,lr trashed
 	add	r3,r3,#0x100000		//back to end of ram
+	FinalInitChangeCPUSpeed r0,r1,r2	//don't change without dma active???
 #endif
 
 // ****************************

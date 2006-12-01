@@ -41,7 +41,7 @@ lowlevel_init:
     InitIC_Clocks	r0,sp
     InitUART	r0,sp,UART_BASE,BAUDRATE
     InitUART	r0,sp,UART_BASE+0x600000,9600
-    InitChangeCPUSpeed r0
+    InitChangeCPUSpeed r0,r1,sp
     InitMemory	r0,sp,r1
 
     mov     pc, lr

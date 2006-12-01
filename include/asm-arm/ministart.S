@@ -129,9 +129,9 @@ DbgBreak:
 	bx	r1
 
 FlushCache:
-	CP15_CONTROL mrc,r0
-	tst	r0, #4		//is data cache enabled
-	beq	2f
+//	CP15_CONTROL mrc,r0
+//	tst	r0, #4		//is data cache enabled
+//	beq	2f
 //	b	2f
 	add	r0,pc,#0x20000	//make sure I don't alloc a line in this subroutine
 	BigBic2	r0, 0xffff
