@@ -97,8 +97,10 @@
 #endif		//0
 
 
+#ifndef __ARMASM
 #define GRX_RES(xres,xsyncWidth,xbegin,xend, yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type) xres
 #define GRY_RES(xres,xsyncWidth,xbegin,xend, yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type) yres
 #define CALL(a,b) a(b)
 #define SCREEN_WIDTH CALL(GRX_RES,DEF_P)
 #define SCREEN_HEIGHT CALL(GRY_RES,DEF_P)
+#endif

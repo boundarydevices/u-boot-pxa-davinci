@@ -21,7 +21,6 @@
 #include <config.h>
 #include <version.h>
 
-#define BYTES_PER_PIXEL 1	//1, 2, or 3 for mercury
 #define BAUDRATE 115200
 #include <configs/select.h>
 #include <asm/BigMacro.h>
@@ -34,19 +33,15 @@
 
 .globl lowlevel_init
 lowlevel_init:
-	InitCS0_CS1	r0,sp
-	InitGPIO	r0,sp
-	InitIC_Clocks	r0,sp
-	InitUARTs	r0,sp,BAUDRATE,BAUDRATE,9600
-	InitChangeCPUSpeed r0,r1,sp
-	InitMemory	r0,sp,r1
+
+    mov      r10, lr
+
+    InitCS0_CS1	r0,sp
+    InitGPIO	r0,sp
+    InitIC_Clocks	r0,sp
+    InitUART	r0,sp,UART_BASE,BAUDRATE
+    InitUART	r0,sp,UART_BASE+0x600000,9600
+    InitChangeCPUSpeed r0,r1,sp
+    InitMemory	r0,sp,r1
+
     mov     pc, lr
-
-.globl _lcd_ctrl_init
-//void _lcd_ctrl_init	(void *lcdbase)
-_lcd_ctrl_init:
-	stmdb	sp!,{r4,lr}
-	SetupLcd	r0,r1,r2,r3,r4,lr
-	FinalInitChangeCPUSpeed r0,r1,r2	//don't change without dma active???
-	ldmia	sp!,{r4,pc}
-

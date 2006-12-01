@@ -16,7 +16,7 @@
 	mov	\rDest,\rDestStart
 	mov	\rPrevCRC,#0
 	mov	\rRunningCRC,#0
-	mov	\rNak,#L1(C)		//current NAK character
+	mov	\rNak,#CH_C		//current NAK character
 	mov	\rBlockNum,#1		//block # to receive
 
 #if DDEBUG
@@ -24,21 +24,21 @@
 91:
 	cmp	\rBlockNum,#1
 	beq	47f
-	mov	r2,#L1(1)
+	mov	r2,#CH_1
 	b	45f
 92:
-	mov	r2,#L1(2)
+	mov	r2,#CH_2
 	b	45f
 93:
-	mov	r2,#L1(3)
+	mov	r2,#CH_3
 	b	45f
 94:
-	mov	r2,#L1(4)
+	mov	r2,#CH_4
 	b	45f
 95:
-	mov	r2,#L1(5)
+	mov	r2,#CH_5
 45:
-	BigMov	r0,L3(CAN,CAN,CAN)	//abort
+	BigMov	r0,(CAN)+(CAN<<8)+(CAN<<16)	//abort
 	bl	\Transmit
 46:	bl	\Receive
 	bne	46b			//branch until timeout
@@ -191,7 +191,7 @@
 	mov	\rBlockNum,r1		//correct blk #
 	b	80b
 
-21:	BigMov	r0,L3(CAN,CAN,CAN)	//abort code
+21:	BigMov	r0,(CAN)+(CAN<<8)+(CAN<<16)	//abort code
 	bl	\Transmit
 48:	bl	\Receive
 	bne	48b			//branch until timeout
@@ -212,7 +212,7 @@
 	b	94b			//send NAK
 9:
 #if DDEBUG				//debug code
-	BigMov	r0,L3(CAN,CAN,CAN)	//abort code
+	BigMov	r0,(CAN)+(CAN<<8)+(CAN<<16)	//abort code
 	bl	\Transmit
 44:	bl	\Receive
 	bne	44b			//branch until timeout
@@ -239,7 +239,7 @@
 #if DDEBUG				//debug code
 //Transmit SPACE
 50:
-	mov	r0,#L1(SPACE)
+	mov	r0,#CH_SPACE
 	b	\Transmit
 #endif
 

@@ -133,19 +133,10 @@ FlashGpioWaitForIdle:
 	teq	r5,#0
 .endm
 // ***********************************
-
-//r5 - command - CMD_BURN or CMD_BURNALL
-//rRet(r6) succesful burn return address
-//rRamSectorEnd(r7) - but not an input, just how it is used
-//rRamSector(r8) - start
-//rRamEnd(r9) - end
 //rFlashBase(sl,r10) - flash base
-//rFlashSector(fp,r11) - starting flash sector
-//rDBG(sp,r13)
-//lr - return address on failure
-
-.macro	BurnRtn istr,ildr,mask,shift,sizeShift,inc,plait
-	str	r5,[rDBG,#DBG_TEMP]
+//Out: r0 - size if z-1
+//		if z-0, flash is of unknown type
+.macro	GetFlashSizeRtn istr,ildr,mask,shift,sizeShift,inc,plait
 	BigMov	r0,FLASH_STATUS_CLEAR_CMD&\mask
 	\istr	r0,[rFlashBase,#0]
 	delay
@@ -173,8 +164,26 @@ FlashGpioWaitForIdle:
 	movne	r0,#f640j3a_SIZE>>\sizeShift
 	cmpne	r3,r5
 
-	cmpeq	r2,r4
-	cmpne	r2,r1
+//	movne	r0,#0		//if no device codes match, then unknown size
+	bne		99f
+	cmp		r2,r4		//is it intel
+	cmpne	r2,r1		//is it stmicro
+99:
+.endm
+
+//r5 - command - CMD_BURN or CMD_BURNALL
+//rRet(r6) succesful burn return address
+//rRamSectorEnd(r7) - but not an input, just how it is used
+//rRamSector(r8) - start
+//rRamEnd(r9) - end
+//rFlashBase(sl,r10) - flash base
+//rFlashSector(fp,r11) - starting flash sector
+//rDBG(sp,r13)
+//lr - return address on failure
+
+.macro	BurnRtn istr,ildr,mask,shift,sizeShift,inc,plait
+	str	r5,[rDBG,#DBG_TEMP]
+	GetFlashSizeRtn \istr,\ildr,\mask,\shift,\sizeShift,\inc,\plait
 	movne	r0,#MANCODE>>2
 	movne	r1,#DEVCODE>>2
 	movne	pc,lr			//return if unrecognized chip
