@@ -184,7 +184,9 @@ void reset_timer_masked (void)
 
 ulong get_timer_masked (void)
 {
-	return OSCR;
+	ulong oscr = OSCR;
+	OSMR3 = oscr ^ 0x80000000;
+	return oscr;
 }
 
 void udelay_masked (unsigned long usec)
