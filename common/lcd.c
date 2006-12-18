@@ -402,7 +402,7 @@ int drv_lcd_init (void)
 }
 
 /*----------------------------------------------------------------------*/
-static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
+int lcd_ClearScreen(void)
 {
 #if LCD_BPP == LCD_MONOCHROME
 	/* Setting the palette */
@@ -445,6 +445,10 @@ static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 	console_row = 0;
 
 	return (0);
+}
+static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
+{
+	return lcd_ClearScreen();
 }
 
 U_BOOT_CMD(
@@ -637,6 +641,7 @@ void lcd_SetPalette(ulong* palette,int colorCnt)
 //other machines have this function defined in their lcd driver
 #endif
 
+void lcd_SetPalette(unsigned long* palette,unsigned colors);
 /*
  * Display the BMP file located at address bmp_image.
  * Only uncompressed.

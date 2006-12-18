@@ -125,6 +125,7 @@
 
 #define CONFIG_MMC		1
 #define CMD_XMODEM 1
+#define CMD_I2CTEST 1
 ////////
 //a prototype Bourne shell grammar parser
 #define CFG_HUSH_PARSER		1

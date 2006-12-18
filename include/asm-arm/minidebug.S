@@ -326,7 +326,7 @@ PrintHexByte:
 	.if STACKS_VALID
 	.else
 // *******************************************************
-	RelocationVector 0
+	RelocationVector 3
 // *******************************************************
 	.endif
 
@@ -372,7 +372,7 @@ TransmitChkSum:
 
 	.if STACKS_VALID
 // *******************************************************
-	RelocationVector 2 
+	RelocationVector 3 
 // *******************************************************
 	.endif
 

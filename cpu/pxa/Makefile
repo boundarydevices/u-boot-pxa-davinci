@@ -63,10 +63,12 @@ endif
 endif
 endif
 
+SOBJS =  xmodemReceive.o
+
 all:	.depend $(START) $(LIB)
 
-$(LIB):	$(OBJS)
-	$(AR) crv $@ $(OBJS)
+$(LIB):	$(OBJS) $(SOBJS)
+	$(AR) crv $@ $^
 
 #########################################################################
 

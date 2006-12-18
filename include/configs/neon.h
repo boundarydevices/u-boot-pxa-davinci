@@ -210,13 +210,23 @@
                              | CFG_CMD_MISC \
                              | CFG_CMD_BMP) & ~(SKIP_COMMANDS) )
 
+#define CMD_XMODEM 1
+#define CMD_I2CTEST 1
+
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>
+
+#ifdef CMD_I2CTEST
+#define CONFIG_BOOTDELAY	0
+#define CONFIG_BOOTCOMMAND	"while i2ctest ; do sleep 1 ; done"
+#else
 #define CONFIG_BOOTDELAY	3
 #define CONFIG_BOOTCOMMAND	"while not mmcdet ; do cls ; lecho \"insert SD card\" ; sleep 1 ; done ; cls ;" \
                                 "if mmcwp ; then lecho \"write protected\" ; else lecho \"not write protected\" ; fi ; " \
                                 "mmcinit; " \
                                 "if fatload mmc 0 a0000000 init.scr ; then autoscr a0000000 ; fi"
+#endif
+
 #define CONFIG_BOOTARGS		"console=ttyS0,115200 DEBUG=1 ENV=/etc/bashrc init=/linuxrc rw mtdparts=phys:1024k(armboot),256k(params),-(rootfs1) root=/dev/mtdblock3 rootfstype=cramfs"
 #define CONFIG_CMDLINE_TAG
 
