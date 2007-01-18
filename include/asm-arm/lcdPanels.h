@@ -26,7 +26,11 @@
 #define BYTES_PER_PIXEL 1	//1, 2, or 3 for mercury
 #else
 #if (PLATFORM_TYPE==HALOGEN)
+#if (PLATFORM_REV==3)
+#define BYTES_PER_PIXEL 2
+#else
 #define BYTES_PER_PIXEL 3
+#endif
 #else
 #define BYTES_PER_PIXEL 2
 #endif

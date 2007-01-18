@@ -549,7 +549,9 @@ void putnstr(const char *str, size_t n)
 
 #define CTL_CH(c)		((c) - 'a' + 1)
 
+#ifndef MAX_CMDBUF_SIZE
 #define MAX_CMDBUF_SIZE		256
+#endif
 
 #define CTL_BACKSPACE		('\b')
 #define DEL			((char)255)

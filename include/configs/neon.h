@@ -216,10 +216,26 @@
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>
 
+#if 1
 #ifdef CMD_I2CTEST
-#define CONFIG_BOOTDELAY	0
-#define CONFIG_BOOTCOMMAND	"while i2ctest ; do sleep 1 ; done"
-#else
+#if (PLATFORM_TYPE==NEONB)
+#define CONFIG_BOOTDELAY	1
+#define CONFIG_BOOTCOMMAND	\
+"if i2ctest ; then " \
+	"lecho \"i2ctest succeeded\" ; " \
+	"while not mmcdet ; do cls ; lecho \"insert SD card\" ; sleep 1 ; done ; " \
+	"lecho \"SD card Detected\" ; " \
+	"while mmcwp ; do cls ; lecho \"remove write protect\" ; sleep 1 ; done ; " \
+	"lecho \"not write protected\" ; " \
+	"mmcinit ; " \
+	"if fatload mmc 0 A0030000 bnk.nb0 ; then g A0030000 ; else lecho \"file bnk.nb0 not found\" ; fi ; " \
+"else lecho \"i2ctest failed\" ; fi ; "
+
+#endif
+#endif
+#endif
+
+#ifndef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTDELAY	3
 #define CONFIG_BOOTCOMMAND	"while not mmcdet ; do cls ; lecho \"insert SD card\" ; sleep 1 ; done ; cls ;" \
                                 "if mmcwp ; then lecho \"write protected\" ; else lecho \"not write protected\" ; fi ; " \
@@ -258,7 +274,9 @@
 #else
 #define CFG_PROMPT		"=> "		/* Monitor Command Prompt */
 #endif
-#define CFG_CBSIZE		256		/* Console I/O Buffer Size	*/
+
+#define MAX_CMDBUF_SIZE		512
+#define CFG_CBSIZE		MAX_CMDBUF_SIZE		/* Console I/O Buffer Size	*/
 #define CFG_PBSIZE (CFG_CBSIZE+sizeof(CFG_PROMPT)+16) /* Print Buffer Size */
 #define CFG_MAXARGS		16		/* max number of command args	*/
 #define CFG_BARGSIZE		CFG_CBSIZE	/* Boot Argument Buffer Size	*/
