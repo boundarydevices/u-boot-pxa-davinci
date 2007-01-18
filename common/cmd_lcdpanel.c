@@ -7,6 +7,18 @@
  * Change History : 
  *
  * $Log: cmd_lcdpanel.c,v $
+ * Revision 1.12  2007/01/15 19:51:10  ericn
+ * -rename pclk_acth to pclk_redg
+ *
+ * Revision 1.11  2007/01/15 00:11:47  ericn
+ * -separate vertical/horizontal sync from pixel clock polarity
+ *
+ * Revision 1.10  2007/01/14 14:27:45  ericn
+ * -support direct lcdp name:value
+ *
+ * Revision 1.9  2006/12/12 00:23:26  ericn
+ * -make print_panel_info public
+ *
  * Revision 1.8  2005/09/19 13:15:59  ericn
  * -allow zeros in most fields
  *
@@ -67,7 +79,9 @@ static void print_panel_info( struct lcd_panel_info_t const *panel )
    printf( "pixclock       : %u\n", panel->pixclock );
    printf( "xres           : %u\n", panel->xres );
    printf( "yres           : %u\n", panel->yres );
-   printf( "act_high       : %u\n", panel->act_high );
+   printf( "pclk_redg      : %u\n", panel->pclk_redg );
+   printf( "hsyn_acth      : %u\n", panel->hsyn_acth );
+   printf( "vsyn_acth      : %u\n", panel->vsyn_acth );
    printf( "hsync_len      : %u\n", panel->hsync_len );
    printf( "left_margin    : %u\n", panel->left_margin );
    printf( "right_margin   : %u\n", panel->right_margin );
@@ -109,62 +123,76 @@ static struct lcd_panel_info_t const *prompt_for_panel( void )
                    && ( endp > console_buffer ) )
                {
                   panel->yres = value ;
-                  bytesRead = readline( "act_high: " );
+                  bytesRead = readline( "pclk_redg: " );
                   if( ( 0 < bytesRead ) 
                       && ( 1 >= ( value = simple_strtoul( console_buffer, &endp, 0 ) ) )
                       && ( endp > console_buffer ) )
                   {
-                     panel->act_high = value ;
-                     bytesRead = readline( "hsync_len: " );
+                     panel->pclk_redg = value ;
+                     bytesRead = readline( "hsyn_acth: " );
                      if( ( 0 < bytesRead ) 
-                         && ( 0 != ( value = simple_strtoul( console_buffer, &endp, 0 ) ) )
+                         && ( 1 >= ( value = simple_strtoul( console_buffer, &endp, 0 ) ) )
                          && ( endp > console_buffer ) )
                      {
-                        panel->hsync_len = value ;
-                        bytesRead = readline( "left_margin: " );
-                        value = simple_strtoul( console_buffer, &endp, 0 );
+                        panel->hsyn_acth = value ;
+                        bytesRead = readline( "vsyn_acth: " );
                         if( ( 0 < bytesRead ) 
+                            && ( 1 >= ( value = simple_strtoul( console_buffer, &endp, 0 ) ) )
                             && ( endp > console_buffer ) )
                         {
-                           panel->left_margin = value ;
-                           bytesRead = readline( "right_margin: " );
-                           value = simple_strtoul( console_buffer, &endp, 0 );
-                           if( ( 0 < bytesRead ) 
-                               && ( endp > console_buffer ) )
-                           {
-                              panel->right_margin = value ;
-                              bytesRead = readline( "vsync_len: " );
-                              value = simple_strtoul( console_buffer, &endp, 0 );
-                              if( ( 0 < bytesRead ) 
-                                  && ( endp > console_buffer ) )
-                              {
-                                 panel->vsync_len = value ;
-                                 bytesRead = readline( "upper_margin: " );
-                                 value = simple_strtoul( console_buffer, &endp, 0 );
-                                 if( ( 0 < bytesRead ) 
-                                     && ( endp > console_buffer ) )
-                                 {
-                                    panel->upper_margin = value ;
-                                    bytesRead = readline( "lower_margin: " );
-                                    value = simple_strtoul( console_buffer, &endp, 0 );
-                                    if( ( 0 < bytesRead ) 
-                                        && ( endp > console_buffer ) )
-                                    {
-                                       panel->lower_margin = value ;
-                                       bytesRead = readline( "active (0|1) : " );
-                          		         value = simple_strtoul( console_buffer, &endp, 0 );
-                                       if( ( 0 < bytesRead ) && ( endp > console_buffer ) )
-                                       {
-                                          panel->active = value ;
-                                          bytesRead = readline( "crt (0|1) : " );
-                                          value = simple_strtoul( console_buffer, &endp, 0 );
-                                          if( ( 0 < bytesRead ) 
-                                              && 
-                                              ( endp > console_buffer ) )
-                                          {
-                                             panel->crt = value ;
-                                             print_panel_info( panel );
-                                             return panel ;
+                           panel->vsyn_acth = value ;
+		                   bytesRead = readline( "hsync_len: " );
+        		           if( ( 0 < bytesRead ) 
+	                           && ( 0 != ( value = simple_strtoul( console_buffer, &endp, 0 ) ) )
+      		                   && ( endp > console_buffer ) )
+            		       {
+                    		  panel->hsync_len = value ;
+                        	  bytesRead = readline( "left_margin: " );
+	                          value = simple_strtoul( console_buffer, &endp, 0 );
+        		              if( ( 0 < bytesRead ) 
+                	              && ( endp > console_buffer ) )
+                      		  {
+		                         panel->left_margin = value ;
+        		                 bytesRead = readline( "right_margin: " );
+                	             value = simple_strtoul( console_buffer, &endp, 0 );
+                      		     if( ( 0 < bytesRead ) 
+                            		 && ( endp > console_buffer ) )
+		                         {
+        		                    panel->right_margin = value ;
+		                            bytesRead = readline( "vsync_len: " );
+		                            value = simple_strtoul( console_buffer, &endp, 0 );
+		                            if( ( 0 < bytesRead ) 
+		                                && ( endp > console_buffer ) )
+		                            {
+		                               panel->vsync_len = value ;
+		                               bytesRead = readline( "upper_margin: " );
+		                               value = simple_strtoul( console_buffer, &endp, 0 );
+		                               if( ( 0 < bytesRead ) 
+		                                   && ( endp > console_buffer ) )
+		                               {
+		                                  panel->upper_margin = value ;
+		                                  bytesRead = readline( "lower_margin: " );
+		                                  value = simple_strtoul( console_buffer, &endp, 0 );
+		                                  if( ( 0 < bytesRead ) 
+		                                      && ( endp > console_buffer ) )
+		                                  {
+		                                     panel->lower_margin = value ;
+		                                     bytesRead = readline( "active (0|1) : " );
+		                       		         value = simple_strtoul( console_buffer, &endp, 0 );
+		                                     if( ( 0 < bytesRead ) && ( endp > console_buffer ) )
+		                                     {
+		                                        panel->active = value ;
+		                                        bytesRead = readline( "crt (0|1) : " );
+    		                                    value = simple_strtoul( console_buffer, &endp, 0 );
+		                                        if( ( 0 < bytesRead ) 
+		                                            && 
+		                                            ( endp > console_buffer ) )
+		                                        {
+		                                           panel->crt = value ;
+		                                           print_panel_info( panel );
+		                                           return panel ;
+		                                        }
+		                                     }
                                           }
                                        }
                                     }
@@ -219,8 +247,22 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
          disable_lcd_panel();
          printf( "panel disabled\n" );
       }
-      else
-         printf( "panel %s not found\n", argv[1] );
+      else if( strchr( argv[1], ':' ) ){
+         printf( "parse LCD panel <%s> here\n", argv[1] );
+         struct lcd_panel_info_t *const newPanel = (struct lcd_panel_info_t *)malloc( sizeof(struct lcd_panel_info_t) );
+         if( parse_panel_info( argv[1], newPanel ) ){
+            print_panel_info( newPanel );
+            set_lcd_panel( newPanel );
+         }
+         else {
+            printf( "Error parsing panel\n" );
+            free(newPanel);
+         }
+      }
+      else {
+         char const *rv = strchr( argv[1], ':' );
+         printf( "panel <%s> not found (%p)\n", argv[1], rv );
+      }
    }
    
 	return 0;
@@ -228,7 +270,7 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 
 U_BOOT_CMD(
-	lcdpanel,	2,	0,	lcdpanel,
+	lcdpanel,	10,	0,	lcdpanel,
 	"lcdpanel [panelName|?|+|-]\n"
    "     init lcd panel with panel name\n"
    "     ? will display the supported panels\n"

@@ -7,6 +7,36 @@
  * Change History : 
  *
  * $Log: lcd_panels.c,v $
+ * Revision 1.20  2007/01/15 20:39:48  ericn
+ * -bump clock rate for Okaya
+ *
+ * Revision 1.19  2007/01/15 19:50:42  ericn
+ * -rename pclk_acth to pclk_redg
+ *
+ * Revision 1.18  2007/01/15 00:11:55  ericn
+ * -separate vertical/horizontal sync from pixel clock polarity
+ *
+ * Revision 1.17  2006/12/12 14:58:40  ericn
+ * -add panel sxga60hz
+ *
+ * Revision 1.16  2006/12/12 00:23:44  ericn
+ * -added parse_panel_info() routine
+ *
+ * Revision 1.15  2006/11/04 20:25:20  ericn
+ * -put back hitachi_154
+ *
+ * Revision 1.14  2006/09/23 22:13:50  ericn
+ * -add vga_crt
+ *
+ * Revision 1.13  2006/09/16 19:10:33  ericn
+ * -add crt_800x600 for Hexachain panels
+ *
+ * Revision 1.12  2006/09/07 17:47:40  tkisky
+ * -add OKAYA
+ *
+ * Revision 1.11  2006/09/01 01:03:16  ericn
+ * -add olevia display
+ *
  * Revision 1.10  2006/08/03 22:27:00  ericn
  * -add hitachi_154
  *
@@ -44,6 +74,8 @@
 
 #include "lcd_panels.h"
 #include <common.h>
+#include <asm/string.h>
+#include <malloc.h>
 
 /*
 Settings for Hitachi 5.7
@@ -100,7 +132,9 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned long     pixclock     */    , 0
    /* unsigned short    xres         */    , 320       
    /* unsigned short    yres         */    , 240
-   /* unsigned char     act_high     */    , 1
+   /* unsigned char     pclk_redg    */    , 1
+   /* unsigned char     hsyn_acth    */    , 1
+   /* unsigned char     vsyn_acth    */    , 1
    /* unsigned char     hsync_len    */    , 64       
    /* unsigned char     left_margin  */    ,  1
    /* unsigned char     right_margin */    , 16       
@@ -114,7 +148,9 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned long     pixclock     */    , 0          
    /* unsigned short    xres         */    , 320        /* , 320  */
    /* unsigned short    yres         */    , 240        /* , 240  */
-   /* unsigned char     act_high     */    , 1          /* , 1    */
+   /* unsigned char     pclk_redg    */    , 1          /* , 1    */
+   /* unsigned char     hsyn_acth    */    , 1
+   /* unsigned char     vsyn_acth    */    , 1
    /* unsigned char     hsync_len    */    , 20         /* , 8    */
    /* unsigned char     left_margin  */    , 1          /* , 16   */
    /* unsigned char     right_margin */    , 30         /* , 1    */
@@ -125,10 +161,12 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned char     crt          */    , 0 }
 
    /* char const       *name         */ , { "okaya_qvga"
-   /* unsigned long     pixclock     */    , 6400000          
+   /* unsigned long     pixclock     */    , 7400000          
    /* unsigned short    xres         */    , 320
    /* unsigned short    yres         */    , 240
-   /* unsigned char     act_high     */    , 1  
+   /* unsigned char     pclk_redg    */    , 1
+   /* unsigned char     hsyn_acth    */    , 0
+   /* unsigned char     vsyn_acth    */    , 0
    /* unsigned char     hsync_len    */    , 30 
    /* unsigned char     left_margin  */    , 20  
    /* unsigned char     right_margin */    , 38 
@@ -142,7 +180,9 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned long     pixclock     */    , 0
    /* unsigned short    xres         */    , 240
    /* unsigned short    yres         */    , 320
-   /* unsigned char     act_high     */    , 1
+   /* unsigned char     pclk_redg    */    , 1
+   /* unsigned char     hsyn_acth    */    , 1
+   /* unsigned char     vsyn_acth    */    , 1
    /* unsigned char     hsync_len    */    , 64       
    /* unsigned char     left_margin  */    , 34
    /* unsigned char     right_margin */    , 1       
@@ -157,7 +197,9 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned long     pixclock     */    , 1      
    /* unsigned short    xres         */    , 640
    /* unsigned short    yres         */    , 240
-   /* unsigned char     act_high     */    , 1
+   /* unsigned char     pclk_redg    */    , 1
+   /* unsigned char     hsyn_acth    */    , 1
+   /* unsigned char     vsyn_acth    */    , 1
    /* unsigned char     hsync_len    */    , 64       
    /* unsigned char     left_margin  */    , 34       
    /* unsigned char     right_margin */    , 1       
@@ -171,21 +213,41 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned long     pixclock     */    , 1      
    /* unsigned short    xres         */    , 640
    /* unsigned short    yres         */    , 480
-   /* unsigned char     act_high     */    , 1
+   /* unsigned char     pclk_redg    */    , 1
+   /* unsigned char     hsyn_acth    */    , 1
+   /* unsigned char     vsyn_acth    */    , 1
    /* unsigned char     hsync_len    */    , 64       
-   /* unsigned char     left_margin  */    , 60       
+   /* unsigned char     left_margin  */    , 60		//3       
    /* unsigned char     right_margin */    , 60       
-   /* unsigned char     vsync_len    */    , 20       
-   /* unsigned char     upper_margin */    , 34       
+   /* unsigned char     vsync_len    */    , 20		//34       
+   /* unsigned char     upper_margin */    , 34		//24       
    /* unsigned char     lower_margin */    , 3       
    /* unsigned char     active       */    , 1
    /* unsigned char     crt          */    , 0 }
+   
+   /* char const       *name         */ , { "vga_crt"
+   /* unsigned long     pixclock     */    , 1		//24000000      
+   /* unsigned short    xres         */    , 640
+   /* unsigned short    yres         */    , 480
+   /* unsigned char     pclk_redg    */    , 1
+   /* unsigned char     hsyn_acth    */    , 1
+   /* unsigned char     vsyn_acth    */    , 1
+   /* unsigned char     hsync_len    */    , 64       
+   /* unsigned char     left_margin  */    , 60		//3       
+   /* unsigned char     right_margin */    , 60       
+   /* unsigned char     vsync_len    */    , 20		//34       
+   /* unsigned char     upper_margin */    , 34		//24       
+   /* unsigned char     lower_margin */    , 3       
+   /* unsigned char     active       */    , 1
+   /* unsigned char     crt          */    , 1 }
    
    /* char const       *name         */ , { "hitachi_wvga"
    /* unsigned long     pixclock     */    , 1      
    /* unsigned short    xres         */    , 800
    /* unsigned short    yres         */    , 480
-   /* unsigned char     act_high     */    , 1 
+   /* unsigned char     pclk_redg    */    , 1
+   /* unsigned char     hsyn_acth    */    , 1
+   /* unsigned char     vsyn_acth    */    , 1
    /* unsigned char     hsync_len    */    , 64
    /* unsigned char     left_margin  */    , 1       
    /* unsigned char     right_margin */    , 39       
@@ -194,6 +256,23 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned char     lower_margin */    , 3       
    /* unsigned char     active       */    , 1
    /* unsigned char     crt          */    , 0 }
+
+   /* char const       *name         */ , { "crt_800x600"
+   /* unsigned long     pixclock     */    , 56000000
+   /* unsigned short    xres         */    , 800
+   /* unsigned short    yres         */    , 600
+   /* unsigned char     pclk_redg    */    , 1 
+   /* unsigned char     hsyn_acth    */    , 1
+   /* unsigned char     vsyn_acth    */    , 1
+   /* unsigned char     hsync_len    */    , 64
+   /* unsigned char     left_margin  */    , 32       
+   /* unsigned char     right_margin */    , 152       
+   /* unsigned char     vsync_len    */    , 3       
+   /* unsigned char     upper_margin */    , 1       
+   /* unsigned char     lower_margin */    , 27       
+   /* unsigned char     active       */    , 1
+   /* unsigned char     crt          */    , 1 }
+   
 // Note that you can use the nifty tool at the 
 // following location to generate these values:
 //    http://www.tkk.fi/Misc/Electronics/faq/vga2rgb/calc.html
@@ -202,7 +281,9 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     pixclock: 65000000,
     xres: 1024,
     yres: 768,
-    act_high : 0,
+    pclk_redg: 0,
+    hsyn_acth: 0,
+    vsyn_acth: 0,
     hsync_len: 136,
     left_margin: 24,
     right_margin: 160,
@@ -213,11 +294,13 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     crt : 1
 }
 , {
-    name: "hitachi_154",
-    pixclock: 72000000,
-    xres: 1280,
-    yres: 800,
-    act_high : 1,
+    name: "hitachi_wxga",
+    pixclock: 1,
+    xres: 1024,
+    yres: 768,
+    pclk_redg: 1,
+    hsyn_acth: 1,
+    vsyn_acth: 1,
     hsync_len: 64,
     left_margin: 1,
     right_margin: 39,
@@ -228,11 +311,13 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     crt : 0
 }
 , {
-    name: "lcd_sxga",
-    pixclock: 65000000,
-    xres: 1024,
-    yres: 768,
-    act_high : 1,
+    name: "hitachi_154",
+    pixclock: 72000000,
+    xres: 1280,
+    yres: 800,
+    pclk_redg: 1,
+    hsyn_acth: 1,
+    vsyn_acth: 1,
     hsync_len: 64,
     left_margin: 1,
     right_margin: 39,
@@ -241,6 +326,40 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     lower_margin: 3,
     active : 1,
     crt : 0
+}
+, {
+    name: "olevia",
+    pixclock: 65000000,
+    xres: 1024,
+    yres: 768,
+    pclk_redg: 0,
+    hsyn_acth: 0,
+    vsyn_acth: 0,
+    hsync_len: 200,
+    left_margin: 37,
+    right_margin: 228,
+    vsync_len: 6,
+    upper_margin: 3,
+    lower_margin: 29,
+    active : 0,
+    crt : 1
+}
+, {
+    name: "sxga60hz",
+    pixclock: 108000000,
+    xres: 1280,
+    yres: 1024,
+    pclk_redg: 1,
+    hsyn_acth: 1,
+    vsyn_acth: 1,
+    hsync_len: 120,
+    left_margin: 64,
+    right_margin: 264,
+    vsync_len: 4,
+    upper_margin: 2,
+    lower_margin: 44,
+    active : 1,
+    crt : 1
 }
 };
 
@@ -312,6 +431,54 @@ struct lcd_panel_info_t const *find_lcd_panel( char const * name )
       if( 0 == strcmp( lcd_panels_[i].name, name ) ) 
          return lcd_panels_+i ;
    }
+   return 0 ;
+}
+
+int parse_panel_info( char const              *panelInfo, // input
+                      struct lcd_panel_info_t *panel )    // output
+{
+   memset( panel, 0, sizeof(*panel));
+   char const *nameEnd=strchr(panelInfo,':');
+   if( nameEnd && *nameEnd ){
+      char const *nextIn = nameEnd+1 ;
+      unsigned const numValues = 14 ;
+      unsigned long values[numValues];
+      unsigned i ;
+      for( i = 0 ; i < numValues ; i++ ){
+         char *endptr ;
+         values[i] = simple_strtoul(nextIn, &endptr, 0 );
+         if((endptr != nextIn) && ( *endptr || (i == numValues-1))){
+            nextIn = endptr+1 ;
+         }
+         else
+            break ;
+      }
+      if( numValues == i ){
+         unsigned const nameLen = nameEnd-panelInfo; 
+         panel->name = (char const *)malloc(nameLen+1);
+         memcpy( (char *)panel->name, panelInfo, nameLen );
+         ((char *)panel->name)[nameLen] = 0 ;
+         panel->pixclock = values[0];
+         panel->xres = values[1];
+         panel->yres = values[2];
+         panel->pclk_redg= values[3];
+         panel->hsyn_acth= values[4];
+         panel->vsyn_acth= values[5];
+         panel->hsync_len = values[6];
+         panel->left_margin = values[7];
+         panel->right_margin = values[8];
+         panel->vsync_len = values[9];
+         panel->upper_margin = values[10];
+         panel->lower_margin = values[11];
+         panel->active = values[12];
+         panel->crt = values[13];
+         panel->rotation = 0 ;
+         return 1 ;
+      }
+   }
+   
+                        //   0      1    2     3         4         5         6           7           8           9         10           11        12    13 
+   printf( "Usage: myPanel:freqHz,xres,yres,pclk_redg,hsyn_acth,vsyn_acth,hsync_len,left_margin,right_margin,vsync_len,top_margin,bottom_margin,active,crt\n" );
    return 0 ;
 }
 
