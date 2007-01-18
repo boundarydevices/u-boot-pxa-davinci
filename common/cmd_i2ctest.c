@@ -206,7 +206,7 @@ int i2ctest_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		isr = p->isr;
 		if (isr & ISR_SAD) {
 			//Slave address detected
-			p->isr = isr & ~0xf;	//clear the write 1 to clear bits
+			p->isr = isr & (ISR_SAD | ISR_GCAD);	//clear the write 1 to clear bit
 			if ((isr & ISR_GCAD)==0) break;	//break if not general call
 		}
 		loop++;
@@ -245,25 +245,30 @@ int i2ctest_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	lcd_Lecho("OK, slave address match:");
 	lcd_printHexByte(slaveAddr<<1);
 	lcd_Lecho("\n");
-	if (isr & 1) {
+	if (isr & ISR_RWM) {
 		rcode = 1;
 		lcd_Lecho("Error, read transaction not expected!!!\n");
 	} else {
 		index = 0;
 		p->icr = ICR_GCD|ICR_IUE|ICR_TB;
+		startTime = get_timer(0);
 		do {
 			isr = p->isr;
-			p->isr = isr & ~0xf;	//clear the write 1 to clear bits
-			if (isr & ISR_IRF) {
-				buffer[index++] = (unsigned char)p->idbr;
-				if (index>=MAX_BUFFER) break;
-				p->icr = ICR_GCD|ICR_IUE|ICR_TB;
+			if (isr & (ISR_IRF | ISR_SSD)) {
+				p->isr = isr & (ISR_IRF | ISR_SSD);	//clear the write 1 to clear bits
+				if (isr & ISR_IRF) {
+					buffer[index++] = (unsigned char)p->idbr;
+					if (index>=MAX_BUFFER) break;
+					p->icr = ICR_GCD|ICR_IUE|ICR_TB;
+				}
+				if (isr & ISR_SSD) break;
 			}
-			if (isr & ISR_SSD) break;
 			curTime = get_timer(startTime);
 			if (curTime > timeOutTicks) {
-				rcode = 1;
-				lcd_Lecho("Error, stop timeout\n");
+				if (isr & ISR_UB) {
+//					rcode = 1;
+					lcd_Lecho("Warning, stop timeout\n");
+				}
 				break;
 			}
 		} while (1);

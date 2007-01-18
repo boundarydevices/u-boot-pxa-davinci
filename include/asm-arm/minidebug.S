@@ -3174,17 +3174,16 @@ Burn_Rtn16:
 	cmp	r2,#0x16
 	cmpne	r2,#0x17
 	cmpne	r2,#0x18
-	beq	99f
+	beq	98f
 //(PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)
 	BurnRtn strh,ldrh,  0xffff,0,1,4,1		//the plait version (a1 jumpered to a high address line)
-99:
+98:
 	BurnRtn strh,ldrh,  0xffff,1,1,2,0		//the non-plait version (a1 correct)
 #else
 
 #if (PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)
 	BurnRtn strh,ldrh,  0xffff,0,1,4,1		//the plait version (a1 jumpered to a high address line)
 #else
-99:
 	BurnRtn strh,ldrh,  0xffff,1,1,2,0		//the non-plait version (a1 correct)
 #endif
 
