@@ -467,16 +467,20 @@ static void pxafb_enable_controller (vidinfo_t *vid)
 static int pxafb_init (vidinfo_t *vid)
 {
 	struct pxafb_info *fbi = &vid->pxa;
-   unsigned long const REG_LCCR3 = 0x0040FF0C|(LCD_BPP<<24);
+	unsigned long const reg_lccr3 = 0x0000FF0C|(LCD_BPP<<24);
 
 	debug("Configuring PXA LCD\n");
 
 #if defined( CONFIG_PXA270 )
-	LCCR4 = 0x00010000 ;
+#if defined( NEED_18_BITS )
+	LCCR4 = 0x00010000 ;        // 18-bits to panel
+#else
+	LCCR4 = 0x00008000 ;        // 16-bits to panel
+#endif
 #endif
 
 	fbi->reg_lccr0 = 0x003008F8;
-	fbi->reg_lccr3 = REG_LCCR3 ;
+	fbi->reg_lccr3 = reg_lccr3 ;
 
 	debug("vid: vl_col=%d hslen=%d lm=%d rm=%d\n",
 		vid->vl_col, vid->vl_hpw,
@@ -497,9 +501,10 @@ static int pxafb_init (vidinfo_t *vid)
 		LCCR2_BegFrmDel(vid->vl_bfw) +
 		LCCR2_EndFrmDel(vid->vl_efw);
 
-	fbi->reg_lccr3 = REG_LCCR3 & ~(LCCR3_HSP | LCCR3_VSP);
-	fbi->reg_lccr3 |= (vid->vl_hsp ? LCCR3_HorSnchL : LCCR3_HorSnchH)
-			| (vid->vl_vsp ? LCCR3_VrtSnchL : LCCR3_VrtSnchH);
+	fbi->reg_lccr3 = (reg_lccr3 & ~(LCCR3_HSP | LCCR3_VSP))|
+		(vid->vl_hsp ? 0 : LCCR3_HSP) |
+		(vid->vl_vsp ? 0 : LCCR3_VSP) |
+		(vid->vl_clkp ? 0 : LCCR3_PCP);
 
 
 	/* setup dma descriptors */
@@ -564,15 +569,45 @@ static int pxafb_init (vidinfo_t *vid)
 
 #ifdef CONFIG_LCDPANEL
 
+unsigned int get_lclk(void)
+{
+}
+
+static inline unsigned int get_pcd(unsigned long pixclock)
+{
+   /*
+    *    pfreq == LCLK/(2*(PCD+1))
+    *    pfreq*(2*(PCD+1)) == LCLK
+    *    2*(PCD+1) == LCLK/pfreq
+    *    (PCD+1) == LCLK/(pfreq*2)
+    *    PCD == (LCLK/(pfreq*2)) - 1 ;
+    */
+   unsigned L = CCCR & 0x1F ;
+   unsigned K ;
+   unsigned lclk ;
+
+   if( L < 2 )
+      L = 2 ;
+   K = ( 8 > L )
+       ? 1
+       : ( 16 >= L )
+         ? 2 
+         : 4 ;
+
+   lclk = (13000000*L)/K ;
+   unsigned long pcd = (lclk/(2*pixclock)) - 1;
+   return pcd & 0xFF ;
+}
+
 void set_lcd_panel( struct lcd_panel_info_t const *panel )
 {
    panel_info.vl_col = panel->xres ;
    panel_info.vl_row = panel->yres ;
-   panel_info.vl_clkp = panel->act_high ;
-   panel_info.vl_oep  = panel->act_high ;
-   panel_info.vl_hsp  = panel->act_high ;
-   panel_info.vl_vsp  = panel->act_high ;
-   panel_info.vl_dp   = panel->act_high ;
+   panel_info.vl_clkp = panel->pclk_redg ;
+   panel_info.vl_oep  = panel->pclk_redg ;
+   panel_info.vl_hsp  = panel->hsyn_acth ;
+   panel_info.vl_vsp  = panel->vsyn_acth ;
+   panel_info.vl_dp   = panel->pclk_redg ;
    panel_info.vl_bpix = LCD_BPP ;
    panel_info.vl_lcd_line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) >> 3;
    panel_info.vl_lbw  = 1 ;
@@ -588,8 +623,25 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
 
    pxafb_init_mem( (void *)panel_info.pxa.screen, &panel_info);
    pxafb_init(&panel_info);
+   if( 1 < panel->pixclock ){
+      panel_info.pxa.reg_lccr3 &= ~0xFF ;
+      panel_info.pxa.reg_lccr3 |= get_pcd( panel->pixclock );
+      printf( "set panel to %s\n"
+              "pcd == 0x%08lx\n"
+              "lclk == 0x%08lx\n"
+              "palette at %p\n"
+              "frame buffer at %p\n"
+            , panel->name ? panel->name : "<Unnamed>"
+            , get_pcd( panel->pixclock )
+            , get_lclk()
+            , panel_info.pxa.palette
+            , panel_info.pxa.screen
+      );
+   }
    pxafb_setup_gpio(&panel_info);
    pxafb_enable_controller(&panel_info);
+
+   cur_lcd_panel = panel ;
 }
 
 #endif // dynamic LCD panel support

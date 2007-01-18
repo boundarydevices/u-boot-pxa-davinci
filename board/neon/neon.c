@@ -444,7 +444,7 @@ static void updateCRT( unsigned long const           *freq,
 {
    unsigned long reg ;
    unsigned long crtCtrl = 0x00010304 ; // FIFO 3 or more, CRT Timing, CRT data, enable 8-bit
-   if( panel->act_high )
+   if( panel->pclk_redg )
       crtCtrl |= (3<<14);     // horizontal and vertical phase
    STUFFREG( crtFbAddrReg, 0 );
    STUFFREG( crtFbOffsReg, ((panel->xres)<<16)+(panel->xres) );
@@ -477,7 +477,7 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    dcache_disable();
    unsigned long dispctrl = READREG( dispctrlReg );
    dispctrl &= ~(CLOCK_ACTIVEMASK|LCDTYPE_MASK);
-   if( !panel->act_high )
+   if( !panel->pclk_redg )
       dispctrl |= CLOCK_ACTIVELOW ;
    else
       dispctrl &= ~CLOCK_ACTIVEMASK ;

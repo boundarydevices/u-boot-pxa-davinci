@@ -1,5 +1,5 @@
 #ifndef __LCD_PANELS_H__
-#define __LCD_PANELS_H__ "$Id: lcd_panels.h,v 1.3 2005/06/02 04:03:37 ericn Exp $"
+#define __LCD_PANELS_H__ "$Id: lcd_panels.h,v 1.6 2007/01/15 19:53:32 ericn Exp $"
 
 /*
  * lcd_panels.h
@@ -25,6 +25,15 @@
  * Change History : 
  *
  * $Log: lcd_panels.h,v $
+ * Revision 1.6  2007/01/15 19:53:32  ericn
+ * -rename pclk_acth to pclk_redg
+ *
+ * Revision 1.5  2007/01/15 00:12:12  ericn
+ * -separate vertical/horizontal sync from pixel clock polarity
+ *
+ * Revision 1.4  2006/12/12 00:22:37  ericn
+ * -add parse_panel_info routine
+ *
  * Revision 1.3  2005/06/02 04:03:37  ericn
  * -added rotation field
  *
@@ -45,7 +54,9 @@ struct lcd_panel_info_t {
 	unsigned short		xres;
 	unsigned short		yres;
 
-	unsigned     		act_high ;     // clock is active high
+	unsigned     		pclk_redg ;     // pixel clock is active high
+	unsigned     		hsyn_acth ;     // hsync is active high
+	unsigned     		vsyn_acth ;     // vsync is active high
 	unsigned     		hsync_len;
 	unsigned     		left_margin;
 	unsigned     		right_margin;
@@ -74,6 +85,12 @@ extern struct lcd_panel_info_t const *find_lcd_panel( char const * name );
 void set_lcd_panel( struct lcd_panel_info_t const *panel );
 extern struct lcd_panel_info_t const *cur_lcd_panel ;
 void disable_lcd_panel( void );
+void print_panel_info( struct lcd_panel_info_t const *panel );
+
+// parses panel info of the form: name,xres,yres,...
+// returns non-zero to indicate success
+int parse_panel_info( char const              *panelInfo, // input
+                      struct lcd_panel_info_t *panel );   // output
 
 #ifdef __CPLUSPLUS
 };
