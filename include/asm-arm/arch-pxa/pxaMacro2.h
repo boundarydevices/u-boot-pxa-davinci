@@ -18,7 +18,8 @@
 //pxa270 requires the next 3 stores be in the same cache line+8 bytes??????
 	.ifdef __ARMASM
 	nop
-	nop						
+	nop
+	nop
 	nop
 	.else
 	.balignl        32,0xe1a00000	//nop code

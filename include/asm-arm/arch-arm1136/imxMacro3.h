@@ -1035,6 +1035,9 @@
 	BigAdd \rTemp,\rEnd,(-0x1000+((DEBUG_BASE)&0xfff)) //don't use virtual address if memory isn't working right
 .endm
 
+.macro SPS_ReturnBugsWorkAroundCode
+.endm
+
 //Out: rPhys identity mapping flag,  don't change carry flag
 .macro	ReturnBugsWorkAround1	rPhys,rTmp,rSpTmp,rDbg,rUart1,uartBase
 .endm
