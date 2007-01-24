@@ -6,8 +6,6 @@
 
 	.equiv	USE_SUPERVISOR,0
 	.equiv	USE_HCPS,0
-	.equiv	WORKAROUND_FLAGS_BUG,0
-	.equiv	LR_VALID,0
 
 	.equiv	MACH_TYPE_SCANPASS,332
 	.equiv	ATAG_CORE,	0x54410001
@@ -291,24 +289,11 @@ InitializeCont:
 	.endif
 //these instructions are always at this address
 //to minimize the effect of a mismatch of minicache and flash, also the invalidate does not affect minicache
-ReturnWithIndirection:
-	mov	r0,r0			//!!!! make sure this instruction is in the 1st 4k of flash so that BigOrr2Ne is guaranteed to work
-	.if	WORKAROUND_FLAGS_BUG
-	msr	cpsr_f,r2
-	ldr	r2,[sp],#4
-	.endif
-	ldr	pc,[sp],#4
+	SPS_ReturnBugsWorkAroundCode
 
 //c-0 invalidate caches, c-1 skip cache invalidate
 InvalidateAndReturn:
-	.if LR_VALID
-	.else
-	adrne	lr,ReturnWithIndirection
-	ldreq	lr,[r0,#(15-2)*4]	//DBG_PC-DBG_r2
-	BigOrr2Ne lr,0xfff00000
-	.endif
 //Invalidate the data/instruction cache and branch target buffer
-
 	CP15_CF_INVAL_BOTH mcrcc,r1
 	CPWAIT	r1
 	ldr	sp,[r0,#DBG_HSP-DBG_R2]
