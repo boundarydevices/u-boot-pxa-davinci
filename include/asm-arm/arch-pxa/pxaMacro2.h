@@ -21,6 +21,8 @@
 	nop
 	nop
 	nop
+	nop
+	nop
 	.else
 	.balignl        32,0xe1a00000	//nop code
 	.endif
