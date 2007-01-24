@@ -675,6 +675,11 @@ MainInitializationCode:
 //pc - 0-0x4000, 0x04000000-0x04004000, MEM_START-0xffffffff
 	InitCS0_CS1	r0,sp
 	InitGPIO	r0,sp
+	cmp		pc,#0x4000
+	movlo	r0,#RECEIVE_LOOP_COUNT
+	movhs	r0,#1
+1:	subs	r0,r0,#1
+	bne		1b
 
 #if (PLATFORM_TYPE==NEONB)
 	adr		lr,AfterPCPrint
