@@ -571,10 +571,6 @@ static int pxafb_init (vidinfo_t *vid)
 
 unsigned int get_lclk(void)
 {
-}
-
-static inline unsigned int get_pcd(unsigned long pixclock)
-{
    /*
     *    pfreq == LCLK/(2*(PCD+1))
     *    pfreq*(2*(PCD+1)) == LCLK
@@ -595,6 +591,12 @@ static inline unsigned int get_pcd(unsigned long pixclock)
          : 4 ;
 
    lclk = (13000000*L)/K ;
+   return lclk;
+}
+
+static inline unsigned int get_pcd(unsigned long pixclock)
+{
+   unsigned lclk = get_lclk();
    unsigned long pcd = (lclk/(2*pixclock)) - 1;
    return pcd & 0xFF ;
 }
