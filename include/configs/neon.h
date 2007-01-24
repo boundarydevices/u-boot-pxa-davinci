@@ -216,7 +216,7 @@
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>
 
-#if 1
+#if 0
 #ifdef CMD_I2CTEST
 #if (PLATFORM_TYPE==NEONB)
 #define CONFIG_BOOTDELAY	0
