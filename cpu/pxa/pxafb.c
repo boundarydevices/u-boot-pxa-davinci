@@ -472,7 +472,7 @@ static int pxafb_init (vidinfo_t *vid)
 	debug("Configuring PXA LCD\n");
 
 #if defined( CONFIG_PXA270 )
-#if defined( NEED_18_BITS )
+#if (PLATFORM_REV==1)||(PLATFORM_REV==2)
 	LCCR4 = 0x00010000 ;        // 18-bits to panel
 #else
 	LCCR4 = 0x00008000 ;        // 16-bits to panel
@@ -571,10 +571,6 @@ static int pxafb_init (vidinfo_t *vid)
 
 unsigned int get_lclk(void)
 {
-}
-
-static inline unsigned int get_pcd(unsigned long pixclock)
-{
    /*
     *    pfreq == LCLK/(2*(PCD+1))
     *    pfreq*(2*(PCD+1)) == LCLK
@@ -595,6 +591,12 @@ static inline unsigned int get_pcd(unsigned long pixclock)
          : 4 ;
 
    lclk = (13000000*L)/K ;
+   return lclk;
+}
+
+static inline unsigned int get_pcd(unsigned long pixclock)
+{
+   unsigned lclk = get_lclk();
    unsigned long pcd = (lclk/(2*pixclock)) - 1;
    return pcd & 0xFF ;
 }
