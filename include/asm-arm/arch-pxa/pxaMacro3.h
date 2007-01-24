@@ -1,5 +1,7 @@
 #include "pxaGpio.h"
 #include "pxaMacro2.h"
+	.equiv	WORKAROUND_FLAGS_BUG,1	//work around bug where flags(NZCV) aren't restored when returning to user mode
+
 	.ifdef __ARMASM
 	GBLA	TAGGED_LIST
 	.endif
@@ -343,9 +345,10 @@
 .macro	SetBkpt	rPc,rTmp0,rTmp1,rTmp2
 	tst	\rTmp0,#1
 	CP15_IBCR0 mcreq,\rPc
-	eor	\rTmp1,\rTmp1,#1
-	tstne	\rTmp1,#1
-	CP15_IBCR1 mcrne,\rPc
+	beq	99f
+	tst	\rTmp1,#1
+	CP15_IBCR1 mcreq,\rPc
+99:
 .endm
 
 .macro	PrintBkpts
@@ -478,6 +481,16 @@
 	BigAddNe \rTemp,\rEnd,(-0x1000+((DEBUG_BASE)&0xfff)) //don't use virtual address if memory isn't working right
 .endm
 
+.macro SPS_ReturnBugsWorkAroundCode
+ReturnWithIndirection:
+	mov	r0,r0			//!!!! make sure this instruction is in the 1st 4k of flash so that BigOrr2Ne is guaranteed to work
+	.if	WORKAROUND_FLAGS_BUG
+	msr	cpsr_f,r2
+	ldr	r2,[sp],#4
+	.endif
+	ldr	pc,[sp],#4
+.endm
+
 //Out: rPhys identity mapping flag,  don't change carry flag, z-1 identity mapping
 .macro	ReturnBugsWorkAround1	rPhys,rTmp,rSpTmp,rDbg,rUart1,uartBase
 	BigMov	\rPhys,\uartBase		//physical address
@@ -485,17 +498,19 @@
 	ldrne	\rSpTmp,[\rDbg,#DBG_SP]
 	ldrne	\rTmp,[\rDbg,#DBG_PC]
 	strne	\rTmp,[\rSpTmp,#-4]!		//store pc for return indirect, (exit sds bug workaround)
+	.if	WORKAROUND_FLAGS_BUG
 	ldrne	\rTmp,[\rDbg,#DBG_R2]	//work around bug where flags(NZCV) aren't restored when returning to user mode
 	strne	\rTmp,[\rSpTmp,#-4]!
+	.endif
 	strne	\rSpTmp,[\rDbg,#DBG_SP]
 .endm
 
 //In: r0 - @DBG_R2, z-0 use indirect return
 .macro	ReturnBugsWorkAround2
-	.if	LR_VALID
 	movne	lr,#ReturnWithIndirection-StartUp	//z-0 return indirect
 	ldreq	lr,[r0,#DBG_PC-DBG_R2]			//z-1 return direct
 	BigOrr2Ne lr,VMA_DEBUG	//used if MMU is enabled
+	.if	WORKAROUND_FLAGS_BUG
 	ldrne	r2,[r0,#DBG_CPSR-DBG_R2]
 	.endif
 .endm
