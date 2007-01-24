@@ -219,7 +219,7 @@
 #if 1
 #ifdef CMD_I2CTEST
 #if (PLATFORM_TYPE==NEONB)
-#define CONFIG_BOOTDELAY	1
+#define CONFIG_BOOTDELAY	0
 #define CONFIG_BOOTCOMMAND	\
 "if i2ctest ; then " \
 	"lecho \"i2ctest succeeded\" ; " \

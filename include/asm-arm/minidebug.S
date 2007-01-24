@@ -568,7 +568,7 @@ GetSpecialReg:
 	.if STACKS_VALID
 	.else
 //Must keep this aligned at 0x800 if Bal
-	mac_AfterPCPrint 1
+	mac_AfterPCPrint 3
 	.endif
 
 2:
@@ -618,7 +618,7 @@ ReadHex:
 
 	.if STACKS_VALID
 //Must keep this aligned at 0x800 if Bal
-	mac_AfterPCPrint 0
+	mac_AfterPCPrint 2
 	.endif
 
 

@@ -72,16 +72,17 @@ static char isSD = 0 ;
 static char f4BitMode = 0;
 static int startBlock = 0 ;
 static ushort RCA = MMC_DEFAULT_RCA ;
-static struct partition part ;
 
 #ifdef CONFIG_IMX31
 #define CLEAR_END_CMD_STAT MMC_STAT = 0xc0007e2f;	//MMC_STAT_END_CMD_RES | MMC_STAT_RES_CRC_ERROR | MMC_STAT_TIME_OUT_RESPONSE;
 #define DISABLE_CLKSTOP_INT
 #define	WAIT_FOR_CLOCK_TO_STOP  while ((MMC_STAT & MMC_STAT_CLK_RUNNING));
+#define SET_MMC_ARG(a) MMC_ARG = a
 #else
 #define CLEAR_END_CMD_STAT
 #define DISABLE_CLKSTOP_INT  MMC_I_MASK = ~MMC_I_MASK_CLK_IS_OFF;
 #define	WAIT_FOR_CLOCK_TO_STOP	while (!(MMC_I_REG & MMC_I_REG_CLK_IS_OFF));
+#define SET_MMC_ARG(a) MMC_ARGH = (a>>16); MMC_ARGL = (unsigned short)a
 #endif
 
 static void stop_clock( void )
@@ -105,7 +106,7 @@ uchar *mmc_cmd(ushort cmd, uint arg, ushort cmdat)
 	stop_clock();
 
 	MMC_CMD    = cmd;
-	MMC_ARG    = arg;
+	SET_MMC_ARG(arg);
 	if (f4BitMode) cmdat |= MMC_CMDAT_4BIT_MODE;
 	MMC_CMDAT  = cmdat;
 	CLEAR_END_CMD_STAT
@@ -252,7 +253,7 @@ int mmc_block_read(uchar *dst, ulong src, ulong len)
 			if (MMC_I_REG & MMC_I_REG_RXFIFO_RD_REQ) {
 	   			int bytes = min(32,len);
    				len -= bytes;
-  	 			while (bytes) { *dst++ = *rxFIFO ; bytes--}
+  	 			while (bytes) { *dst++ = *rxFIFO ; bytes--;}
 			} else if (MMC_STAT & MMC_STAT_ERRORS) break;
 		}
 	}
@@ -606,7 +607,7 @@ int SDCard_test( void )
 		MMC_STRPCL = MMC_STRPCL_STOP_CLK;//stop clock
 		while (MMC_STAT & MMC_STAT_CLK_RUNNING); //wait for clock to stop
 		MMC_CMD = 0x00000037;//CMD55 index APP_CMD
-		MMC_ARG = 0x00000000;//relative card address 0x0,stuff bits
+		SET_MMC_ARG(0x00000000);//relative card address 0x0,stuff bits
 		MMC_CMDAT = 0x00000001;//expect response 1
 		CLEAR_END_CMD_STAT
 		MMC_STRPCL = MMC_STRPCL_START_CLK;//start clock
@@ -620,7 +621,7 @@ int SDCard_test( void )
 		MMC_STRPCL = MMC_STRPCL_STOP_CLK;//stop clock
 		while (MMC_STAT & MMC_STAT_CLK_RUNNING); //wait for clock to stop
 		MMC_CMD = 0x00000029;//ACMD41 index SD_APP_SEND_OP_COND
-		MMC_ARG = 0x00200000;//set voltage limit of system in command argument
+		SET_MMC_ARG(0x00200000);//set voltage limit of system in command argument
 		MMC_CMDAT = 0x00000003;//expect response 3
 		CLEAR_END_CMD_STAT
 		MMC_STRPCL = MMC_STRPCL_START_CLK;//start clock
@@ -686,143 +687,137 @@ static void print_mmc_csd( struct mmc_csd *csd )
 #define MSDOS_LABEL_MAGIC2	0xAA
 
 struct bpb { // see http://staff.washington.edu/dittrich/misc/fatgen103.pdf
-   unsigned char  jump[3];
-   char           oemName[8];
-   unsigned short bytesPerSector ;
-   unsigned char  sectorsPerCluster ;
-   unsigned short reservedSectorCount ;
-   unsigned char  numFats ;
-   unsigned short rootEntCount ;
-   unsigned short totalSec16 ;
-   unsigned char  media ; // 0xF8
-   unsigned short fatSz16 ; 
-   unsigned short secPerTrack ;
-   unsigned short numHeads ;
-   unsigned long  hiddenSectors ;
-   unsigned long  totalSectors32 ;
-   unsigned char  driveNum ;
-   unsigned char  reserved1 ; // 0x00
-   unsigned char  bootSig ; // 0x29 
-   unsigned long  volumeId ;
+   unsigned char  jump[3];				//0x00
+   char           oemName[8];			//0x03
+   unsigned short bytesPerSector ;		//0x0b
+   unsigned char  sectorsPerCluster ;	//0x0d
+   unsigned short reservedSectorCount ;	//0x0e
+   unsigned char  numFats ;				//0x10
+   unsigned short rootEntCount ;		//0x11
+   unsigned short totalSec16 ;			//0x13
+   unsigned char  media ; 				//0x15 - 0xF8
+   unsigned short fatSz16 ; 			//0x16
+   unsigned short secPerTrack ;			//0x18
+   unsigned short numHeads ;			//0x1a
+   unsigned long  hiddenSectors ;		//0x1c
+   unsigned long  totalSectors32 ;		//0x20
+   unsigned char  driveNum ;			//0x24
+   unsigned char  reserved1 ; 			//0x25 0x00
+   unsigned char  bootSig ; 			//0x26 0x29 
+   unsigned long  volumeId ;			//0x27
    char           volumeLabel[11];
    char           fileSysType[8];
 } __attribute__((packed));
 
 #define isprint(__c) (((__c)>=0x20)&&((__c)<=0x7f))
 
-static int find_mbr( int max_blocks )
+static void ShowBpb(uchar* data,int blockNum)
 {
-   int i ;
-   ulong addr = 0 ;
-
-printf( "---- searching %d blocks for MBR\n", max_blocks );
-
-   for( i = 0 ; i < 10 ; i++, addr += MMC_BLOCK_SIZE )
-   {
-      uchar data[MMC_BLOCK_SIZE];
-      if( 0 == mmc_block_read(data, addr, sizeof(data) ))
-      {
-        memcpy( &part, data+0x1be, sizeof(part));
-      	if( ( data[DOS_PART_MAGIC_OFFSET] == MSDOS_LABEL_MAGIC1 )
-             &&
-             ( data[DOS_PART_MAGIC_OFFSET + 1] == MSDOS_LABEL_MAGIC2 ) )
-         {            
-            if( ( ('\x00' == part.boot_ind )
-                  ||
-                  ('\x80' == part.boot_ind ) ) 
-                &&
-                ( 10 > part.head ) 
-                &&
-                ( part.end_head >= part.head ) ) 
-            {
-               printf( "partition info found at block %u\n", i );
-               printf( "boot:%02x head:%02x sec:%02x cyl:%02x sys:%02x endh:%02x ends:%02x endc:%02x start:%08x, count:%08x\n",
-                       part.boot_ind, part.head, part.sector, part.cyl,
-                       part.sys_ind, part.end_head, part.end_sector, part.end_cyl,
-                       part.start_sect, part.nr_sects );
-               printf( "MBR found at block %d\n", i );
-               return part.start_sect ;
-            }
-            else {
-               struct bpb const *bootParams = (struct bpb *)data ;
-               unsigned j ;
-               for( j = 0 ; j < sizeof(data); j++ )
-               {
-                  if( 0 == ( j & 0x0f ) )
-                     printf( "%04x   ", j );
-                  printf( "%02x ", data[j] );
-                  if( 7 == ( j & 7 ) )
-                     printf( "  " );
-                  if( 0x0f == ( j & 0x0f ) )
-                  {
-                     unsigned b ;
-                     for( b = j-15 ; b <= j ; b++ )
-                     {
-                        uchar c = data[b];
-                        if( isprint(c) )
-                           printf( "%c", c );
-                        else
-                           printf( "." );
-                        if( 7 == ( b & 7 ) )
-                           printf( " " );
-                     }
-                     printf( "\n" );
-                  }
-               }
-               printf( "Invalid MBR\n" );
-               printf( "---> Boot Parameter block\n" );
-               printf( "jump %02x %02x %02x\n", bootParams->jump[0],bootParams->jump[1],bootParams->jump[2]);
-               printf( "bytesPerSector: %04x\n", bootParams->bytesPerSector );
-               printf( "sectorsPerCluster: %02x\n", bootParams->sectorsPerCluster );
-               printf( "reservedSectors %04x\n", bootParams->reservedSectorCount );
-               printf( "numFats: %02x\n", bootParams->numFats );
-               printf( "rootEntCount: %04x\n", bootParams->rootEntCount );
-               printf( "totalSec16: %04x\n", bootParams->totalSec16 );
-               printf( "media: %02x\n", bootParams->media );
-               printf( "fatsz16: %04x", bootParams->fatSz16 );
-               printf( "secPerTrack: %04x\n", bootParams->secPerTrack );
-               printf( "numHeads = %04x\n", bootParams->numHeads );
-               printf( "hidden = %08lx\n", bootParams->hiddenSectors );
-               printf( "totalSec32 = %08lx\n", bootParams->totalSectors32 );
-               printf( "drive #%u\n", bootParams->driveNum );
-               printf( "reserved1: %02x\n", bootParams->reserved1 );
-               printf( "bootSig: %02x\n", bootParams->bootSig );
-               printf( "volume: %08lx\n", bootParams->volumeId );
-               part.boot_ind = 0 ;
-               part.head = 0 ; 
-               part.sector = 2 ;
-               part.cyl = 0 ;
-               part.sys_ind = 6 ;
-               part.end_head = bootParams->numHeads ;
-               part.end_sector = 0xe0 ;
-               part.end_cyl = 0xc9 ;
-               part.start_sect = 0 ;
-               part.nr_sects = bootParams->totalSectors32 ;
-               printf( "partition info found at block %u\n", i );
-               printf( "boot:%02x head:%02x sec:%02x cyl:%02x sys:%02x endh:%02x ends:%02x endc:%02x start:%08x, count:%08x\n",
-                       part.boot_ind, part.head, part.sector, part.cyl,
-                       part.sys_ind, part.end_head, part.end_sector, part.end_cyl,
-                       part.start_sect, part.nr_sects );
-               printf( "MBR found at block %d\n", i );
-               return 0 ;
-            }
-         }
-      }
-      else
-      {
-         printf( "!!! Error reading mmc block %u\n", i );
-         break;
-      }
-   }
-
-   printf( "MBR not found!\n" );
-   return -1 ;
+	struct bpb const *bootParams = (struct bpb *)data ;
+	unsigned j ;
+	for ( j = 0 ; j < MMC_BLOCK_SIZE; j++ ) {
+		if ( 0 == ( j & 0x0f ) ) printf( "%04x   ", j );
+		printf( "%02x ", data[j] );
+		if ( 7 == ( j & 7 ) ) printf( "  " );
+		if( 0x0f == ( j & 0x0f ) ) {
+			unsigned b ;
+			for( b = j-15 ; b <= j ; b++ ) {
+				uchar c = data[b];
+				if( isprint(c) ) printf( "%c", c );
+				else printf( "." );
+				if( 7 == ( b & 7 ) ) printf( " " );
+			}
+			printf( "\n" );
+		}
+	}
+	printf( "Invalid MBR at %d\n",blockNum );
+	printf( "---> Boot Parameter block\n" );
+	printf( "jump %02x %02x %02x\n", bootParams->jump[0],bootParams->jump[1],bootParams->jump[2]);
+	printf( "bytesPerSector: %04x\n", bootParams->bytesPerSector );
+	printf( "sectorsPerCluster: %02x\n", bootParams->sectorsPerCluster );
+	printf( "reservedSectors %04x\n", bootParams->reservedSectorCount );
+	printf( "numFats: %02x\n", bootParams->numFats );
+	printf( "rootEntCount: %04x\n", bootParams->rootEntCount );
+	printf( "totalSec16: %04x\n", bootParams->totalSec16 );
+	printf( "media: %02x\n", bootParams->media );
+	printf( "fatsz16: %04x", bootParams->fatSz16 );
+	printf( "secPerTrack: %04x\n", bootParams->secPerTrack );
+	printf( "numHeads = %04x\n", bootParams->numHeads );
+	printf( "hidden = %08lx\n", bootParams->hiddenSectors );
+	printf( "totalSec32 = %08lx\n", bootParams->totalSectors32 );
+	printf( "drive #%u\n", bootParams->driveNum );
+	printf( "reserved1: %02x\n", bootParams->reserved1 );
+	printf( "bootSig: %02x\n", bootParams->bootSig );
+	printf( "volume: %08lx\n", bootParams->volumeId );
 }
 
-int
-/****************************************************/
-mmc_init(int verbose)
-/****************************************************/
+static int find_mbr( int max_blocks, lbaint_t* pmax)
+{
+	uchar closeData[MMC_BLOCK_SIZE];
+	int blockNum=-1;
+	struct partition part ;
+	int i ;
+	ulong addr = 0 ;
+
+	printf( "---- searching %d blocks for MBR\n", max_blocks );
+	memset( &part, 0, sizeof(part));
+
+	for( i = 0 ; i < 10 ; i++, addr += MMC_BLOCK_SIZE ) {
+		uchar data[MMC_BLOCK_SIZE];
+		if( 0 == mmc_block_read(data, addr, sizeof(data) )) {
+			if( (data[DOS_PART_MAGIC_OFFSET] == MSDOS_LABEL_MAGIC1 ) &&
+				(data[DOS_PART_MAGIC_OFFSET + 1] == MSDOS_LABEL_MAGIC2 ) ) {            
+				memcpy( &part, data+0x1be, sizeof(part));
+				if( (('\x00' == part.boot_ind ) || ('\x80' == part.boot_ind )) &&
+					(10 > part.head ) && ( part.end_head >= part.head ) ) {
+					printf( "partition info found at block %u\n", i );
+					printf( "boot:%02x head:%02x sec:%02x cyl:%02x sys:%02x endh:%02x ends:%02x endc:%02x start:%08x, count:%08x\n",
+						part.boot_ind, part.head, part.sector, part.cyl,
+						part.sys_ind, part.end_head, part.end_sector, part.end_cyl,
+						part.start_sect, part.nr_sects );
+					printf( "MBR found at block %d\n", i );
+					if (pmax) *pmax = part.nr_sects;
+					return part.start_sect ;
+				} else {
+					memcpy( closeData, data, MMC_BLOCK_SIZE);
+					blockNum = i;
+					break;
+				}
+			}
+		} else {
+			printf( "!!! Error reading mmc block %u\n", i );
+			break;
+		}
+	}
+
+	if (blockNum>=0) {
+		struct bpb const *bootParams = (struct bpb *)closeData ;
+#ifdef DEBUG
+		ShowBpb( closeData,blockNum);
+#endif
+		part.boot_ind = 0 ;
+		part.head = 0 ; 
+		part.sector = 2 ;
+		part.cyl = 0 ;
+		part.sys_ind = 6 ;
+		part.end_head = bootParams->numHeads ;
+		part.end_sector = 0xe0 ;
+		part.end_cyl = 0xc9 ;
+		part.start_sect = 0 ;
+		part.nr_sects = bootParams->totalSectors32 ;
+		printf( "partition info faked\n" );
+		printf( "boot:%02x head:%02x sec:%02x cyl:%02x sys:%02x endh:%02x ends:%02x endc:%02x start:%08x, count:%08x\n",
+			part.boot_ind, part.head, part.sector, part.cyl,
+			part.sys_ind, part.end_head, part.end_sector, part.end_cyl,
+			part.start_sect, part.nr_sects );
+		if (pmax) *pmax = part.nr_sects;
+		return 0;
+	}
+	printf( "MBR not found!\n" );
+	return -1 ;
+}
+
+int mmc_init(int verbose)
 {
  	int retries, rc = -ENODEV;
 	uchar *resp;
@@ -932,7 +927,7 @@ mmc_init(int verbose)
 	mmc_dev.type = 0;
 	/* FIXME fill in the correct size (is set to 32MByte) */
 	mmc_dev.blksz = 512;
-	mmc_dev.lba = 0x10000;
+	mmc_dev.lba = 0x10000;	//temp default
 #if 0
 	sprintf(mmc_dev.vendor,"Man %02x%02x%02x Snr %02x%02x%02x",
 			cid->id[0], cid->id[1], cid->id[2],
@@ -1045,7 +1040,7 @@ mmc_init(int verbose)
 	}
 #endif
 	mmc_ready = 1;
-	startBlock = find_mbr(mmc_csd.c_size);
+	startBlock = find_mbr(mmc_csd.c_size,&mmc_dev.lba);
 
 	printf( "registering device: startBlock == %d, isSD ? %s\n", 
 		startBlock, isSD ? "yes" : "no" );

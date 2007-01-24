@@ -126,6 +126,9 @@ static void print_partition_extended (block_dev_desc_t *dev_desc, int ext_part_s
 		 * fdisk does not show the extended partitions that
 		 * are not in the MBR
 		 */
+		if ((pt->boot_ind !='\x00') && (pt->boot_ind!='\x80')) {
+			break;
+		}
 
 		if ((pt->sys_ind != 0) &&
 		    (ext_part_sector == 0 || !is_extended (pt->sys_ind)) ) {
@@ -142,6 +145,9 @@ static void print_partition_extended (block_dev_desc_t *dev_desc, int ext_part_s
 	/* Follows the extended partitions */
 	pt = (dos_partition_t *) (buffer + DOS_PART_TBL_OFFSET);
 	for (i = 0; i < 4; i++, pt++) {
+		if ((pt->boot_ind !='\x00') && (pt->boot_ind!='\x80')) {
+			break;
+		}
 		if (is_extended (pt->sys_ind)) {
 			int lba_start = le32_to_int (pt->start4) + relative;
 
@@ -186,6 +192,14 @@ static int get_partition_info_extended (block_dev_desc_t *dev_desc, int ext_part
 		 * fdisk does not show the extended partitions that
 		 * are not in the MBR
 		 */
+		if ((pt->boot_ind !='\x00') && (pt->boot_ind!='\x80')) {
+			if (!i) {
+			    if ((part_num == which_part) && (is_extended(pt->sys_ind) == 0)) {
+			    	memset(pt->start4,0,4);
+			    	memcpy(pt->size4,buffer +0x20,4);
+			    }
+			} else break;
+		}
 		if ((pt->sys_ind != 0) &&
 		    (part_num == which_part) &&
 		    (is_extended(pt->sys_ind) == 0)) {
