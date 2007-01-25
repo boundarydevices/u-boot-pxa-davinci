@@ -6,31 +6,28 @@ bd2003_clock="400"
 neon_clock="400"
 neonb_clock="400"
 
-SOFTWARE="LINUX"
-
+softwareChoices="LINUX WINCE"
 targets="halogen1 halogen2 halogen3 bd2003 neon neonb"
-for suff in $targets ; do 
-	make distclean ;
-	REV=""
-	PLATFORM="$suff"
-	if [ $suff = "halogen1" ] ; then REV="1\n"; PLATFORM="halogen"
-	else
-		if [ $suff = "halogen2" ] ;	then REV="2\n"; PLATFORM="halogen"
+
+for SOFTWARE in $softwareChoices ; do
+	for suff in $targets ; do 
+		make distclean ;
+		REV=""
+		PLATFORM="$suff"
+		if [ $suff = "halogen1" ] ; then REV="1\n"; PLATFORM="halogen"
 		else
-			if [ $suff = "halogen3" ] ;	then REV="3\n"; PLATFORM="halogen"
+			if [ $suff = "halogen2" ] ;	then REV="2\n"; PLATFORM="halogen"
+			else
+				if [ $suff = "halogen3" ] ;	then REV="3\n"; PLATFORM="halogen"
+				fi
 			fi
 		fi
-	fi
-	eval clock=\$$suff"_clock"
-	echo -e "DA640X240\n$REV$SOFTWARE\ny\n$clock\n" | make $PLATFORM"_config" ;
-	make version
-	make u-boot.bin ;
-	mv u-boot.bin u-boot-$suff
-done
-
-
-for suff in $targets ; do 
-   mv u-boot-$suff u-boot-$suff.bin
+		eval clock=\$$suff"_clock"
+		echo -e "DA640X240\n$REV$SOFTWARE\ny\n$clock\n" | make $PLATFORM"_config" ;
+		make version
+		make u-boot.bin ;
+		mv u-boot.bin u-boot-$suff-$SOFTWARE.bin
+	done
 done
 
 zip u-boot-binaries.zip u-boot-*.bin
