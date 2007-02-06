@@ -140,17 +140,29 @@ void set_GPIO_mode(int gpio_mode)
 {
 	int gpio = gpio_mode & GPIO_MD_MASK_NR;
 	int fn = (gpio_mode & GPIO_MD_MASK_FN) >> 8;
-	int gafr;
+	int gafr = (GAFR(gpio) & ~(0x3 << (((gpio) & 0xf)*2)) ) |
+			 (fn  << (((gpio) & 0xf)*2));
 
-	if (gpio_mode & GPIO_MD_MASK_DIR)
-	{
-		GPDR(gpio) |= GPIO_bit(gpio);
+	if ( (gpio & 0x7f) < 96 ) {
+		if (gpio_mode & GPIO_MD_MASK_DIR) {
+			_GPDR(gpio) |= GPIO_bit(gpio);
+		} else {
+			_GPDR(gpio) &= ~GPIO_bit(gpio);
+		}
+		_GAFR(gpio) = gafr;
+	} else {
+#ifdef GPDR3
+		if (gpio_mode & GPIO_MD_MASK_DIR) {
+			GPDR3 |= GPIO_bit(gpio);
+		} else {
+			GPDR3 &= ~GPIO_bit(gpio);
+		}
+		if ( (gpio & 0x7f) < 112) {
+			GAFR3_L = gafr;
+		} else {
+			GAFR3_U = gafr;
+		}
+#endif
 	}
-	else
-	{
-		GPDR(gpio) &= ~GPIO_bit(gpio);
-	}
-	gafr = GAFR(gpio) & ~(0x3 << (((gpio) & 0xf)*2));
-	GAFR(gpio) = gafr |  (fn  << (((gpio) & 0xf)*2));
 }
 #endif /* CONFIG_CPU_MONAHANS */

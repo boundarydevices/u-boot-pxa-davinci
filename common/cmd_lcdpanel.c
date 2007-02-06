@@ -72,7 +72,7 @@
 
 extern char console_buffer[];		/* console I/O buffer	*/
 
-static void print_panel_info( struct lcd_panel_info_t const *panel )
+void print_panel_info( struct lcd_panel_info_t const *panel )
 {
    printf( "------------------------------------\n"
            "name           : %s\n", panel->name );
@@ -226,7 +226,7 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
       if( panel ) {
          printf( "found panel %s\n", panel->name );
          set_lcd_panel( panel );
-         setenv( "panel", panel->name );
+         setenv( "panel", (char*)panel->name );
       }
       else if( '+' == *argv[1] ) {
          panel = prompt_for_panel();

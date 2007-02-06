@@ -161,7 +161,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned char     crt          */    , 0 }
 
    /* char const       *name         */ , { "okaya_qvga"
-   /* unsigned long     pixclock     */    , 7400000          
+   /* unsigned long     pixclock     */    , 7400000	//(320+30+20+38)*(240+3+5+15)*68 Hz = 408*263*60 = 7296672
    /* unsigned short    xres         */    , 320
    /* unsigned short    yres         */    , 240
    /* unsigned char     pclk_redg    */    , 1
@@ -194,7 +194,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned          rotation     */    , 90 }
 
    /* char const       *name         */ , { "hitachi_hvga"
-   /* unsigned long     pixclock     */    , 1      
+   /* unsigned long     pixclock     */    , (640+64+34+1)*(240+20+8+3)*68
    /* unsigned short    xres         */    , 640
    /* unsigned short    yres         */    , 240
    /* unsigned char     pclk_redg    */    , 1

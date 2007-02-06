@@ -41,8 +41,8 @@
 #define ISR_ACKNAK	(1<<1)
 #define ISR_RWM		(1<<0)		//Read/Write Mode (1: master read/ slave transmit)
 */
-#define I2C_ICR_INIT	(ICR_BEIE | ICR_IRFIE | ICR_ITEIE | ICR_GCD | ICR_SCLE)
-#define I2C_ISR_INIT		0x7FF
+#define ISR_ALL_INTERRUPTS (ISR_BED | ISR_SAD | ISR_IRF | ISR_ITE| ISR_ALD | ISR_SSD)
+
 
 struct I2CStruct
 {
@@ -116,26 +116,21 @@ void lcd_printInt(unsigned int val)
 }
 void resetI2c(struct I2CStruct* p,int slaveAddr)
 {
-	p->icr &= ~ICR_IUE;		/* disable unit */
-	p->icr |= ICR_UR;			/* reset the unit */
-	udelay(100);
-	p->icr &= ~ICR_IUE;		/* disable unit */
-#ifdef CONFIG_CPU_MONAHANS
-	CKENB |= (CKENB_4_I2C); /*  | CKENB_1_PWM1 | CKENB_0_PWM0); */
-#else /* CONFIG_CPU_MONAHANS */
-	CKEN |= CKEN14_I2C;		/* set the global I2C clock on */
-#endif
-	p->isar = slaveAddr;	/* set our slave address */
-	p->icr = I2C_ICR_INIT;		/* set control register values */
-	p->isr = I2C_ISR_INIT;		/* set clear interrupt bits */
-	p->icr |= ICR_IUE;			/* enable unit */
-	udelay(100);
+	int i;
 
-//	p->icr = ICR_UR;	//reset
-//	p->isr = ISR_BED|ISR_SAD|ISR_GCAD|ISR_IRF|ISR_ITE|ISR_ALD|ISR_SSD;	//clear the write 1 to clear bits
-//	p->icr = 0;			//reset finished
-//	p->isar = slaveAddr;	//low bit is r/w
-//	p->icr = ICR_GCD|ICR_IUE;	//Don't respond to general call, enable unit
+	p->icr = ICR_UR;			/* reset the unit */
+
+	// Sit here until the chip isn't busy and both signal lines are high:
+	for (i=0; i<10000000; i++) {
+		if ( ((p->isr&ISR_UB)==0) && ((p->ibmr&0x03)==0x03) ) {
+			break;
+		}
+	}
+	p->icr =  0;		// end the reset
+	p->isar = slaveAddr;	/* set our slave address */
+	p->isr = (ISR_BED | ISR_SAD | ISR_GCAD | ISR_IRF | ISR_ITE| ISR_ALD | ISR_SSD);		// write 1 to clear interrupt bits
+	p->icr = ICR_GCD|ICR_IUE;			/* enable unit */
+	udelay(100);
 }
 
 int i2ctest_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
@@ -156,9 +151,16 @@ int i2ctest_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	ulong startTime;
 	ulong curTime;
 	ulong timeOutTicks = (5* CFG_HZ);	//5 seconds timeout
+	
+#ifdef CONFIG_CPU_MONAHANS
+	CKENB |= (CKENB_4_I2C); /*  | CKENB_1_PWM1 | CKENB_0_PWM0); */
+#else /* CONFIG_CPU_MONAHANS */
+	CKEN |= CKEN14_I2C;		/* set the global I2C clock on */
+#endif
+	p->icr = ICR_UR;			/* reset the unit */
+
 	lcd_ClearScreen();
 	lcd_Lecho("\n");
-	lastIbmr = p->ibmr;
 	if (powerOn) {
 		rcode = 1;
 		lcd_Lecho("Error, I2C power is already ON, trying to turn off\n");
@@ -193,6 +195,7 @@ int i2ctest_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		} while (i<10);
 		if (powerOn) {
 			lcd_Lecho("OK, I2C power enabled\n");
+			udelay(500000);	//delay .5 sec to let power stablize
 		} else {
 			rcode = 1;
 			lcd_Lecho("Error, I2C power NOT on!!!\n");
@@ -202,6 +205,7 @@ int i2ctest_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	resetI2c(p,slaveAddr);
 	lcd_Lecho("Waiting for message targeted to GMU\n");
 	startTime = get_timer(0);
+	lastIbmr = p->ibmr;
 	do {
 		isr = p->isr;
 		if (isr & ISR_SAD) {
