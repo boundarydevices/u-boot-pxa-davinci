@@ -195,15 +195,15 @@ int i2ctest_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		} while (i<10);
 		if (powerOn) {
 			lcd_Lecho("OK, I2C power enabled\n");
-			udelay(500000);	//delay .5 sec to let power stablize
+//			for (i=0; i<20; i++) udelay(100000);	//delay 2 sec to let power stablize
 		} else {
 			rcode = 1;
 			lcd_Lecho("Error, I2C power NOT on!!!\n");
 		}
 	}
 	
-	resetI2c(p,slaveAddr);
 	lcd_Lecho("Waiting for message targeted to GMU\n");
+	resetI2c(p,slaveAddr);
 	startTime = get_timer(0);
 	lastIbmr = p->ibmr;
 	do {
@@ -246,9 +246,6 @@ int i2ctest_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 //		printf("isr:%x ibmr:%x sa:%x\n",isr,ibmr,slaveAddr<<1);
 	} while (1);
 
-	lcd_Lecho("OK, slave address match:");
-	lcd_printHexByte(slaveAddr<<1);
-	lcd_Lecho("\n");
 	if (isr & ISR_RWM) {
 		rcode = 1;
 		lcd_Lecho("Error, read transaction not expected!!!\n");
@@ -269,15 +266,22 @@ int i2ctest_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			}
 			curTime = get_timer(startTime);
 			if (curTime > timeOutTicks) {
-				if (isr & ISR_UB) {
-//					rcode = 1;
-					lcd_Lecho("Warning, stop timeout\n");
-				}
 				break;
 			}
 		} while (1);
-		i = 0;
+
+		lcd_Lecho("OK, slave address match:");
+		lcd_printHexByte(slaveAddr<<1);
+		lcd_Lecho("\n");
+
+		if (curTime > timeOutTicks) {
+			if (isr & ISR_UB) {
+				rcode = 1;
+				lcd_Lecho("Error, stop timeout\n");
+			}
+		}
 		lcd_Lecho("OK, Message bytes:");
+		i = 0;
 		while (i<index) {
 			lcd_printHexByte(buffer[i]);
 			lcd_Lecho(" ");
