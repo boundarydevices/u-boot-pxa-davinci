@@ -1258,6 +1258,15 @@ typedef void		(*ExcpHndlr) (void) ;
 
 #define GPIO_bit(x)	(1 << ((x) & 0x1f))
 
+#define _GPLR(x)	__REG2(0x40E00000, ((x) & 0x60) >> 3)
+#define _GPDR(x)	__REG2(0x40E0000C, ((x) & 0x60) >> 3)
+#define _GPSR(x)	__REG2(0x40E00018, ((x) & 0x60) >> 3)
+#define _GPCR(x)	__REG2(0x40E00024, ((x) & 0x60) >> 3)
+#define _GRER(x)	__REG2(0x40E00030, ((x) & 0x60) >> 3)
+#define _GFER(x)	__REG2(0x40E0003C, ((x) & 0x60) >> 3)
+#define _GEDR(x)	__REG2(0x40E00048, ((x) & 0x60) >> 3)
+#define _GAFR(x)	__REG2(0x40E00054, ((x) & 0x70) >> 2)
+
 #ifdef CONFIG_PXA27X
 
 /* Interrupt Controller */
@@ -1267,15 +1276,6 @@ typedef void		(*ExcpHndlr) (void) ;
 #define ICLR2		__REG(0x40D000A4)  /* Interrupt Controller Level Register 2 */
 #define ICFP2		__REG(0x40D000A8)  /* Interrupt Controller FIQ Pending Register 2 */
 #define ICPR2		__REG(0x40D000AC)  /* Interrupt Controller Pending Register 2 */
-
-#define _GPLR(x)	__REG2(0x40E00000, ((x) & 0x60) >> 3)
-#define _GPDR(x)	__REG2(0x40E0000C, ((x) & 0x60) >> 3)
-#define _GPSR(x)	__REG2(0x40E00018, ((x) & 0x60) >> 3)
-#define _GPCR(x)	__REG2(0x40E00024, ((x) & 0x60) >> 3)
-#define _GRER(x)	__REG2(0x40E00030, ((x) & 0x60) >> 3)
-#define _GFER(x)	__REG2(0x40E0003C, ((x) & 0x60) >> 3)
-#define _GEDR(x)	__REG2(0x40E00048, ((x) & 0x60) >> 3)
-#define _GAFR(x)	__REG2(0x40E00054, ((x) & 0x70) >> 2)
 
 #define GPLR(x)		((((x) & 0x7f) < 96) ? _GPLR(x) : GPLR3)
 #define GPDR(x)		((((x) & 0x7f) < 96) ? _GPDR(x) : GPDR3)
@@ -1288,14 +1288,14 @@ typedef void		(*ExcpHndlr) (void) ;
 			 ((((x) & 0x7f) < 112) ? GAFR3_L : GAFR3_U))
 #else
 
-#define GPLR(x)		__REG2(0x40E00000, ((x) & 0x60) >> 3)
-#define GPDR(x)		__REG2(0x40E0000C, ((x) & 0x60) >> 3)
-#define GPSR(x)		__REG2(0x40E00018, ((x) & 0x60) >> 3)
-#define GPCR(x)		__REG2(0x40E00024, ((x) & 0x60) >> 3)
-#define GRER(x)		__REG2(0x40E00030, ((x) & 0x60) >> 3)
-#define GFER(x)		__REG2(0x40E0003C, ((x) & 0x60) >> 3)
-#define GEDR(x)		__REG2(0x40E00048, ((x) & 0x60) >> 3)
-#define GAFR(x)		__REG2(0x40E00054, ((x) & 0x70) >> 2)
+#define GPLR(x)		_GPLR(x)
+#define GPDR(x)		_GPDR(x)
+#define GPSR(x)		_GPSR(x)
+#define GPCR(x)		_GPCR(x)
+#define GRER(x)		_GRER(x)
+#define GFER(x)		_GFER(x)
+#define GEDR(x)		_GEDR(x)
+#define GAFR(x)		_GAFR(x)
 
 #endif
 
