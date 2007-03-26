@@ -212,7 +212,6 @@
 
 #define CMD_XMODEM 1
 #define CMD_I2CTEST 1
-
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>
 

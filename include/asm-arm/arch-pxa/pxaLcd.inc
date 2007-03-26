@@ -85,7 +85,7 @@
 
 //rFrameBuffer is start of frame buffer in memory
 .macro SetupLcd	rFrameBuffer,rTmp0,rTmp1,rTmp2,rTmp3,rTmp4
-#if (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER) || (PLATFORM_TYPE==HALOGEN)
+	.if __ENABLED_LCD_MASK
 	mov	\rTmp0,\rFrameBuffer
 	GetFrameSize \rTmp1,DEF_P
 	add	\rTmp4,\rFrameBuffer,\rTmp1
@@ -119,5 +119,5 @@
 #endif
 
 	InitLCD	\rTmp4,\rTmp0,\rTmp1	//\rTmp4 has descriptor address
-#endif
+	.endif
 .endm

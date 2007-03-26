@@ -1,7 +1,14 @@
 #include "cpMacro.h"
 //  ************************************************************************************************
 //  ************************************************************************************************
-
+	.ifdef __ARMASM
+	GBLA	CPU_PXA270
+	.endif
+#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==NEON270)
+	.set	CPU_PXA270,1
+#else
+	.set	CPU_PXA270,0
+#endif
 //In: c-0 try 64meg, c-1 try 32meg
 // or if 16 bit mode
 //    c-0 try 32meg, c-1 try 16meg
@@ -95,7 +102,11 @@
 	.equiv	CS1_MSC, (1<<15)+(((tEHEL+1)>>1)<<12)+((tAPA-1)<<8)+     (RDFSelect<<4)+                 (BurstSelect)			//fast device
 #else
 	.equiv	CS0_MSC, (1<<15)+(((tEHEL+1)>>1)<<12)+((tAPA-1)<<8)+     (RDFSelect<<4)+                 (BurstSelect)			//fast device
+#if (PLATFORM_TYPE==NEON270)
+	.equiv	CS1_MSC, (1<<15)+   (1<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//SM501
+#else
 	.equiv	CS1_MSC, (1<<15)+   (3<<12)+            (2<<8)+             ((3-1)<<4)+        (1<<3) +       4		//SMC chip
+#endif
 //	.equiv	CS1_MSC, (1<<15)+   (6<<12)+           ((11-1)<<8)+        ((4-1)<<4)+        (1<<3) +       4		//SMC chip
 #endif
 
@@ -139,14 +150,14 @@
 	.equiv	CS3_MSC, (1<<15)+   (1<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//SM501
 	.equiv	CS4_MSC, (1<<15)+   (3<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//SMC chip
 #else
-#if (PLATFORM_TYPE==HALOGEN)
+	.if CPU_PXA270
 	.equiv	CS3_MSC, (1<<15)+   (1<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//NC
 	.equiv	CS4_MSC, (1<<15)+   (3<<12)+            (2<<8)+            ((5-1)<<4)+        (0<<3) +       4		//SMC chip
-#else
+	.else
 	.equiv	CS3_MSC, (1<<15)+   (4<<12)+           ((6-2)<<8)+         ((4-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB dma
 //	.equiv	CS3_MSC, (1<<15)+   (7<<12)+           ((16-1)<<8)+        ((16-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB dma
 	.equiv	CS4_MSC, (1<<15)+   (6<<12)+           ((11-1)<<8)+        ((4-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB IO
-#endif
+	.endif
 #endif
 
 	.equiv	CS5_MSC, (0<<15)+   (7<<12)+           ((8-1)<<8)+         ((8-1)<<4)+       (1<<3) +       (0)			//for USB IO delay after CMD write
@@ -209,12 +220,16 @@
 	.equiv	CKEN_I2C,	14
 	.equiv	CKEN_LCD,	16
 
-#if (PLATFORM_TYPE==NEON) || (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER) || (PLATFORM_TYPE==HALOGEN)
+#if (PLATFORM_TYPE==NEON) || (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER)
 	.equiv	__ENABLED_BTUART_MASK, (1<<CKEN_BTUART)
 	.equiv	__ENABLED_STUART_MASK, (1<<CKEN_STUART)
 #endif
+	.if CPU_PXA270
+	.equiv	__ENABLED_BTUART_MASK, (1<<CKEN_BTUART)
+	.equiv	__ENABLED_STUART_MASK, (1<<CKEN_STUART)
+	.endif
 
-#if (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER) || (PLATFORM_TYPE==HALOGEN)
+#if (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER) || (PLATFORM_TYPE==HALOGEN) || (PLATFORM_TYPE==NEON270)
 	.equiv	__ENABLED_LCD_MASK, (1<<CKEN_LCD)
 #endif
 
@@ -236,7 +251,7 @@
 	str	\rTemp,[\rBase,#ICMR]			//disable all interrupts
 
 	BigMov	\rBase,CLK_MANAGER_BASE
-#if (PLATFORM_TYPE==HALOGEN)
+	.if CPU_PXA270
 	.equiv	CKEN_MEMORY_CONTROLLER, 22
 	.equiv	CKEN_OS_TIMER, 			9
 
@@ -305,7 +320,7 @@
 	BigMov	\rTemp,(1<<CKEN_OS_TIMER)+(1<<CKEN_MEMORY_CONTROLLER)+(1<<CKEN_FFUART)+__ENABLED_BTUART_MASK+__ENABLED_STUART_MASK+__ENABLED_LCD_MASK
 	str	\rTemp,[\rBase,#CKEN]
 
-#else
+	.else
 	.equiv	tRP,  20
 	.equiv	tRCD, 20
 	.equiv	tRAS, 45		//45 ns
@@ -381,20 +396,21 @@
 
 	BigMov	\rTemp,(1<<CKEN_FFUART)+__ENABLED_BTUART_MASK+__ENABLED_STUART_MASK+__ENABLED_LCD_MASK
 	str	\rTemp,[\rBase,#CKEN]
-#endif	//not HALOGEN
+	.endif	//not CPU_PXA270
+
 	mov \rTemp,#0					//disable 32.768khz oscillator
 //	mov	\rTemp,#2					//enable 32.768khz oscillator
 	str	\rTemp,[\rBase,#OSCC]
 .endm
 
 .macro	InitChangeCPUSpeed rTemp,rBase,rTemp2
-#if (PLATFORM_TYPE==HALOGEN)
+	.if CPU_PXA270
 	mov	\rTemp,#(CLKCFG_FAST_BUS<<CLKCFG_FAST_BUS_BIT)+(CLKCFG_TURBO<<CLKCFG_TURBO_BIT)+(1<<CLKCFG_FREQUENCY_CHANGE_BIT)
 	CP14_CCLKCFG	mcr,\rTemp
-#else
+	.else
 	mov	\rTemp,#FCS_MASK
 	CP14_CCLKCFG	mcr,\rTemp
-#endif
+	.endif
 .endm
 .macro	FinalInitChangeCPUSpeed rBase,rTemp,rTemp2
 .endm
@@ -445,12 +461,12 @@
 	str	\rTemp,[\rBase,#GPCR2]
 	mvn	\rTemp,\rTemp
 	str	\rTemp,[\rBase,#GPSR2]
-#if (PLATFORM_TYPE==HALOGEN)
+	.if CPU_PXA270
 	BigMov	\rTemp,~SRVAL96
 	str	\rTemp,[\rBase,#GPCR3]
 	mvn	\rTemp,\rTemp
 	str	\rTemp,[\rBase,#GPSR3]
-#endif
+	.endif
 ////////
 	BigMov	\rTemp,DRVAL0
 	str	\rTemp,[\rBase,#GPDR0]
@@ -460,10 +476,10 @@
 
 	BigMov	\rTemp,DRVAL64
 	str	\rTemp,[\rBase,#GPDR2]
-#if (PLATFORM_TYPE==HALOGEN)
+	.if CPU_PXA270
 	BigMov	\rTemp,DRVAL96
 	str	\rTemp,[\rBase,#GPDR3]
-#endif
+	.endif
 ////////
 	BigMov	\rTemp,AFVAL0
 	str	\rTemp,[\rBase,#GAFR0_L]
@@ -479,15 +495,27 @@
 	str	\rTemp,[\rBase,#GAFR2_L]
 	BigMov	\rTemp,AFVAL80
 	str	\rTemp,[\rBase,#GAFR2_U]
-#if (PLATFORM_TYPE==HALOGEN)
+	.if CPU_PXA270
 	BigMov	\rTemp,AFVAL96
 	str	\rTemp,[\rBase,#GAFR3_L]
 	BigMov	\rTemp,AFVAL112
 	str	\rTemp,[\rBase,#GAFR3_U]
-#endif
+	.endif
 	BigMov	\rBase,PWR_MANAGER_BASE
 	mov	\rTemp,#0x30
 	str	\rTemp,[\rBase,#PSSR]
+	
+	.if CPU_PXA270
+	BigMov	\rBase,GPIO_BASE
+	mov		\rTemp,#(1<<11)		//gp11 reset for SMSC lan91c111
+	str		\rTemp,[\rBase,#GPSR0]
+	mov		\rTemp,#0x10000
+99:	subs	\rTemp,\rTemp,#1
+	bne		99b
+	mov	\rTemp,#(1<<11)		//gp11 reset for SMSC lan91c111
+	str	\rTemp,[\rBase,#GPCR0]
+	.endif
+
 .endm
 
 

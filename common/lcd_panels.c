@@ -176,6 +176,15 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned char     active       */    , 1  
    /* unsigned char     crt          */    , 0 }
 
+#define OKAYA_480X272_P 480, 3,20, 38,		272, 3, 5, 15,		1,1,0,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
+//name,pixclock,
+	, { "okaya_480X272", 11394080	//(480+30+20+38)*(272+3+5+15)*68 Hz = 568*295*68 = 11,394,080
+	, 480, 272, 1, 0, 0			//xres,yres,pclk_redg,hsyn_acth,vsyn_acth,
+	,  30, 20, 38				//hsync_len,left_margin,right_margin,
+	, 3, 5, 15					//vsync_len,upper_margin,lower_margin,
+    , 1, 0  					//active,crt
+	 }
+
    /* char const       *name         */ , { "qvga_portrait"
    /* unsigned long     pixclock     */    , 0
    /* unsigned short    xres         */    , 240

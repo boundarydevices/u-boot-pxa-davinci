@@ -472,11 +472,22 @@ static int pxafb_init (vidinfo_t *vid)
 	debug("Configuring PXA LCD\n");
 
 #if defined( CONFIG_PXA270 )
+
+#if (PLATFORM_TYPE==HALOGEN)
 #if (PLATFORM_REV==1)||(PLATFORM_REV==2)
-	LCCR4 = 0x00010000 ;        // 18-bits to panel
-#else
-	LCCR4 = 0x00008000 ;        // 16-bits to panel
+#define PALETTE_SELECT	0x00010000 ;        // 18-bits to panel
 #endif
+#endif
+
+#if (PLATFORM_TYPE==NEON270)
+#define PALETTE_SELECT	0x00010000 ;        // 18-bits to panel
+#endif
+
+#ifndef PALETTE_SELECT
+#define PALETTE_SELECT	0x00008000 ;        // 16-bits to panel, default
+#endif
+
+	LCCR4 = PALETTE_SELECT;
 #endif
 
 	fbi->reg_lccr0 = 0x003008F8;

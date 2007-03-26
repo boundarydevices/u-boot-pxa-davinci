@@ -32,6 +32,7 @@
 	.equiv	LOCAL_RAM_END, 0x20000000	//16k
 	.equiv	NFC_RAM,	   0xb8000000
 	.equiv	NFC_RAM_END,   0xb8000800	//2k
+
 #ifndef UART_BASE
 	.equiv	UART1_BASE, 0x43f90000
 	.equiv	UART2_BASE, 0x43f94000

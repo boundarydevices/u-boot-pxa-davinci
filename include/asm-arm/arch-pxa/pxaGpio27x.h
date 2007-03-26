@@ -1,4 +1,9 @@
-//gpios for HALOGEN
+#if (PLATFORM_TYPE==HALOGEN)
+#if (PLATFORM_REV==1)
+#define __HALOGEN1 1
+#endif
+#endif
+//gpios for pxa270
 
 //CP  - Clock and Power Management Unit
 //MMC - Multimedia Card Controller
@@ -25,8 +30,13 @@
 	SPEC_GP  6,IN,HIGH,0		//PWR_CAP 1
 	SPEC_GP  7,IN,HIGH,0		//PWR_CAP 2
 	SPEC_GP  8,IN,HIGH,0		//PWR_CAP 3
+#if (PLATFORM_TYPE==NEON270)
+	SPEC_GP  9,IN,HIGH,0		//Low battery
+#else
 	SPEC_GP  9,OUT,HIGH,0		//NC
-#if (PLATFORM_REV==1)
+#endif
+
+#ifdef __HALOGEN1
 	SPEC_GP  10,OUT,HIGH,0		//NC, rev 1 doesn't have MMC write protect, or card detect
 #else
 	SPEC_GP  10,IN,HIGH,0		//MMC card detect
@@ -40,19 +50,18 @@
 	SPEC_GP  15,OUT,HIGH,2		//nCS1, NC
 
 
-	SPEC_GP  16,OUT,LOW,0		//PWM0 backlight intensity, 0 brightest
-	SPEC_GP  17,OUT,HIGH,0		//NC
+	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control
+	SPEC_GP  17,OUT,HIGH,0		//LCD backlight ON/OFF
 
 	SPEC_GP  18,IN,HIGH,1		//MC_RDY, VIO_READY
 
 	SPEC_GP  19,OUT,HIGH,0		//NC
 
-	SPEC_GP  20,OUT,HIGH,1		//MC_DREQ0, NC
-
+	SPEC_GP  20,OUT,HIGH,0		//NC
 	SPEC_GP  21,OUT,HIGH,0		//NC
 	SPEC_GP  22,OUT,HIGH,0		//NC
 
-#if (PLATFORM_REV==1)
+#ifdef __HALOGEN1
 	SPEC_GP  23,OUT,HIGH,0		//NC
 #else
 	SPEC_GP  23,IN,HIGH,0		//rev 2 UCB1400 int
@@ -75,7 +84,7 @@
 	SPEC_GP  33,OUT,HIGH,0		//MC_nCS5, NC
 	SPEC_GP  34,IN,HIGH,1		//(in alt 1:FF_RXD) (out alt 1:USB_P2_2)		2    input, Session Valid
 	SPEC_GP  35,IN,HIGH,0		//(in alt 1:FF_CTS) (in alt 2:USB_P2_1)			1    input, SRP Detect
-#if (PLATFORM_REV==1)
+#ifdef __HALOGEN1
 	SPEC_GP  36,OUT,HIGH,0		//(in alt 1:FF_DCD)
 #else
 	SPEC_GP  36,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4)		4    output Vbus Enable
@@ -85,7 +94,7 @@
 	SPEC_GP  38,IN,HIGH,0		//(in alt 1:FF_RI)  (in alt 3:USB_P2_3)		//MMC Write Protect (rev 1 is NC),// 3    input, Vbus valid 4.4 Volts
 	SPEC_GP  39,OUT,HIGH,2		//(out alt 2:FF_TXD) (out alt 1:USB_P2_6)		
 
-#if (PLATFORM_REV==1)
+#ifdef __HALOGEN1
 	SPEC_GP  40,OUT,HIGH,2		//(out alt 2:FF_DTR)
 #else
 	SPEC_GP  40,IN,HIGH,0		//(out alt 2:FF_DTR) (in alt 3:USB_P2_5)		5    input, Vbus valid 4.0 Volts
@@ -145,7 +154,7 @@
 	SPEC_GP  85,OUT,HIGH,0		//NC
 	SPEC_GP  86,OUT,HIGH,ALT_LCD	//LDD16
 	SPEC_GP  87,OUT,HIGH,ALT_LCD	//LDD17
-#if (PLATFORM_REV==1)
+#ifdef __HALOGEN1
 	SPEC_GP  88,OUT,HIGH,0		//NC
 	SPEC_GP  89,OUT,HIGH,0		//NC
 #else
@@ -169,7 +178,7 @@
 	SPEC_GP  103,OUT,HIGH,0		//port 1,USB Power Enable for REV 1 board (driver needs to enable usb power (LOW,0)
 	SPEC_GP  104,OUT,HIGH,0		//NC
 
-#if (PLATFORM_REV==1)
+#ifdef __HALOGEN1
 	SPEC_GP  105,IN,HIGH,0		//USB Overcurrent
 #else
 	SPEC_GP	 105,OUT,HIGH,0		//NC
@@ -184,8 +193,13 @@
 	SPEC_GP  112,OUT,HIGH,1		//MMCMD
 	SPEC_GP  113,OUT,HIGH,2		//AC97 Reset, NC
 	SPEC_GP  114,OUT,HIGH,0		//NC
+#if 0 //(PLATFORM_TYPE==NEON270)	//next rev of board
+	SPEC_GP  115,IN,HIGH,0		//MC_MBREQ, alternate function 3 AFTER PSSR[RDH] is cleared
+	SPEC_GP  116,OUT,HIGH,3		//MC_MBGNT
+#else
 	SPEC_GP  115,OUT,HIGH,0		//NC
 	SPEC_GP  116,OUT,HIGH,0		//NC
+#endif
 	SPEC_GP  117,OUT,HIGH,1		//SCL (I2C)
 	SPEC_GP  118,OUT,HIGH,1		//SDA (I2C)
 	SPEC_GP  119,OUT,HIGH,0		//NC

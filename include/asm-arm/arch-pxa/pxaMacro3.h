@@ -27,6 +27,8 @@
 	.equiv	VMA_DEBUG, (0xfff00000)
 	.equiv	VIRTUAL_CS0, 0xa8000000
 	.equiv	VIRTUAL_CS1, 0xa8000000
+	.equiv	DL_RANGE2_BASE, 0x04000000	//physical CS1
+	.equiv	DL_RANGE2_END,  0x18000000	//end of physical CS5 space
 
 #else
 #ifdef CONFIG_STACKS_VALID

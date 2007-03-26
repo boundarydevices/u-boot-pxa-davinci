@@ -35,7 +35,7 @@ flash_info_t flash_info[CFG_MAX_FLASH_BANKS];	/* info for FLASH chips    */
 
 /* Board support for 1 or 2 flash devices */
 #if (PLATFORM_TYPE==HALOGEN)
-#if (PLATFORM_REV!=1)
+#if (PLATFORM_REV==2)||(PLATFORM_REV==3)
 #define FLASH_PORT_WIDTH16 1
 #endif
 #endif

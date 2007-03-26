@@ -10,6 +10,7 @@
 #define OLD_GAME_CONTROLLER			8
 #define HALOGEN						9
 #define MERCURY						10
+#define NEON270						11
 
 #if (PLATFORM_TYPE==NEONB)
 #define PHYS_FLASH_BASE 0x04000000
