@@ -1,22 +1,24 @@
 #ifndef __PXA250BASE_H__
 #define __PXA250BASE_H__ 1
 
+#ifndef __USE_PHYSICAL
+
 #ifdef __ARMASM
-#define USE_PHYSICAL 1
+#define __USE_PHYSICAL 1
 #else
 #ifndef _MSC_VER
-#define USE_PHYSICAL 1
+#define __USE_PHYSICAL 1
+#else
+#if EBOOT_PHYS
+#define __USE_PHYSICAL 1
+#endif
 #endif
 #endif
 	
 
-#ifndef USE_PHYSICAL
-#if EBOOT_PHYS
-#define USE_PHYSICAL 1
-#endif
 #endif
 
-#if USE_PHYSICAL
+#if __USE_PHYSICAL
 #define PCMCIA_CARD0_IO     0x20000000
 #define PCMCIA_CARD0_ATTR   0x28000000
 #define PCMCIA_CARD0_MEM    0x2c000000

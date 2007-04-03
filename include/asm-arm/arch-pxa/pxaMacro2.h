@@ -245,7 +245,7 @@
 	.equiv	__ENABLED_LCD_MASK, 0
 	.endif
 
-.macro InitIC_Clocks rBase,rTemp
+.macro InitIC_Clocks rBase,rTemp,cpuClock
 	BigMov	\rBase,IC_BASE
 	mov	\rTemp,#0
 	str	\rTemp,[\rBase,#ICMR]			//disable all interrupts
@@ -264,56 +264,57 @@
 	.equiv	CLKCFG_HALF_TURBO_BIT,	2
 	.equiv	CLKCFG_FAST_BUS_BIT,	3
 
-#if (CPU_CLOCK==104)	//13*8 = 104MHz
+	.if		(\cpuClock==104)	//13*8 = 104MHz
 	.equiv	CCCR_2N,	2
 	.equiv	CCCR_L,	8
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 0
 	.equiv	CLKCFG_FAST_BUS, 0
-#else
-#if (CPU_CLOCK==208)	//13*16 = 208MHz
+	.else
+	.if		(\cpuClock==208)	//13*16 = 208MHz
 	.equiv	CCCR_2N,	2
 	.equiv	CCCR_L,	16
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 0
 	.equiv	CLKCFG_FAST_BUS, 0
-#else
-#if (CPU_CLOCK==312)	//312MHz
+	.else
+	.if		(\cpuClock==312)	//312MHz
 	.equiv	CCCR_2N,	3
 	.equiv	CCCR_L,	16
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 1
 	.equiv	CLKCFG_FAST_BUS, 0
-#else
-#if (CPU_CLOCK==416)	//416MHz
+	.else
+	.if		(\cpuClock==416)	//416MHz
 	.equiv	CCCR_2N,	4
 	.equiv	CCCR_L,	16
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 1
 	.equiv	CLKCFG_FAST_BUS, 1
-#else
-#if (CPU_CLOCK==520)	//520MHz
+	.else
+	.if		(\cpuClock==520)	//520MHz
 	.equiv	CCCR_2N,	5
 	.equiv	CCCR_L,	16
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 1
 	.equiv	CLKCFG_FAST_BUS, 1
-#else
-#if (CPU_CLOCK==624)	//624MHz
+	.else
+	.if		(\cpuClock==624)	//624MHz
 	.equiv	CCCR_2N,	6
 	.equiv	CCCR_L,	16
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 1
 	.equiv	CLKCFG_FAST_BUS, 1
 
-#else
-#warning CPU_CLOCK selection not made
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
+	.else
+	.err	//CPU_CLOCK selection not made
+	.endif
+	.endif
+	.endif
+	.endif
+	.endif
+	.endif
+
 	BigMov	\rTemp,(CCCR_L<<CCCR_L_BIT)+(CCCR_2N<<CCCR_2N_BIT)+(CCCR_A<<CCCR_A_BIT)
 	str	\rTemp,[\rBase,#CCCR]
 
@@ -357,39 +358,39 @@
 //4 : *2;
 //6 : *3
 
-#if (CPU_CLOCK==100)
+	.if		(\cpuClock==100)
 	.equiv	MSelect,	1	//1 : *1	100MHz
 	.equiv	NSelect,	4	//4 : *2;	turbo 200 MHZ
 	.equiv	FCS_MASK,	2	//		turbo off
-#else
-#if (CPU_CLOCK==200)
+	.else
+	.if		(\cpuClock==200)
 	.equiv	MSelect,	2	//2 : *2	200 MHz
 	.equiv	NSelect,	3	//3 : *1.5;	turbo 300 MHZ
 	.equiv	FCS_MASK,	2	//		turbo off
-#else
-#if (CPU_CLOCK==300)
+	.else
+	.if		(\cpuClock==300)
 	.equiv	MSelect,	2	//2 : *2	200 MHz
 	.equiv	NSelect,	3	//3 : *1.5;	turbo 300 MHZ
 	.equiv	FCS_MASK,	3	//		turbo on
-#else
-#if (CPU_CLOCK==400)
+	.else
+	.if		(\cpuClock==400)
 
-#if 0	//only pxa255 runs with 200Mhz internal bus, pxa250 doesn't
+	.if 0	//only pxa255 runs with 200Mhz internal bus, pxa250 doesn't
 	.equiv	MSelect,	2	//2 : *2	200 MHz
 	.equiv	NSelect,	4	//4 : *2;	turbo 400 MHZ
 	.equiv	FCS_MASK,	3	//		turbo on
-#else
-	.equiv	MSelect,	3	//2 : *4	400 MHz
-	.equiv	NSelect,	2	//4 : *1;	turbo 400 MHZ
+	.else
+	.equiv	MSelect,	3	//3 : *4	400 MHz
+	.equiv	NSelect,	2	//2 : *1;	turbo 400 MHZ
 	.equiv	FCS_MASK,	2	//		turbo off
-#endif
+	.endif
 
-#else
-//////#WARNING CPU_CLOCK selection not made
-#endif
-#endif
-#endif
-#endif
+	.else
+	.err	//CPU_CLOCK selection not made
+	.endif
+	.endif
+	.endif
+	.endif
 
 	BigMov	\rTemp,(NSelect<<7)+(MSelect<<5)+(LSelect)
 	str	\rTemp,[\rBase,#CCCR]

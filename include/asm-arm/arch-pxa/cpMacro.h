@@ -196,7 +196,6 @@
 //	.equiv	M64_MDREFR_VAL, (1<<20)+(1<<16)+(1<<15)+(M64_DRI_cnt&0xfff)		//20: APD, bit 16: K1RUN, 15:E1PIN
 //			 13		9		  2	       2 (4bytes per address)=2**26=64 MB
 	.equiv	M64_MEM_SIZE, (1<<(M64_numRowAddrBits+numColumnAddrBits+numBankAddrBits+2))
-	.equiv	M64_MEM_END, ((MEM_START)+M64_MEM_SIZE)
 
 //32 meg option
 	.equiv	M32_numRowAddrBits, 12	//for MT48LC8M16A2 - 75 B
@@ -206,7 +205,6 @@
 	.equiv	M32_MDREFR_VAL, (1<<16)+(1<<15)+(M32_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
 //			 12		9		  2	       2 (4bytes per address)=2**25=32 MB
 	.equiv	M32_MEM_SIZE, (1<<(M32_numRowAddrBits+numColumnAddrBits+numBankAddrBits+2))
-	.equiv	M32_MEM_END, ((MEM_START)+M32_MEM_SIZE)
 // *******************************************************************************************
 //out: rTemp - memory size
 .macro CalcMemSize rTemp,mem_control_base
