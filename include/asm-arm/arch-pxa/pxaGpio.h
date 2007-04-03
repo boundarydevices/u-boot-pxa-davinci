@@ -133,7 +133,7 @@ SPEC_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
 #define ALT_LCD 2
 #include "pxaGpio25x.h"
 #else
-#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==NEON270)
+#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)
 #define ALT_LCD 2
 #include "pxaGpio27x.h"
 #else

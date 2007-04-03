@@ -35,20 +35,24 @@ flash_info_t flash_info[CFG_MAX_FLASH_BANKS];	/* info for FLASH chips    */
 
 /* Board support for 1 or 2 flash devices */
 #if (PLATFORM_TYPE==HALOGEN)
-#if (PLATFORM_REV!=1)
+#if (PLATFORM_REV==2)
 #define FLASH_PORT_WIDTH16 1
 #endif
+#endif
+
+#if (PLATFORM_TYPE==ARGON)
+#define FLASH_PORT_WIDTH16 1
 #endif
 
 #ifdef FLASH_PORT_WIDTH16
 #define FLASH_PORT_WIDTH		ushort
 #define FLASH_PORT_WIDTHV		vu_short
-#define FLASH_CNT 1
+#define FLASH_CHIP_CNT 1
 #define SWAP(x)               __swab16(x)
 #else
 #define FLASH_PORT_WIDTH		ulong
 #define FLASH_PORT_WIDTHV		vu_long
-#define FLASH_CNT 2
+#define FLASH_CHIP_CNT 2
 #define SWAP(x)               __swab32(x)
 #endif
 
@@ -120,7 +124,7 @@ static void flash_get_offsets (ulong base, flash_info_t *info)
 
 	if ((info->flash_id & FLASH_VENDMASK) == FLASH_MAN_INTEL) {
 		for (i = 0; i < info->sector_count; i++) {
-			info->start[i] = base + (i * (SECTOR_SIZE_PER_CHIP*FLASH_CNT));
+			info->start[i] = base + (i * (SECTOR_SIZE_PER_CHIP*FLASH_CHIP_CNT));
 			info->protect[i] = 0;
 		}
 	}
@@ -228,12 +232,12 @@ static ulong flash_get_size (volatile FPW *addr, flash_info_t *info)
 	case (FPW) INTEL_ID_28F128J3A:
 		info->flash_id += FLASH_28F128J3A;
 		info->sector_count = 128;
-		info->size = info->sector_count*(SECTOR_SIZE_PER_CHIP*FLASH_CNT);
+		info->size = info->sector_count*(SECTOR_SIZE_PER_CHIP*FLASH_CHIP_CNT);
 		break;				/* => 16 MB x 2  */
    case (FPW) INTEL_ID_28F320J3A:
       info->flash_id += FLASH_28F320J3A;
 		info->sector_count = 32 ;
-		info->size = info->sector_count*(SECTOR_SIZE_PER_CHIP*FLASH_CNT);
+		info->size = info->sector_count*(SECTOR_SIZE_PER_CHIP*FLASH_CHIP_CNT);
 		break;				/* => 4 MB x 2 */
 	default:
 		printf( "Unknown flash device %x,%x\n", manVal,devVal );

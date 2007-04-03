@@ -53,6 +53,9 @@ endif
 ifeq ($(PLATFORM_TYPE),HALOGEN)
    OBJS	+= usb_ohci.o
 else
+ifeq ($(PLATFORM_TYPE),ARGON)
+   OBJS	+= usb_ohci.o
+else
 ifeq ($(PLATFORM_TYPE),NEON270)
    OBJS	+= usb_ohci.o
 else
@@ -62,6 +65,7 @@ else
 ifeq ($(PLATFORM_TYPE),NEONB)
    OBJS	+= usb_ohci.o
 else
+endif
 endif
 endif
 endif

@@ -9,8 +9,9 @@
 #define BOUNDARY_OLD_BOARD			7  //lcd pin reordering for rgb problem, don't use VLIO(gp18 is turnstile)
 #define OLD_GAME_CONTROLLER			8
 #define HALOGEN						9
-#define MERCURY						10
+#define ARGON						10
 #define NEON270						11
+#define MERCURY						12
 
 #if (PLATFORM_TYPE==NEONB)
 #define PHYS_FLASH_BASE 0x04000000

@@ -1816,6 +1816,10 @@ halogen_config	:	unconfig
 	@./mkconfig $(@:_config=) arm pxa halogen
 	./Configure --PLATFORM_TYPE=HALOGEN
 
+argon_config	:	unconfig
+	@./mkconfig halogen arm pxa halogen
+	./Configure --PLATFORM_TYPE=ARGON
+
 neon270_config	:	unconfig
 	@./mkconfig halogen arm pxa halogen
 	./Configure --PLATFORM_TYPE=NEON270 --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=DA640X240

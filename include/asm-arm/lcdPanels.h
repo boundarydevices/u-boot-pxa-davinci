@@ -27,9 +27,7 @@
 #endif
 
 #if (PLATFORM_TYPE==HALOGEN)
-#if (PLATFORM_REV!=3)
 #define __BYTES_PER_PIXEL 3
-#endif
 #endif
 
 #if (PLATFORM_TYPE==NEON270)
@@ -37,7 +35,7 @@
 #endif
 
 #ifndef __BYTES_PER_PIXEL
-#define BYTES_PER_PIXEL 2
+#define BYTES_PER_PIXEL 2		//ARGON is 16 bit/pixel mode
 #else
 #define BYTES_PER_PIXEL __BYTES_PER_PIXEL
 #endif
