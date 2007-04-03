@@ -36,7 +36,7 @@
 lowlevel_init:
 	InitCS0_CS1	r0,sp
 	InitGPIO	r0,sp
-	InitIC_Clocks	r0,sp
+	InitIC_Clocks	r0,sp,CPU_CLOCK
 	InitUARTs	r0,sp,BAUDRATE,BAUDRATE,9600
 	InitChangeCPUSpeed r0,r1,sp
 	InitMemory	r0,sp,r1

@@ -2603,7 +2603,7 @@ Download_Cmd:
 
 InitializeCont1:
 //pc - 0-0x4000, 0x04000000-0x04004000, MEM_START-0xffffffff
-	InitIC_Clocks	r0,sp
+	InitIC_Clocks	r0,sp,CPU_CLOCK
 	InitUARTs	r0,sp,BAUDRATE,BAUDRATE,9600
 	InitChangeCPUSpeed r0,r1,sp
 	InitMemory	r0,sp,r1

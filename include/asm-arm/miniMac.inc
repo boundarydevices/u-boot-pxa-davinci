@@ -10,8 +10,13 @@
 	.equiv	MACH_TYPE_SCANPASS,332
 	.equiv	ATAG_CORE,	0x54410001
 	.equiv	ATAG_MEM,	0x54410002
+#if (SOFTWARE_TYPE==WINCE)
+//0x80000000 is cached mapped, 0xa0000000 is uncacheable
+	.equiv	PHYS_TO_VIRT, (0xA0000000-MEM_START)
+#else
+	.equiv	PHYS_TO_VIRT, (0xC0000000-MEM_START)
+#endif
 
-	.equiv	PHYS_TO_VIRT, (SDRAM_BASE_C_VIRTUAL-MEM_START)
 #define V_rWork r2
 #define V_rBranch r3
 #define I_rWork r2

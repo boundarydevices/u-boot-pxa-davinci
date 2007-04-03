@@ -16,11 +16,9 @@
 	.set	STACKS_VALID,1
 
 #if (SOFTWARE_TYPE==WINCE)
-	.equiv	SDRAM_BASE_C_VIRTUAL, 0xA0000000		//0x80000000 is cached mapped, 0xa0000000 is uncacheable
 	.equiv	UART_VIRT_BASE, 0xAA190000
 	.equiv	VMA_DEBUG, (0xfff00000)
 #else
-	.equiv	SDRAM_BASE_C_VIRTUAL, 0xC0000000
 	.equiv	UART_VIRT_BASE, 0xD4090000
 //	.equiv	VMA_DEBUG, (0xff000000)
 //!!!!!for some reason the above base causes bizarre problems
@@ -436,7 +434,7 @@
 	.equiv	CLK_PMCR1,0x60		//0x00aa0000 same
 	.equiv	CLK_PDR2, 0x64		//0x00000285 same
 
-.macro InitIC_Clocks rBase,rTemp
+.macro InitIC_Clocks rBase,rTemp,cpuClock
 	BigMov	\rBase,CLOCK_BASE
 	BigMov	\rTemp,UP_VAL
 	str		\rTemp,[\rBase,#CLK_UPCTL]
