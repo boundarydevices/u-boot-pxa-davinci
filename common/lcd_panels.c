@@ -164,7 +164,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned long     pixclock     */    , 7400000	//(320+30+20+38)*(240+3+5+15)*68 Hz = 408*263*60 = 7296672
    /* unsigned short    xres         */    , 320
    /* unsigned short    yres         */    , 240
-   /* unsigned char     pclk_redg    */    , 1
+   /* unsigned char     pclk_redg    */    , 0
    /* unsigned char     hsyn_acth    */    , 0
    /* unsigned char     vsyn_acth    */    , 0
    /* unsigned char     hsync_len    */    , 30 
