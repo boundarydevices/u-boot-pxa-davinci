@@ -454,13 +454,9 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    dispctrl &= ~(CLOCK_ACTIVEMASK|LCDTYPE_MASK);
    if( !panel->pclk_redg )
       dispctrl |= CLOCK_ACTIVELOW ;
-   else
-      dispctrl &= ~CLOCK_ACTIVEMASK ;
 
    if( !panel->active )
       dispctrl |= LCDTYPE_STN12 ;
-   else
-      dispctrl &= ~LCDTYPE_MASK ;
 
    if (panel->crt==0) dispctrl |= 4;
 
