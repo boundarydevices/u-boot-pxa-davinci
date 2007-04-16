@@ -3,8 +3,6 @@
 #define LINUX	2
 #define GAME	3
 
-#define PXAFB_BPP 16
-
 #define LCD_PANEL 0
 #define CRT 1
 
@@ -62,27 +60,35 @@
 #endif
 
 // ****************************************************************************
+//#define DA320X240_P  320, 64, 34, 1,	240, 20, 8, 3,	0,0,1,0,0,	1,0,0,1,62,LCD_PANEL //0
 // This is where different display settings reside
 //vSyncHz is the minimum refresh rate, it may be higher
-//              xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend,  fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
-#define HITACHI_QVGA_P 320, 64, 1, 16,		240, 20, 8, 3,		0,0,1,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
-#define SHARP_QVGA_P   320, 20, 1, 30,		240, 4, 17, 3,		0,0,1,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
-//#define DA320X240_P  320, 64, 34, 1,		240, 20, 8, 3,		0,0,1,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
-#define DA320X240_P  320, 64, 34, 11,		240, 5, 8, 3,		0,0,1,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
-#define OKAYA_QVGA_P   320, 30,20, 38,		240, 5, 8, 14,		1,1,0,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
-#define OKAYA_480X272_P 480, 3,20, 38,		272, 3, 5, 15,		1,1,0,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
+//vsPol - (FCLK) vertical sync polarity (1 - low active)
+//hsPol - (LCLK) Horizontal sync polarity (1 - low active)
+//pPol - (PCLK) Pixel clock polarity (1 - falling edge sample)
+//oePol - (LBIAS) output enable polarity (1 - low active)
+//dPol - imx31 can invert the data lines if needed
+//              xres,xsyncWidth,xbegin,xend, yres,ysyncWidth,ybegin,yend,
+//												vsPol,hsPol,pPol,oePol,dPol,
+//																 enable,unscramble,rotate,active,vSyncHz,type
+#define HITACHI_QVGA_P 320, 64, 1, 16,	240, 20, 8, 3,	0,0,1,0,0,	1,0,0,1,62,LCD_PANEL
+#define SHARP_QVGA_P   320, 20, 1, 30,	240, 4, 17, 3,	0,0,1,0,0,	1,0,0,1,62,LCD_PANEL
+#define DA320X240_P  320, 64, 34, 11,	240, 5, 8, 3,	0,0,1,0,0,	1,0,0,1,62,LCD_PANEL
+#define OKAYA_QVGA_P   320, 30,20, 38,	240, 5, 8, 14,	1,1,0,0,0,	1,0,0,1,62,LCD_PANEL
+#define OKAYA_480X272_P 480, 3,20, 38,	272, 3, 5, 15,	1,1,0,0,0,	1,0,0,1,62,LCD_PANEL
 
-#define DA640X240_P  640, 64, 34, 1,		240, 20, 8, 3,		0,0,1,0,	1,1,0,1,PXAFB_BPP,62,LCD_PANEL //1
-#define DA800X480_P  800, 64, 34, 1,		480, 20, 8, 3,		0,0,1,0,	1,1,0,1,PXAFB_BPP,62,LCD_PANEL //2
-#define DA640X480_P  640, 64, 34,105,		480, 20, 8,14,		0,0,1,0,	1,1,0,1,PXAFB_BPP,62,LCD_PANEL //3
-#define DA240X320_P  240, 64, 34, 1,		320, 20, 8, 3,		0,0,1,0,	1,0,1,1,PXAFB_BPP,62,LCD_PANEL //4
-#define DA800X600_P  800,0x9b,0x31,0x69,	600,0x04,0x01,0x17,	0,0,1,0,	1,1,0,1,PXAFB_BPP,62,CRT       //5
-//#define DA1024X768_P 1024,0xc8,0x55,0xb4,	768,0x06,0x0b,0x1d,	0,0,1,0,	1,1,0,1,PXAFB_BPP,62,CRT		//6
-//#define DA1024X768_P 1024,0xe4,0x3c,0x70,	768,0x0c,0x0b,0x20,	0,0,1,0,	1,1,0,1,PXAFB_BPP,62,CRT		//6
-#define DA1024X768_P 1024,0xe4,0x3c,0x70,	768,0x0c,0x0b,0x20,	0,0,1,0,	1,1,0,1,PXAFB_BPP,62,LCD_PANEL //6
-#define DP480X320_P  480, 64, 34, 1,		320,20,8,3,			0,0,1,0,	1,0,0,0,PXAFB_BPP,62,LCD_PANEL //7
-#define DP320X240_P  320, 64, 34, 1,		240,20,8,3,			0,0,1,0,	1,0,0,0,PXAFB_BPP,62,LCD_PANEL //8
-#define DL122X32_P   320, 64, 34, 1,		240,20,8,3,			0,0,1,0,	0,0,0,0,PXAFB_BPP,62,0         //9
+#define DA640X240_P  640, 64, 34, 1,	240, 20, 8, 3,	0,0,1,0,0,	1,1,0,1,62,LCD_PANEL
+#define DA800X480_P  800, 64, 34, 1,	480, 20, 8, 3,	0,0,1,0,0,	1,1,0,1,62,LCD_PANEL
+#define DA640X480_P  640, 64, 34,105,	480, 20, 8,14,	0,0,1,0,0,	1,1,0,1,62,LCD_PANEL
+#define DA240X320_P  240, 64, 34, 1,	320, 20, 8, 3,	0,0,1,0,0,	1,0,1,1,62,LCD_PANEL
+
+#define DA800X600_P  800, 64, 32,152,	600,  3, 1,27,	1,1,0,0,0,	1,1,0,1,62,CRT
+#define DA1024X768_P 1024,0xe4,0x3c,0x70,	768,0x0c,0x0b,0x20,	0,0,1,0,0,	1,1,0,1,62,LCD_PANEL
+//#define DA1024X768_P 1024,0xc8,0x55,0xb4,	768,0x06,0x0b,0x1d,	0,0,1,0,0,	1,1,0,1,62,CRT
+//#define DA1024X768_P 1024,0xe4,0x3c,0x70,	768,0x0c,0x0b,0x20,	0,0,1,0,0,	1,1,0,1,62,CRT
+#define DP480X320_P  480, 64, 34, 1,	320,20,8,3,		0,0,1,0,0,	1,0,0,0,62,LCD_PANEL
+#define DP320X240_P  320, 64, 34, 1,	240,20,8,3,		0,0,1,0,0,	1,0,0,0,62,LCD_PANEL
+#define DL122X32_P   320, 64, 34, 1,	240,20,8,3,		0,0,1,0,0,	0,0,0,0,62,0
 
 // ********************************************************************************
 #if (PLATFORM_TYPE==BOUNDARY_OLD_BOARD)
