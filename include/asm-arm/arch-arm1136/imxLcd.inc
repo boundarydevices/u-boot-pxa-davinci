@@ -149,18 +149,18 @@
 #endif
 #endif
 
-.macro GetFrameSize rTmp1,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro GetFrameSize rTmp1,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	BigMov	\rTmp1,\xres*\yres*BYTES_PER_PIXEL
 .endm
 
-.macro	GetSignalPolarity reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
-//bit 28 vsync polarity(fPolarity) 0 - active low
-//bit 27 hsync polarity(lPolarity)
-//bit 25 pixel clock polarity (pPolarity)
-	BigMov	\reg,(\fPolarity<<28)+(\lPolarity<<27)+(1<<26)+((\pPolarity^1)<<25)+(\dPolarity<<24)
+.macro	GetSignalPolarity reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
+//bit 28 vsync polarity(vsPol) 0 - active low
+//bit 27 hsync polarity(hsPol)
+//bit 25 pixel clock polarity (pPol)
+	BigMov	\reg,(\vsPol<<28)+(\hsPol<<27)+((\oePol^1)<<26)+((\pPol^1)<<25)+(\dPol<<24)
 .endm
 
-.macro GetTimeConf	rTemp,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro GetTimeConf	rTemp,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	.ifdef __ARMASM
 	GBLA PixClksPerSec
 	GBLA HspClksPerPixClk
@@ -179,22 +179,21 @@
 //
 .endm
 
-//#define DA640X240_P  640, 64, 34, 1,             240, 20, 8, 3,         0,0,1, 1,1,0,1,PXAFB_BPP,2,LCD_PANEL //1
-.macro	GetHorizontalSync reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro	GetHorizontalSync reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	BigMov	\reg,((\xsyncWidth-1)<<26)+((\xsyncWidth-1+\xres+\xbegin+\xend)<<16)
 .endm
-.macro	GetVerticalSync reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro	GetVerticalSync reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	BigMov	\reg,((\ysyncWidth-1)<<26)+((\ysyncWidth-1+\yres+\ybegin+\yend)<<16)
 .endm
-.macro	GetBeginWaits reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro	GetBeginWaits reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	BigMov	\reg,((\xbegin)<<16)+((\ybegin)<<0)
 .endm
 
-.macro	GetFrameSize1 reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro	GetFrameSize1 reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 //108-96=12,   120-96=24
 	BigMov	\reg,((\xres-1)<<12)|((\yres-1)<<24)
 .endm
-.macro	GetFrameSize2 reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro	GetFrameSize2 reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	BigMov	\reg,((\yres-1)>>8)
 .endm
 
@@ -255,7 +254,7 @@
 	.equiv	ALPHA_WIDTH,6
 #endif
 
-.macro	GetFrameStrideBurst reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro	GetFrameStrideBurst reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 //bits 2-0 : bits per pixel (0=32,1=24,2=16,3=8,4=4,5=1)
 //bits 16-3: stride-1 in bytes
 //bits 19-17: format  0=code, 4=rgb, 6=yuv, 7=generic data

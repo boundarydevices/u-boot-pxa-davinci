@@ -14,27 +14,27 @@
 #endif
 #endif
 
-.macro GetFrameSize rTmp1,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro GetFrameSize rTmp1,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	BigMov	\rTmp1,\xres*\yres*BYTES_PER_PIXEL
 .endm
 
-.macro	CR0_INIT_VAL reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro	CR0_INIT_VAL reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	BigMov	\reg,(\enable<<CR0_ENABLE)+(1<<CR0_IM_DISABLE_DONE)+(1<<CR0_IM_START_OF_FRAME)+\
 	(1<<CR0_IM_INPUT_FIFO_UNDERRUN)+(1<<CR0_IM_END_OF_FRAME)+(\active<<CR0_ACTIVE_SELECT)+\
 	(1<<CR0_IM_LCD_QUICK_DISABLE)+(1<<CR0_IM_BRANCH)+(1<<CR0_IM_OUTPUT_FIFO_UNDERRUN)
 .endm
 
-.macro	CR1_INIT_VAL reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro	CR1_INIT_VAL reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	BigMov	\reg,((\xres-1)<<CR1_PIXELS_PER_LINE)+((\xsyncWidth-1)<<CR1_HORIZONTAL_SYNC_PULSE_WIDTH)+\
 	((\xend-1)<<CR1_END_OF_LINE_WAIT)+((\xbegin-1)<<CR1_BEGINNING_OF_LINE_WAIT)
 .endm
 
-.macro	CR2_INIT_VAL reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro	CR2_INIT_VAL reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	BigMov	\reg,((\yres-1)<<CR2_LINES_PER_PANEL)+((\ysyncWidth-1)<<CR2_VERTICAL_SYNC_PULSE_WIDTH)+\
 	(\yend<<CR2_END_OF_FRAME_WAIT)+(\ybegin<<CR2_BEGINNING_OF_FRAME_WAIT)
 .endm
 
-.macro	CR3_INIT_VAL reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
+.macro	CR3_INIT_VAL reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 //LCD Clock is same as memory clock
 	.ifdef __ARMASM
 	GBLA PixClksPerSec
@@ -45,8 +45,8 @@
 	.set	HspClksPerPixClk,100000000 / PixClksPerSec
 	.set	PCD_VAL,((HspClksPerPixClk/2)-1)&0xff
 	BigMov	\reg,(PCD_VAL<<CR3_PCLK_DIVISOR)+((256-1)<<CR3_ACBIAS_TOGGLE)+\
-	(0<<CR3_API)+(\fPolarity<<CR3_FCLK_POLARITY)+(\lPolarity<<CR3_LCLK_POLARITY)+\
-	(\pPolarity<<CR3_PCLK_POLARITY)+(0<<CR3_BIAS_POLARITY)+\
+	(0<<CR3_API)+(\vsPol<<CR3_FCLK_POLARITY)+(\hsPol<<CR3_LCLK_POLARITY)+\
+	(\pPol<<CR3_PCLK_POLARITY)+(\oePol<<CR3_BIAS_POLARITY)+\
 	(BPP_FORMAT<<CR3_BITS_PER_PIXEL)+(0<<CR3_DOUBLE_PCLK)+(PDFOR<<CR3_PDFOR)
 .endm
 
