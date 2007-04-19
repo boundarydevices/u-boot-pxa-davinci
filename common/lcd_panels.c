@@ -370,6 +370,23 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     active : 1,
     crt : 1
 }
+, {
+    name: "hitachi_92",
+    pixclock: 20000000,
+    xres: 960,
+    yres: 160,
+    pclk_redg: 1,
+    hsyn_acth: 1,
+    vsyn_acth: 1,
+    hsync_len: 15,
+    left_margin: 220,
+    right_margin: 1,
+    vsync_len: 200,
+    upper_margin: 148,
+    lower_margin: 3,
+    active : 1,
+    crt : 0
+}
 };
 
 /*
