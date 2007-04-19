@@ -10,9 +10,10 @@
 #define DA240X320		8
 #define DA800X600		9
 #define DA1024X768		10
-#define DP480X320		11
-#define DP320X240		12
-#define DL122X32		13
+#define HITACHI_92		11
+#define DP480X320		12
+#define DP320X240		13
+#define DL122X32		14
 #define UNKNOWN		0xcc
 
 #ifdef __ARMASM
