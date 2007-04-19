@@ -108,7 +108,7 @@
 //						  gap between	     Address to
 //				1-fast    chip selects	     data valid
 //				0-slow    recovery           2nd burst access     1st access delay   16-bit bus    non-burst(0), sram(1), 4cycle(2), 8cycle(3), VLIO(4)
-	.equiv	CS0_MSC, (1<<15)+   (1<<12)+           (7<<8)+              ((7-1)<<4)+                       0
+	.equiv	CS0_MSC, (1<<15)+   (3<<12)+           (12<<8)+        ((12-1)<<4)+                       0
 	.equiv	CS1_MSC, (1<<15)+(((tEHEL+1)>>1)<<12)+((tAPA-1)<<8)+     (RDFSelect<<4)+                 (BurstSelect)			//fast device
 #else
 	.equiv	CS0_MSC, (1<<15)+(((tEHEL+1)>>1)<<12)+((tAPA-1)<<8)+     (RDFSelect<<4)+                 (BurstSelect)			//fast device
