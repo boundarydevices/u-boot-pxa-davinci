@@ -389,7 +389,7 @@
 96:
 	CP15_DBR0 mrc,r0
 	bl	PrintHex
-	bl	90f
+	bl	90b
 	tst	r5,#0x100
 	beq	97f
 	BigMov	r0,(CH_M+(CH_COLON<<8))
@@ -405,7 +405,7 @@
 	CP15_DBR1 mrc,r0
 	bl	PrintHex
 	mov	r5,r5,LSR #2
-	bl	90f
+	bl	90b
 99:
 .endm
 
