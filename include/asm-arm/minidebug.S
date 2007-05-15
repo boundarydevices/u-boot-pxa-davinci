@@ -1270,6 +1270,11 @@ AfterPCPrint1:
 	BigBic	r0,pc,FLASH_BASE_ADDRESS
 	cmp		r0,#0x4000
 	blo		Gl_Cmd		//auto start program if running in flash
+	BigBic	r0,pc,0xffff
+	BigEor	r0,r0,0xA0000000
+	cmp		r0,#0x30000
+	beq		Gl_Cmd		//auto start program if running Eboot from ram
+
 1:
 	b		R_Cmd
 //	b		Prompt2
@@ -3446,7 +3451,7 @@ TryRoutine1:
 	b	HeadStart
 
 	.ifdef __ARMASM
-	DUP 6,0xffffffff
+	DUP 21,0xffffffff
 	align 256
 	.else
 	.balignl	256,0xffffffff
