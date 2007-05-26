@@ -1272,7 +1272,7 @@ AfterPCPrint1:
 	blo		Gl_Cmd		//auto start program if running in flash
 	BigBic	r0,pc,0xffff
 	BigEor	r0,r0,0xA0000000
-	cmp		r0,#0x30000
+	bic		r0,r0,#0x30000
 	beq		Gl_Cmd		//auto start program if running Eboot from ram
 
 1:
