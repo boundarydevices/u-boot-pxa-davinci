@@ -11,9 +11,10 @@
 #define DA800X600		9
 #define DA1024X768		10
 #define HITACHI_92		11
-#define DP480X320		12
-#define DP320X240		13
-#define DL122X32		14
+#define tovis_w			12
+#define DP480X320		13
+#define DP320X240		14
+#define DL122X32		15
 #define UNKNOWN		0xcc
 
 #ifdef __ARMASM
@@ -66,6 +67,14 @@
 #define DEF_P	DA1024X768_P
 #define DEF_DISPLAY_INDEX	DA1024X768
 #else	
+#if (DISPLAY_TYPE==HITACHI_92)
+#define DEF_P	HITACHI_92_P
+#define DEF_DISPLAY_INDEX	HITACHI_92
+#else	
+#if (DISPLAY_TYPE==tovis_w)
+#define DEF_P	tovis_w_P
+#define DEF_DISPLAY_INDEX	tovis_w
+#else	
 #if (DISPLAY_TYPE==DP480X320)		//5.7 inch display
 #define DEF_P	DP480X320_P
 #define DEF_DISPLAY_INDEX	DP480X320
@@ -88,6 +97,8 @@
 #warning "No display selected, defaulting to HITACHI_QVGA"
 
 #endif		//0xcc
+#endif		//15
+#endif		//14
 #endif		//13
 #endif		//12
 #endif		//11

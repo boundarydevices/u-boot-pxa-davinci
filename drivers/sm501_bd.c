@@ -47,7 +47,7 @@ const unsigned int sm501_list1[]={
 	0x050100A0,0x00000000,0x00080800};
 
 const unsigned int sm501_list2[]={ 0x0fe80000,
-/* 80000 dispctrl  */ 	0x0F013100,             // 0f0d0105
+/* 80000 dispctrl  */ 	0x00013100,             // 0f0d0105
 /* 80004 pan       */   0x00000000,
 /* 80008 colorkey  */   0x00000000,
 /* 8000C fbaddr    */   0x00000000,
@@ -110,6 +110,7 @@ static unsigned const crtFbVSynReg   = 0x00080218 ;
 #define LCDTYPE_TFT    0
 #define LCDTYPE_STN12  (3<<18)
 #define LCDTYPE_MASK   (3<<18)
+#define LCD_SIGNAL_ENABLE (0xf<<24)
 
 #define READREG( addr ) *( (unsigned long volatile *)((addr)+mmioStart) )
 #define STUFFREG( addr, value ) *( (unsigned long volatile *)((addr)+mmioStart) ) = (value)
@@ -418,9 +419,8 @@ static void updateCRT( unsigned long const           *freq,
                        struct lcd_panel_info_t const *panel )
 {
    unsigned long reg ;
-   unsigned long crtCtrl = 0x00010304 ; // FIFO 3 or more, CRT Timing, CRT data, enable 8-bit
-   if( panel->pclk_redg )
-      crtCtrl |= (3<<14);     // horizontal and vertical phase
+   unsigned long crtCtrl = 0x00010000 ; // FIFO 3 or more, disable CRT Timing - use lcd panel timings
+   if ( !panel->pclk_redg ) crtCtrl |= (3<<14);     // horizontal and vertical phase
    STUFFREG( crtFbAddrReg, 0 );
    STUFFREG( crtFbOffsReg, ((panel->xres)<<16)+(panel->xres) );
    STUFFREG( crtFbHTotReg, (( panel->left_margin
@@ -451,14 +451,12 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
 {
    dcache_disable();
    unsigned long dispctrl = READREG( dispctrlReg );
-   dispctrl &= ~(CLOCK_ACTIVEMASK|LCDTYPE_MASK);
-   if( !panel->pclk_redg )
-      dispctrl |= CLOCK_ACTIVELOW ;
+   dispctrl &= ~(CLOCK_ACTIVEMASK|LCDTYPE_MASK|LCD_SIGNAL_ENABLE|3);
+   if( !panel->pclk_redg ) dispctrl |= CLOCK_ACTIVELOW ;
 
-   if( !panel->active )
-      dispctrl |= LCDTYPE_STN12 ;
-
-   if (panel->crt==0) dispctrl |= 4;
+   if( !panel->active ) dispctrl |= LCDTYPE_STN12 ;
+   if (!panel->crt) dispctrl |= LCD_SIGNAL_ENABLE;
+   dispctrl |= 4;
 
    STUFFREG( offsetReg,   ((panel->xres)<<16)+(panel->xres) );
    STUFFREG( fbWidthReg,  (panel->xres<<16) );
@@ -538,13 +536,8 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
       setClockReg( pm0ClockReg, reg );
       setClockReg( pm1ClockReg, reg );
       
-      if( (0 != panel->crt) )
-      {
-         paletteRegs = crtPaletteRegs ;
-         updateCRT( freq, panel );
-      }
-      else
-         paletteRegs = lcdPaletteRegs ;
+      if (panel->crt) updateCRT( freq, panel );
+	  paletteRegs = lcdPaletteRegs ;
    }
 
    if(panel->xres*panel->yres > XGA_PIXELS)

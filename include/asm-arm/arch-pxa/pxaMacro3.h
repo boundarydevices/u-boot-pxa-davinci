@@ -35,7 +35,7 @@
 #else
 	.set	STACKS_VALID,0
 #endif
-	.equiv	UART_VIRT_BASE, 0xf8100000
+	.equiv	UART_VIRT_BASE, 0xf2100000	//was 0xf8100000
 //	.equiv	VMA_DEBUG, (0xff000000)
 //!!!!!for some reason the above base causes bizarre problems
 	.equiv	VMA_DEBUG, (0xfff00000)
