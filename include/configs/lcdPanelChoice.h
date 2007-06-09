@@ -20,9 +20,10 @@
 #define DA800X600		9
 #define DA1024X768		10
 #define HITACHI_92		11
-#define DP480X320		12
-#define DP320X240		13
-#define DL122X32		14
+#define tovis_w			12
+#define DP480X320		13
+#define DP320X240		14
+#define DL122X32		15
 #endif
 
 #if DISPLAY_TYPE == HITACHI_QVGA
@@ -49,6 +50,8 @@
 #define CONFIG_EXTRA_ENV_SETTINGS "panel=crt1024x768" "\0"
 #elif DISPLAY_TYPE == HITACHI_92
 #define CONFIG_EXTRA_ENV_SETTINGS "panel=hitachi_92" "\0"
+#elif DISPLAY_TYPE == tovis_w
+#define CONFIG_EXTRA_ENV_SETTINGS "panel=tovis_w" "\0"
 #else
 #error No display selected
 #endif
