@@ -50,7 +50,7 @@
 	SPEC_GP  15,OUT,HIGH,2		//nCS1, NC
 
 
-#if 0
+#if 1
 	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control
 #else
 	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control
