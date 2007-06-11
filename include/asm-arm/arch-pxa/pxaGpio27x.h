@@ -16,7 +16,7 @@
 //ST  - standard UART Port
 //LCD - LCD Controller
 
-	SPEC_GP  0,IN,HIGH,0		//
+	SPEC_GP  0,IN,HIGH,0		//UCB1400 interrupt
 	SPEC_GP  1,IN,HIGH,0		//nRESET_GPIO, usb client connect interrupt
 
 	SPEC_GP  2,IN,HIGH,0		//SYS_EN
@@ -68,7 +68,7 @@
 #ifdef __HALOGEN1
 	SPEC_GP  23,OUT,HIGH,0		//NC
 #else
-	SPEC_GP  23,IN,HIGH,0		//rev 2 UCB1400 int
+	SPEC_GP  23,OUT,LOW,0		//NEON270 lan91c111 reset
 #endif
 
 	SPEC_GP  24,IN,LOW,0		//LAN91c111 Interrupt pin (SMSC)
