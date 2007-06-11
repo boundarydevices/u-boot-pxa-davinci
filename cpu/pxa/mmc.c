@@ -1068,6 +1068,7 @@ mmc2info(ulong addr)
 
 #if (CONFIG_COMMANDS & CFG_CMD_MMC)
 
+
 int do_mmc_detect (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 #ifdef CONFIG_IMX31
@@ -1078,9 +1079,21 @@ int do_mmc_detect (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	unsigned long level = *((unsigned long *)(GPIO1_BASE+GPIO_PSR)) ;
 	return ((level&(1<<CARD_DETECT_BIT))!=0);	//0 means detected
 #else
-	unsigned long gplr1 = GPLR1 ;
-	int rval = ( 0 != (gplr1 & 0x10) ); 
-	debug("Checking for MMC card: %lx, %d\n", gplr1, rval );
+
+#define GP_INDEX(gp) ((gp<96)? (gp>>5) : 0x40)
+#define GPLRx(gp) __REG((0x40e00000+(GP_INDEX(gp)<<2)))
+
+#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)
+#define GPIO_SDMMC_CARD_DETECT		10
+#define GPIO_SDMMC_WRITE_PROTECT	38
+#else
+#define GPIO_SDMMC_CARD_DETECT		36
+#define GPIO_SDMMC_WRITE_PROTECT	38
+#endif
+
+	unsigned long gplrx = GPLRx(GPIO_SDMMC_CARD_DETECT);
+	int rval = ( 0 != (gplrx & (1<<(GPIO_SDMMC_CARD_DETECT&0x1f))) ); 
+	debug("Checking for MMC card: %lx, %d\n", gplrx, rval );
 	return rval ;
 #endif
 }
@@ -1097,9 +1110,9 @@ int do_mmc_wp (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	unsigned long level = *((unsigned long *)(GPIO1_BASE+GPIO_PSR)) ;
 	return ((level&(1<<WRITE_PROTECT_BIT))==0);	//0 means protected
 #else
-	unsigned long gplr1 = GPLR1 ;
-	int rval = ( 0 == (gplr1 & 0x40) ); 
-	debug("Checking MMC write protect: %lx, %d\n", gplr1, rval );
+	unsigned long gplrx = GPLRx(GPIO_SDMMC_WRITE_PROTECT);
+	int rval = ( 0 == (gplrx & (1<<(GPIO_SDMMC_WRITE_PROTECT&0x1f))) ); 
+	debug("Checking MMC write protect: %lx, %d\n", gplrx, rval );
 	return rval ;
 #endif   
 }

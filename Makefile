@@ -1821,7 +1821,7 @@ argon_config	:	unconfig
 	./Configure --PLATFORM_TYPE=ARGON
 
 neon270_config	:	unconfig
-	@./mkconfig halogen arm pxa halogen
+	@./mkconfig neon arm pxa neon
 	./Configure --PLATFORM_TYPE=NEON270 --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=DA640X240
 
 xaeniax_config	:	unconfig
