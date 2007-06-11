@@ -68,7 +68,7 @@
 #ifdef __HALOGEN1
 	SPEC_GP  23,OUT,HIGH,0		//NC
 #else
-	SPEC_GP  23,OUT,LOW,0		//NEON270 lan91c111 reset
+	SPEC_GP  23,OUT,HIGH,0		//NEON270 lan91c111 reset (high active on chip, but inverted by transistor)
 #endif
 
 	SPEC_GP  24,IN,LOW,0		//LAN91c111 Interrupt pin (SMSC)
