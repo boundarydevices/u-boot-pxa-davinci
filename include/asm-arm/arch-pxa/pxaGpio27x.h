@@ -50,10 +50,10 @@
 	SPEC_GP  15,OUT,HIGH,2		//nCS1, NC
 
 
-#if 1
-	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control
+#if (PLATFORM_TYPE==ARGON)
+	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control (Argon/Okaya want GP16 low)
 #else
-	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control
+	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control
 #endif
 	SPEC_GP  17,OUT,HIGH,0		//LCD backlight ON/OFF
 
