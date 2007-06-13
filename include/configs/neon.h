@@ -124,6 +124,10 @@
  * so we MUST NOT initialize critical regs like mem-timing ...
  */
 #include "select.h"
+#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)
+#define CONFIG_PXA270		1	/* This is a PXA270 CPU    */
+#define CONFIG_PXA27X		1	/* Which is a PXA27X */
+#endif
 
 #define CONFIG_SETUP_MEMORY_TAGS 1
 #define CONFIG_INITRD_TAG	 1
