@@ -196,12 +196,14 @@ int mmc_block_read(uchar *dst, ulong src, ulong len)
 {
 	uchar *resp;
 	ulong status;
+	unsigned int* pDst = (unsigned int*)dst;
+	unsigned int val;
 
 	if (len == 0) {
 		return 0;
 	}
 
-	debug("mmc_block_rd dst %lx src %lx len %ld\n", (ulong)dst, src, len);
+	debug("mmc_block_rd dst %lx src %lx len %ld\n", (ulong)pDst, src, len);
 	mmc_setblklen( len );
 	src += (startBlock*MMC_BLOCK_SIZE);
 
@@ -227,13 +229,17 @@ int mmc_block_read(uchar *dst, ulong src, ulong len)
    				len -= bytes;
    				bytes &= ~3;
    				while(bytes){
-   					*((unsigned int*)dst) = *rxFIFO ; dst+=4;
+   					*pDst++ = *rxFIFO;
    					bytes -= 4;
    				}
-				if (rem&2) {
-					*((unsigned short *)dst) = *(unsigned short volatile *)rxFIFO; dst+=2;
-				}
-				if (rem&1) *dst++ = *(unsigned char  volatile *)rxFIFO;
+   				if (rem) {
+					if (rem&2) {
+						val = *(unsigned short volatile *)rxFIFO;
+						if (rem&1) val |= (*(unsigned char volatile *)rxFIFO)<<16;
+					} else val = *(unsigned char volatile *)rxFIFO;
+					*pDst = val;
+					break;
+   				}
 			} else if (stat & MMC_STAT_ERRORS) break;
 			else {
 //				debug("w%x",stat);
@@ -253,7 +259,46 @@ int mmc_block_read(uchar *dst, ulong src, ulong len)
 			if (MMC_I_REG & MMC_I_REG_RXFIFO_RD_REQ) {
 	   			int bytes = min(32,len);
    				len -= bytes;
-  	 			while (bytes) { *dst++ = *rxFIFO ; bytes--;}
+#ifdef CONFIG_PXA27X
+   				if (bytes==32) {
+   					pDst[0] = *((unsigned int volatile *)rxFIFO);
+   					pDst[1] = *((unsigned int volatile *)rxFIFO);
+   					pDst[2] = *((unsigned int volatile *)rxFIFO);
+   					pDst[3] = *((unsigned int volatile *)rxFIFO);
+
+   					pDst[4] = *((unsigned int volatile *)rxFIFO);
+   					pDst[5] = *((unsigned int volatile *)rxFIFO);
+   					pDst[6] = *((unsigned int volatile *)rxFIFO);
+   					pDst[7] = *((unsigned int volatile *)rxFIFO);
+   					pDst += 8;
+   				} else
+#endif
+   				{
+					while (bytes>=4) {
+						// read in the byte from the FIFO
+#ifdef CONFIG_PXA27X
+						*pDst++ = *((unsigned int volatile *)rxFIFO);
+#else
+						val = *rxFIFO;
+						val |= (*rxFIFO << 8);
+						val |= (*rxFIFO << 16);
+						val |= (*rxFIFO << 24);
+						*pDst++ = val;
+#endif
+						bytes-=4;
+					}
+					if (bytes) {
+						val = *rxFIFO;
+						if (bytes&2) {
+							val |= (*rxFIFO << 8);
+							if (bytes&1) {
+								val |= (*rxFIFO << 16);
+							}
+						}
+						*pDst = val;
+						break;
+					}
+   				}
 			} else if (MMC_STAT & MMC_STAT_ERRORS) break;
 		}
 	}
@@ -276,12 +321,13 @@ mmc_block_write(ulong dst, uchar *src, int len)
 {
 	uchar *resp;
 	ulong status;
-
+	unsigned int* pSrc = (unsigned int*)src;
+	unsigned int val;
 	if (len == 0) {
 		return 0;
 	}
 
-	debug("mmc_block_wr dst %lx src %lx len %d\n", dst, (ulong)src, len);
+	debug("mmc_block_wr dst %lx src %lx len %d\n", dst, (ulong)pSrc, len);
 
 	/* set block len */
 	resp = mmc_cmd(MMC_CMD_SET_BLOCKLEN, len, MMC_CMDAT_R1);
@@ -304,13 +350,17 @@ mmc_block_write(ulong dst, uchar *src, int len)
    				len -= bytes;
    				bytes &= ~3;
    				while(bytes){
-   					*txFIFO = *((unsigned int*)src); src+=4;
+   					*txFIFO = *pSrc++;
    					bytes -= 4;
    				}
-				if (rem&2) {
-					*((unsigned short volatile *)txFIFO) = *((unsigned short *)src); src+=2;
-				}
-				if (rem&1) *((unsigned char  volatile *)txFIFO) = *((unsigned char  *)src);
+   				if (rem) {
+   					val = *pSrc;
+					if (rem&2) {
+						*((unsigned short volatile *)txFIFO) = (unsigned short)val;
+						if (rem&1) *((unsigned char volatile *)txFIFO) = (unsigned char)(val>>16);
+					} else *((unsigned char volatile *)txFIFO) = (unsigned char)val);
+					break;
+   				}
 			} else if (MMC_STAT & MMC_STAT_ERRORS) break;
 		}
 	}
@@ -319,18 +369,59 @@ mmc_block_write(ulong dst, uchar *src, int len)
 	}
 #else
 	MMC_I_MASK = ~MMC_I_MASK_TXFIFO_WR_REQ;
-	while (len) {
-		if (MMC_I_REG & MMC_I_REG_TXFIFO_WR_REQ) {
-			int bytes = min(32,len);
-			int b = bytes;
-			while (b) { MMC_TXFIFO = *src++; b--; }
-			if (bytes < 32) MMC_PRTBUF = MMC_PRTBUF_BUF_PART_FULL;
-			len -= bytes;
-		}
-		status = MMC_STAT;
-		if (status & MMC_STAT_ERRORS) {
-			printf("MMC_STAT error %lx\n", status);
-			return -1;
+	{
+		unsigned char volatile *txFIFO = (unsigned char volatile *)&(MMC_TXFIFO);
+		while (len) {
+			if (MMC_I_REG & MMC_I_REG_TXFIFO_WR_REQ) {
+				int bytes = min(32,len);
+				len -= bytes;
+#ifdef CONFIG_PXA27X
+   				if (bytes==32) {
+   					*((unsigned int volatile*)txFIFO) = pSrc[0];
+   					*((unsigned int volatile*)txFIFO) = pSrc[1];
+   					*((unsigned int volatile*)txFIFO) = pSrc[2];
+   					*((unsigned int volatile*)txFIFO) = pSrc[3];
+
+   					*((unsigned int volatile*)txFIFO) = pSrc[4];
+   					*((unsigned int volatile*)txFIFO) = pSrc[5];
+   					*((unsigned int volatile*)txFIFO) = pSrc[6];
+   					*((unsigned int volatile*)txFIFO) = pSrc[7];
+   					pSrc += 8;
+   				} else
+#endif
+				{
+					int b = bytes;
+					while (b>=4) {
+#ifdef CONFIG_PXA27X
+	   					*((unsigned int volatile*)txFIFO) = *pSrc++;
+#else
+						val = *pSrc++;
+						*txFIFO = (unsigned char)val;
+						*txFIFO = (unsigned char)(val >> 8);
+						*txFIFO = (unsigned char)(val >> 16);
+						*txFIFO = (unsigned char)(val >> 24);
+#endif
+						b-=4;
+					}
+					if (b) {
+						val = *pSrc;
+						*txFIFO = (unsigned char)val;
+						if (b&2) {
+							*txFIFO = (unsigned char)(val>>8);
+							if (b&1) {
+								*txFIFO = (unsigned char)(val>>16);
+							}
+						}
+						break;
+					}
+					if (bytes < 32) MMC_PRTBUF = MMC_PRTBUF_BUF_PART_FULL;
+				}
+			}
+			status = MMC_STAT;
+			if (status & MMC_STAT_ERRORS) {
+				printf("MMC_STAT error %lx\n", status);
+				return -1;
+			}
 		}
 	}
 	MMC_I_MASK = ~MMC_I_MASK_DATA_TRAN_DONE;
@@ -495,8 +586,8 @@ mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 		} else {
 			ulong src = (blknr+startBlock) * MMC_BLOCK_SIZE ;
 			ulong status ;
-			uchar *dstb = (uchar *)dst ;
-
+			unsigned int* pDst = (unsigned int*)dst;
+			unsigned int val;
 			MMC_RDTO   = 0xffff;
 			MMC_BLKLEN = MMC_BLOCK_SIZE ;
 			MMC_NOB    = blkcnt ;
@@ -520,35 +611,61 @@ mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 							len -= bytes;
 							bytes &= ~3;
 							while(bytes){
-								*((unsigned int *)dstb) = *rxFIFO ; dstb+=4;
+								*pDst++ = *rxFIFO;
 								bytes -= 4;
 							}
-							if (rem&2) {
-								*((unsigned short *)dstb) = *(unsigned short volatile *)rxFIFO; dstb+=2;
+							if (rem) {
+								if (rem&2) {
+									val = *(unsigned short volatile *)rxFIFO;
+									if (rem&1) val |= (*(unsigned char volatile *)rxFIFO)<<16;
+								} else val = *(unsigned char volatile *)rxFIFO;
+								*pDst = val;
+								break;
 							}
-							if (rem&1) *dstb++ = *(unsigned char  volatile *)rxFIFO;
 						} else if (MMC_STAT & MMC_STAT_ERRORS) break;
 					}
 				} // for each block
 			}
 			while (!(MMC_STAT & MMC_STAT_DATA_TRAN_DONE));
 #else
+			MMC_I_MASK = ~MMC_I_MASK_RXFIFO_RD_REQ;	//only enable RXFIFO_RD_REQ interrupt
 			{
 				unsigned char volatile *rxFIFO = (unsigned char *)&(MMC_RXFIFO);
 				// read the data
 				for( blknr = 0 ; blknr < blkcnt ; blknr++ ) {
 					unsigned len = MMC_BLOCK_SIZE ;
 					while (len) {
-						int i = 32;
-						MMC_I_MASK = ~MMC_I_MASK_RXFIFO_RD_REQ;
-						while( (MMC_I_REG & MMC_I_REG_RXFIFO_RD_REQ) == 0 ) { }
-
-						while (i) { *dstb++ = *rxFIFO ; i--; }
 						len -= 32 ;
+						while( (MMC_I_REG & MMC_I_REG_RXFIFO_RD_REQ) == 0 ) { }
+#ifdef CONFIG_PXA27X
+	   					pDst[0] = *((unsigned int volatile *)rxFIFO);
+	   					pDst[1] = *((unsigned int volatile *)rxFIFO);
+						pDst[2] = *((unsigned int volatile *)rxFIFO);
+						pDst[3] = *((unsigned int volatile *)rxFIFO);
+
+						pDst[4] = *((unsigned int volatile *)rxFIFO);
+						pDst[5] = *((unsigned int volatile *)rxFIFO);
+						pDst[6] = *((unsigned int volatile *)rxFIFO);
+						pDst[7] = *((unsigned int volatile *)rxFIFO);
+						pDst += 8;
+#else
+						{
+							int bytes = 32;
+							while (bytes) {
+								// read in the byte from the FIFO
+								val = *rxFIFO;
+								val |= (*rxFIFO << 8);
+								val |= (*rxFIFO << 16);
+								val |= (*rxFIFO << 24);
+								*pDst++ = val;
+								bytes-=4;
+							}
+						}
+#endif
 					}
 				} // for each block
 			}
-			MMC_I_MASK = ~MMC_I_MASK_DATA_TRAN_DONE;
+			MMC_I_MASK = ~MMC_I_MASK_DATA_TRAN_DONE;	//only enable DATA_TRAN_DONE interrupt
 			while (!(MMC_I_REG & MMC_I_REG_DATA_TRAN_DONE));
 #endif
 			status = MMC_STAT;
@@ -711,6 +828,7 @@ struct bpb { // see http://staff.washington.edu/dittrich/misc/fatgen103.pdf
 
 #define isprint(__c) (((__c)>=0x20)&&((__c)<=0x7f))
 
+#ifdef DEBUG
 static void ShowBpb(uchar* data,int blockNum)
 {
 	struct bpb const *bootParams = (struct bpb *)data ;
@@ -750,6 +868,7 @@ static void ShowBpb(uchar* data,int blockNum)
 	printf( "bootSig: %02x\n", bootParams->bootSig );
 	printf( "volume: %08lx\n", bootParams->volumeId );
 }
+#endif
 
 static int find_mbr( int max_blocks, lbaint_t* pmax)
 {
@@ -913,11 +1032,11 @@ int mmc_init(int verbose)
 		printf("Month = %d\n",cid->month);
 		printf("Year = %d\n",1997 + cid->year);
 	}
-	sprintf(mmc_dev.product,"%s",cid->name);
-	sprintf(mmc_dev.vendor,"Man %02x%02x%02x Snr %02x%02x%02x",
+	sprintf((char*)mmc_dev.product,"%s",cid->name);
+	sprintf((char*)mmc_dev.vendor,"Man %02x%02x%02x Snr %02x%02x%02x",
 		cid->id[0], cid->id[1], cid->id[2],
 		cid->sn[0], cid->sn[1], cid->sn[2]);
-	sprintf(mmc_dev.revision,"%x %x",cid->hwrev, cid->fwrev);
+	sprintf((char*)mmc_dev.revision,"%x %x",cid->hwrev, cid->fwrev);
 
 	/* fill in device description */
 	mmc_dev.if_type = IF_TYPE_MMC;
@@ -990,8 +1109,8 @@ int mmc_init(int verbose)
 
 #ifdef CONFIG_IMX31
 	MMC_CLKRT = MMC_CLKRT_25MHZ;
-#elif defined(CONFIG_PXA27X)
-	MMC_CLKRT = 1;	/* 10 MHz - see Intel errata */
+//#elif defined(CONFIG_PXA27X)
+//	MMC_CLKRT = 1;	/* 10 MHz - see Intel errata, only for SDIO cards, and fixed anyway */
 #else
 	MMC_CLKRT = 0;	/* 20 MHz */
 #endif
@@ -1083,7 +1202,7 @@ int do_mmc_detect (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 #define GP_INDEX(gp) ((gp<96)? (gp>>5) : 0x40)
 #define GPLRx(gp) __REG((0x40e00000+(GP_INDEX(gp)<<2)))
 
-#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)
+#ifdef CONFIG_PXA27X
 #define GPIO_SDMMC_CARD_DETECT		10
 #define GPIO_SDMMC_WRITE_PROTECT	38
 #else
