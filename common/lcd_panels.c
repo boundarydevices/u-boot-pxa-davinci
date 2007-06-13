@@ -160,18 +160,19 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned char     active       */    , 1          /* , 1    */
    /* unsigned char     crt          */    , 0 }
 
+//#define OKAYA_QVGA_P   320, 30,37, 38,	240, 3, 16, 15,	1,1,0,0,0,	1,0,0,1,120,LCD_PANEL
    /* char const       *name         */ , { "okaya_qvga"
-   /* unsigned long     pixclock     */    , 13764480	//(320+30+40+38)*(240+3+10+15)*120 Hz = 408*263*60 = 7296672
+   /* unsigned long     pixclock     */    , 13974000	//(320+30+37+38)*(240+3+16+15)*120 Hz = 425*274*120
    /* unsigned short    xres         */    , 320
    /* unsigned short    yres         */    , 240
    /* unsigned char     pclk_redg    */    , 1
    /* unsigned char     hsyn_acth    */    , 0
    /* unsigned char     vsyn_acth    */    , 0
    /* unsigned char     hsync_len    */    , 30 
-   /* unsigned char     left_margin  */    , 40  
+   /* unsigned char     left_margin  */    , 37
    /* unsigned char     right_margin */    , 38 
    /* unsigned char     vsync_len    */    , 3
-   /* unsigned char     upper_margin */    , 10 
+   /* unsigned char     upper_margin */    , 16 
    /* unsigned char     lower_margin */    , 15  
    /* unsigned char     active       */    , 1  
    /* unsigned char     crt          */    , 0 }
@@ -281,6 +282,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned char     lower_margin */    , 27       
    /* unsigned char     active       */    , 1
    /* unsigned char     crt          */    , 1 }
+
+, { "lcd_svga", 56000000, 800, 600, 1 , 1, 1,
+		64, 32, 152,
+		3, 1, 27,
+		1, 0 }
    
 // Note that you can use the nifty tool at the 
 // following location to generate these values:

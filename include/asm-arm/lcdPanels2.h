@@ -8,13 +8,14 @@
 #define DA800X480		6
 #define DA640X480		7
 #define DA240X320		8
-#define DA800X600		9
-#define DA1024X768		10
-#define HITACHI_92		11
-#define tovis_w			12
-#define DP480X320		13
-#define DP320X240		14
-#define DL122X32		15
+#define lcd_svga		9
+#define DA800X600		10
+#define DA1024X768		11
+#define HITACHI_92		12
+#define tovis_w			13
+#define DP480X320		14
+#define DP320X240		15
+#define DL122X32		16
 #define UNKNOWN		0xcc
 
 #ifdef __ARMASM
@@ -59,6 +60,10 @@
 #define DEF_P	DA240X320_P
 #define DEF_DISPLAY_INDEX	DA240X320
 #else	
+#if (DISPLAY_TYPE==lcd_svga)
+#define DEF_P	lcd_svga_P
+#define DEF_DISPLAY_INDEX	lcd_svga
+#else	
 #if (DISPLAY_TYPE==DA800X600)
 #define DEF_P	DA800X600_P
 #define DEF_DISPLAY_INDEX	DA800X600
@@ -97,6 +102,7 @@
 #warning "No display selected, defaulting to HITACHI_QVGA"
 
 #endif		//0xcc
+#endif		//16
 #endif		//15
 #endif		//14
 #endif		//13
