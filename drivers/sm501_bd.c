@@ -449,7 +449,6 @@ static void useFastRAM(void)
 
 void set_lcd_panel( struct lcd_panel_info_t const *panel )
 {
-   dcache_disable();
    unsigned long dispctrl = READREG( dispctrlReg );
    dispctrl &= ~(CLOCK_ACTIVEMASK|LCDTYPE_MASK|LCD_SIGNAL_ENABLE|3);
    if( !panel->pclk_redg ) dispctrl |= CLOCK_ACTIVELOW ;
