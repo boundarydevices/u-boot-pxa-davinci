@@ -1145,7 +1145,8 @@ int mmc_init(int verbose)
 		printf( "Error selecting RCA %x\n", RCA );
 		return -1 ;
 	}
-   
+//#define CONFIG_1WIRE_ONLY
+#ifndef CONFIG_1WIRE_ONLY
 #if defined(CONFIG_IMX31)||defined(CONFIG_PXA27X)
 	if (isSD) {
 		resp = mmc_cmd(SD_APP_CMD55, RCA<<16, MMC_CMDAT_R1);
@@ -1157,6 +1158,7 @@ int mmc_init(int verbose)
 			printf( "Error selecting 4 bit mode\n");
 		}
 	}
+#endif
 #endif
 	mmc_ready = 1;
 	startBlock = find_mbr(mmc_csd.c_size,&mmc_dev.lba);

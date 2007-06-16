@@ -107,35 +107,41 @@
 //#define CONFIG_ENV_OVERWRITE
 
 #define CONFIG_BAUDRATE		115200
+#define CONFIG_LCDPANEL	/* Dynamic LCD Panel Support */
 
-#define SKIP_COMMANDS ( CFG_CMD_MISC \
-                      | CFG_CMD_BDI \
-                      | CFG_CMD_BOOTD \
-                      | CFG_CMD_LOADS \
-                      | CFG_CMD_LOADB \
-                      | CFG_CMD_ITEST \
-                      | CFG_CMD_FPGA \
-                      | CFG_CMD_ECHO \
-                      | CFG_CMD_DIAG \
-                      | CFG_CMD_DATE \
-                      | CFG_CMD_BOOTP \
-                      | CFG_CMD_NFS \
-                      )
+#define SKIP_COMMANDS ( CFG_CMD_BDI \
+	| CFG_CMD_BOOTD \
+	| CFG_CMD_LOADS \
+	| CFG_CMD_LOADB \
+	| CFG_CMD_ITEST \
+	| CFG_CMD_FPGA \
+	| CFG_CMD_ECHO \
+	| CFG_CMD_DIAG \
+	| CFG_CMD_DATE \
+	| CFG_CMD_BOOTP \
+	| CFG_CMD_NFS \
+	)
 //                      | CFG_CMD_FLASH
 //                      | CFG_CMD_DHCP
 //                      | CFG_CMD_NET
 //                      | CFG_CMD_MEMORY 
 //                      | CFG_CMD_ENV 
-#define CONFIG_LCDPANEL	/* Dynamic LCD Panel Support */
 
-#define CONFIG_COMMANDS		( (CONFIG_CMD_DFL \
-                             | CFG_CMD_MMC \
-                             | CFG_CMD_FAT \
-                             | CFG_CMD_FLASH \
-                             | CFG_CMD_DHCP \
-                             | CFG_CMD_ENV \
-			     | CFG_CMD_USB \
-                             | CFG_CMD_BMP) & ~(SKIP_COMMANDS) )
+
+#define CONFIG_COMMANDS	( (CONFIG_CMD_DFL \
+	| CFG_CMD_MMC \
+	| CFG_CMD_FAT \
+	| CFG_CMD_FLASH \
+	| CFG_CMD_DHCP \
+	| CFG_CMD_ENV \
+	| CFG_CMD_EXT2 \
+	| CFG_CMD_USB \
+	| CFG_CMD_NOT \
+	| CFG_CMD_MISC \
+	| CFG_CMD_BMP) & ~(SKIP_COMMANDS) )
+
+#define CMD_XMODEM 1
+//#define CMD_I2CTEST 1
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
 #include <cmd_confdefs.h>
