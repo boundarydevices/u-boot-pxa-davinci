@@ -81,9 +81,7 @@
 //#define CONFIG_ENV_OVERWRITE
 
 #define CONFIG_BAUDRATE		115200
-
 #define CONFIG_SUPPORT_VFAT
-
 #define CONFIG_LCDPANEL	/* Dynamic LCD Panel Support */
 
 #include <config_cmd_default.h>
