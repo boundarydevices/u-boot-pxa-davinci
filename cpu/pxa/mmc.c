@@ -1175,18 +1175,26 @@ int mmc_init(int verbose)
 #ifndef CONFIG_1WIRE_ONLY
 #if defined(CONFIG_IMX31)||defined(CONFIG_PXA27X)
 	if (isSD) {
-		resp = mmc_cmd(SD_APP_CMD55, RCA<<16, MMC_CMDAT_R1);
-		if (resp) {
-			resp = mmc_cmd(6, 2, MMC_CMDAT_R1);
-		}
-		if (resp) f4BitMode = 1;	//switch to 4bit mode
-		else {
-			printf( "Error selecting 4 bit mode\n");
-		}
+		if( 0 == getenv("sd1bit") ){
+			resp = mmc_cmd(SD_APP_CMD55, RCA<<16, MMC_CMDAT_R1);
+			if (resp) {
+				resp = mmc_cmd(6, 2, MMC_CMDAT_R1);
+			}
+			if (resp){
+				f4BitMode = 1;	//switch to 4bit mode
+			} else {
+				printf( "Error selecting 4 bit mode\n");
+			}
+		} else
+			printf( "forcing 1-bit mode\n" );
 	}
 #endif
 #endif
 	mmc_ready = 1;
+	printf( "---> using %u-bit SD card transfers %s\n", 
+		f4BitMode ? 4 : 1, 
+		f4BitMode ? "(override with sd1bit)" : "" );
+
 	startBlock = find_mbr(mmc_csd.c_size,&mmc_dev.lba);
 
 	printf( "registering device: startBlock == %d, isSD ? %s\n", 
