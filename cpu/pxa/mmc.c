@@ -702,13 +702,20 @@ int SDCard_test( void )
    unsigned long ignore ;
    unsigned char *resp ;
 
-	mmc_cmd(0, 0, 0);
+	resp = mmc_cmd(0, 0, 0);	//reset
+	if (!resp) mmc_cmd(0, 0, 0);	//reset
 
    resp = mmc_cmd(SD_APP_CMD55, 0, MMC_CMDAT_R1);
    if( !resp )
    {
-      printf( "SDInitErr1\n" );
-      return -ENODEV ;
+		resp = mmc_cmd(0, 0, 0);	//reset
+		if (!resp) mmc_cmd(0, 0, 0);	//reset
+		resp = mmc_cmd(SD_APP_CMD55, 0, MMC_CMDAT_R1);
+		if( !resp )
+   		{
+			printf( "SDInitErr1\n" );
+			return -ENODEV ;
+   		}
    }
    
    resp = mmc_cmd(SD_APP_CMD41, 0x00200000, MMC_CMDAT_INIT|MMC_CMDAT_R1);
@@ -954,6 +961,7 @@ int mmc_init(int verbose)
 
 #ifndef CONFIG_IMX31
 	CKEN |= CKEN12_MMC; /* enable MMC unit clock */
+	udelay(1000);
 #endif
 
 #if defined(CONFIG_ADSVIX)
