@@ -944,6 +944,16 @@ static int find_mbr( int max_blocks, lbaint_t* pmax)
 	return -1 ;
 }
 
+static unsigned const mmcClks[] = {
+	20000,
+	10000,
+	5000,
+	2500,
+	1250,
+	625,
+	313
+};
+
 int mmc_init(int verbose)
 {
  	int retries, rc = -ENODEV;
@@ -1118,10 +1128,17 @@ int mmc_init(int verbose)
 
 #ifdef CONFIG_IMX31
 	MMC_CLKRT = MMC_CLKRT_25MHZ;
-//#elif defined(CONFIG_PXA27X)
-//	MMC_CLKRT = 1;	/* 10 MHz - see Intel errata, only for SDIO cards, and fixed anyway */
+#elif defined(CONFIG_PXA27X)
+	if( getenv("sdclk10") ){
+		MMC_CLKRT = MMC_CLKRT_10MHZ ;
+	} else if( getenv("sdclk3" ) ){
+		MMC_CLKRT = MMC_CLKRT_0_3125MHZ ;
+	} else {
+		MMC_CLKRT = MMC_CLKRT_20MHZ ;
+	}
+	printf( "using %u kHz SD clock (change with sdclk10 or sdclk3)\n", mmcClks[MMC_CLKRT] );
 #else
-	MMC_CLKRT = 0;	/* 20 MHz */
+	MMC_CLKRT = MMC_CLKRT_20MHZ;	/* 20 MHz */
 #endif
 	resp = mmc_cmd(7, RCA<<16, MMC_CMDAT_R1);
 	if( !resp ) {
