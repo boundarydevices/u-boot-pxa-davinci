@@ -168,7 +168,7 @@ dcache_status:
 
 
 CalcMemEnd:
-	CalcMemSize	r0,MEMORY_CONTROL_BASE			//out: r0 - mem size
+	CalcMemSize	r0,r1,MEMORY_CONTROL_BASE			//out: r0 - mem size
 	BigAdd2	r0,MEM_START		//32 meg
 	mov	pc,lr
 

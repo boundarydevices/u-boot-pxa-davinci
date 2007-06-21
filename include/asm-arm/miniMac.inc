@@ -380,7 +380,7 @@ InvalidateAndReturn:
 // *****************************************************
 
 .macro SaveRegisters rBase,rTemp
-	GetDebugMagicPhys \rBase
+	GetDebugMagicPhys \rBase,\rTemp
 	mov	\rTemp,#0
 //great, now memory should be working, let's save registers, only r0(rBase),sp(rTemp) have been lost
 //don't trust LDM,STM instructions in debug mode....
