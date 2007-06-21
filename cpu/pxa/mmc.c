@@ -68,10 +68,8 @@ block_dev_desc_t * mmc_get_dev(int dev)
 static uchar mmc_buf[MMC_BLOCK_SIZE];
 static mmc_csd_t mmc_csd;
 static int mmc_ready = 0;
-static char isSD = 0 ;
 static char f4BitMode = 0;
 static int startBlock = 0 ;
-static ushort RCA = MMC_DEFAULT_RCA ;
 
 #ifdef CONFIG_IMX31
 #define CLEAR_END_CMD_STAT MMC_STAT = 0xc0007e2f;	//MMC_STAT_END_CMD_RES | MMC_STAT_RES_CRC_ERROR | MMC_STAT_TIME_OUT_RESPONSE;
@@ -168,9 +166,9 @@ uchar *mmc_cmd(ushort cmd, uint arg, ushort cmdat)
 			}
 #endif
 			break;
-
+		//case 0 - no response to command is default
 		default:
-			return 0;
+			return resp;
 	}
 
 #ifdef MMC_DEBUG
@@ -192,30 +190,10 @@ static void mmc_setblklen( ulong blklen )
 	}
 }
 
-int mmc_block_read(uchar *dst, ulong src, ulong len)
+int mmc_ReadFifo(unsigned int* pDst,ulong len)
 {
-	uchar *resp;
-	ulong status;
-	unsigned int* pDst = (unsigned int*)dst;
 	unsigned int val;
-
-	if (len == 0) {
-		return 0;
-	}
-
-	debug("mmc_block_rd dst %lx src %lx len %ld\n", (ulong)pDst, src, len);
-	mmc_setblklen( len );
-	src += (startBlock*MMC_BLOCK_SIZE);
-
-	/* send read command */
-	MMC_STRPCL = MMC_STRPCL_STOP_CLK;
-	MMC_RDTO = 0xffff;
-	MMC_NOB = 1;
-	MMC_BLKLEN = len;
-	resp = mmc_cmd(MMC_CMD_READ_BLOCK, src,
-			MMC_CMDAT_R1|MMC_CMDAT_READ|MMC_CMDAT_BLOCK|MMC_CMDAT_DATA_EN);
-
-
+	ulong status;
 #ifdef CONFIG_IMX31
 	MMC_STAT = MMC_STAT_DATA_TRAN_DONE;
 	{
@@ -299,18 +277,40 @@ int mmc_block_read(uchar *dst, ulong src, ulong len)
 						break;
 					}
    				}
-			} else if (MMC_STAT & MMC_STAT_ERRORS) break;
+   				//ignore MMC_STAT_RES_CRC_ERROR, PXA270 has bug with R2 responses
+			} else if (MMC_STAT & (MMC_STAT_ERRORS & ~MMC_STAT_RES_CRC_ERROR)) break;
 		}
 	}
 	MMC_I_MASK = ~MMC_I_MASK_DATA_TRAN_DONE;
 	while (!(MMC_I_REG & MMC_I_REG_DATA_TRAN_DONE));
 #endif
 	status = MMC_STAT;
-	if (status & MMC_STAT_ERRORS) {
+	if (status & (MMC_STAT_ERRORS & ~MMC_STAT_RES_CRC_ERROR)) {
 		printf("MMC_STAT error %lx\n", status);
 		return -1;
 	}
 	return 0;
+}
+int mmc_block_read(uchar *dst, ulong src, ulong len)
+{
+	uchar *resp;
+	if (len == 0) {
+		return 0;
+	}
+
+	debug("mmc_block_rd dst %lx src %lx len %ld\n", (ulong)dst, src, len);
+	mmc_setblklen( len );
+	src += (startBlock*MMC_BLOCK_SIZE);
+
+	/* send read command */
+	MMC_STRPCL = MMC_STRPCL_STOP_CLK;
+	MMC_RDTO = 0xffff;
+	MMC_NOB = 1;
+	MMC_BLKLEN = len;
+	resp = mmc_cmd(MMC_CMD_READ_BLOCK, src,
+			MMC_CMDAT_R1|MMC_CMDAT_READ|MMC_CMDAT_BLOCK|MMC_CMDAT_DATA_EN);
+
+	return mmc_ReadFifo((unsigned int*)dst,len);
 }
 
 
@@ -695,6 +695,21 @@ static void dumpResponse( uchar *resp, unsigned bytes )
    else
       debug( "NULL\n" );
 }
+unsigned char* mmc_reset()
+{
+	unsigned char *resp;
+	int i=0;
+	do {
+		resp = mmc_cmd(0, 0, 0);	//reset
+		if (resp) break;
+		printf( "mmc_reset error\n" );
+		i++;
+		if (i>=10) break;
+	} while (1);
+	udelay(50);
+	f4BitMode = 0;
+	return resp;
+}
 
 int SDCard_test( void )
 {
@@ -702,14 +717,13 @@ int SDCard_test( void )
    unsigned long ignore ;
    unsigned char *resp ;
 
-	resp = mmc_cmd(0, 0, 0);	//reset
-	if (!resp) mmc_cmd(0, 0, 0);	//reset
+	resp = mmc_reset();
+   resp = mmc_cmd(8, (1<<8)|0xaa, MMC_CMDAT_R1);	//request 2.7-3.6 volts, r7 is same length as r1
 
    resp = mmc_cmd(SD_APP_CMD55, 0, MMC_CMDAT_R1);
    if( !resp )
    {
-		resp = mmc_cmd(0, 0, 0);	//reset
-		if (!resp) mmc_cmd(0, 0, 0);	//reset
+		resp = mmc_reset();
 		resp = mmc_cmd(SD_APP_CMD55, 0, MMC_CMDAT_R1);
 		if( !resp )
    		{
@@ -954,9 +968,14 @@ static unsigned const mmcClks[] = {
 	313
 };
 
-int mmc_init(int verbose)
+#define EREAD_ERR 30
+
+int mmc_init__(int verbose)
 {
  	int retries, rc = -ENODEV;
+	ushort rca = MMC_DEFAULT_RCA ;
+	char isSD = 0 ;
+	char allowed4bit=0;
 	uchar *resp;
 	mmc_cid_t *cid ;
 	mmc_csd_t *csd ;
@@ -971,7 +990,6 @@ int mmc_init(int verbose)
 
 #ifndef CONFIG_IMX31
 	CKEN |= CKEN12_MMC; /* enable MMC unit clock */
-	udelay(1000);
 #endif
 
 #if defined(CONFIG_ADSVIX)
@@ -981,6 +999,9 @@ int mmc_init(int verbose)
 #endif
 
 	mmc_csd.c_size = 0;
+	mmc_ready = 0;
+	f4BitMode = 0;	//default to 1bit mode
+	startBlock = 0 ;
 
 	MMC_CLKRT  = MMC_CLKRT_0_3125MHZ;
 	MMC_RESTO  = MMC_RES_TO_MAX;
@@ -988,14 +1009,13 @@ int mmc_init(int verbose)
 	MMC_SPI    = MMC_SPI_DISABLE;
 #endif
 
-	f4BitMode = 0;
 	if( 0 == SDCard_test() ) {
 		printf( "SD card detected!\n" );
 		isSD = 1 ;
 	} else {
 		isSD = 0 ;
 		/* reset */
-	   	mmc_cmd(0, 0, 0);
+		resp = mmc_reset();
 		resp = mmc_cmd(1, 0x00ffc000, MMC_CMDAT_INIT|MMC_CMDAT_BUSY|MMC_CMDAT_R3);
 		if( 0 == resp ) {
 			printf( "MMC CMD1 error\n" );
@@ -1083,7 +1103,7 @@ int mmc_init(int verbose)
 		printf( "no SET_RCA response\n" );
 		return -1 ;
 	}
-	RCA = ( isSD )? (((ushort)resp[4] << 8 ) | resp[3]) : MMC_DEFAULT_RCA ;
+	rca = ( isSD )? (((ushort)resp[4] << 8 ) | resp[3]) : MMC_DEFAULT_RCA ;
 
 #if 0
 /*
@@ -1097,7 +1117,7 @@ int mmc_init(int verbose)
 		sd_status_t *status ;
 		int i ;
 		printf( "sending CMD55\n" );
-		resp = mmc_cmd(SD_APP_CMD55, RCA<<16, MMC_CMDAT_R1);
+		resp = mmc_cmd(SD_APP_CMD55, rca<<16, MMC_CMDAT_R1);
 		if( !resp ) {
 			printf( "Error 0x%04x sending APP CMD\n", MMC_STAT );
 			return -1 ;
@@ -1105,7 +1125,7 @@ int mmc_init(int verbose)
 		printf( "have CMD55 response\n" );
 		memset( resp, 0, 20 );
 
-		resp = mmc_cmd(SD_STATUS, RCA<<16, MMC_CMDAT_R1 );
+		resp = mmc_cmd(SD_STATUS, rca<<16, MMC_CMDAT_R1 );
 		if ( !resp ) {
 			printf( "Error reading SD_STATUS\n" );
 			return -1 ;
@@ -1140,9 +1160,9 @@ int mmc_init(int verbose)
 #else
 	MMC_CLKRT = MMC_CLKRT_20MHZ;	/* 20 MHz */
 #endif
-	resp = mmc_cmd(7, RCA<<16, MMC_CMDAT_R1);
+	resp = mmc_cmd(7, rca<<16, MMC_CMDAT_R1);
 	if( !resp ) {
-		printf( "Error selecting RCA %x\n", RCA );
+		printf( "Error selecting RCA %x\n", rca );
 		return -1 ;
 	}
 
@@ -1151,7 +1171,7 @@ int mmc_init(int verbose)
 		// this is normal
 	}
 
-	resp = mmc_cmd(MMC_CMD_SEND_CSD, RCA<<16, MMC_CMDAT_R2);
+	resp = mmc_cmd(MMC_CMD_SEND_CSD, rca<<16, MMC_CMDAT_R2);
 	if (!resp) {
 		printf( "Error reading CSD\n" );
 		return -1 ;
@@ -1166,36 +1186,88 @@ int mmc_init(int verbose)
 	print_mmc_csd( csd );
 #endif 
 
-	resp = mmc_cmd(7, RCA<<16, MMC_CMDAT_R1);
+	resp = mmc_cmd(7, rca<<16, MMC_CMDAT_R1);
 	if( !resp ) {
-		printf( "Error selecting RCA %x\n", RCA );
+		printf( "Error selecting RCA %x\n", rca );
 		return -1 ;
 	}
+
 //#define CONFIG_1WIRE_ONLY
 #ifndef CONFIG_1WIRE_ONLY
 #if defined(CONFIG_IMX31)||defined(CONFIG_PXA27X)
 	if (isSD) {
+		int busWidthMode = 0;
+		allowed4bit = 1;
 		if( 0 == getenv("sd1bit") ){
-			resp = mmc_cmd(SD_APP_CMD55, RCA<<16, MMC_CMDAT_R1);
-			if (resp) {
-				resp = mmc_cmd(6, 2, MMC_CMDAT_R1);
+			busWidthMode = 2;	//4 bit wide
+		}
+		resp = mmc_cmd(SD_APP_CMD55, rca<<16, MMC_CMDAT_R1);
+		if (resp) {
+			resp = mmc_cmd(6, busWidthMode, MMC_CMDAT_R1);
+		}
+		if (resp){
+			f4BitMode = (busWidthMode)? 1 : 0;	//switch to 4bit mode
+		} else {
+			printf( "Error selecting %i bit mode\n",(busWidthMode)?4:1);
+		}
+		resp = mmc_cmd(SD_APP_CMD55, rca<<16, MMC_CMDAT_R1);
+		if (resp) {
+			/* send read command */
+			int i;
+			unsigned char buf[64];
+			unsigned char* p = buf;
+			MMC_STRPCL = MMC_STRPCL_STOP_CLK;
+			MMC_RDTO = 0xffff;
+			MMC_NOB = 1;
+			MMC_BLKLEN = 64;
+			resp = mmc_cmd(13, 0, MMC_CMDAT_R2|MMC_CMDAT_READ|MMC_CMDAT_BLOCK|MMC_CMDAT_DATA_EN); 	//get SD Status
+			memset(p,0,64);
+			mmc_ReadFifo((unsigned int*)p,64);
+#if 1
+			if ((p[0] >> 6)!= busWidthMode) {
+				printf( "!!!!!Error selecting bus width of %i bits\n",(busWidthMode)? 4 : 1);
+				resp = mmc_cmd(SD_APP_CMD55, rca<<16, MMC_CMDAT_R1);
+				if (resp) {
+					resp = mmc_cmd(6, 0, MMC_CMDAT_R1);
+					f4BitMode = 0;	//back to 1 bit mode
+				}
 			}
-			if (resp){
-				f4BitMode = 1;	//switch to 4bit mode
-			} else {
-				printf( "Error selecting 4 bit mode\n");
+#else			
+			for (i=0; i<8; i++) {
+				printf( "%02x %02x %02x %02x %02x %02x %02x %02x\n",p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7]);
+				p += 8;
 			}
-		} else
-			printf( "forcing 1-bit mode\n" );
+#endif
+		}
 	}
 #endif
 #endif
 	mmc_ready = 1;
-	printf( "---> using %u-bit SD card transfers %s\n", 
-		f4BitMode ? 4 : 1, 
-		f4BitMode ? "(override with sd1bit)" : "" );
+	if (f4BitMode) {
+		printf( "using 4-bit SD card transfers\n");
+	} else if (allowed4bit) {
+		printf( "!!!!!***** using 1-bit SD card transfers *****!!!!!\n");
+	} else {
+		printf( "using 1-bit transfers\n");
+	}
 
-	startBlock = find_mbr(mmc_csd.c_size,&mmc_dev.lba);
+	{
+		int i=0;
+		startBlock = 0;
+		do {
+			int sb = find_mbr(mmc_csd.c_size,&mmc_dev.lba);
+			if (sb>=0) {
+				startBlock = sb;
+				break;
+			}
+			i++;
+			if (i>=2) {
+				mmc_ready = 0;
+				return -EREAD_ERR;
+			}
+		} while (1);
+	}
+	
 
 	printf( "registering device: startBlock == %d, isSD ? %s\n", 
 		startBlock, isSD ? "yes" : "no" );
@@ -1204,7 +1276,15 @@ int mmc_init(int verbose)
 
 	return rc;
 }
-
+int mmc_init(int verbose)
+{
+	int rc = mmc_init__(verbose);
+	if (rc==-EREAD_ERR) {
+		setenv("sd1bit","1");
+		rc = mmc_init__(verbose);
+	}
+	return rc;
+}
 int
 mmc_ident(block_dev_desc_t *dev)
 {

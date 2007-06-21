@@ -993,9 +993,7 @@
 	CP15_TTBR1 mrcne,r1
 	bic	r1,r1,#0xff		//clear caching attributes, and shared memory flag
 	
-//  using Big will generate no instructions if Wince, throwing off my reloc vector
-//	BigAdd2Ne r1,\physToVirtOffset
-	addcs	r1,r1,#\physToVirtOffset	//convert this physical address to a virtual address if relocation vector ON
+	BigAdd2cs r1,\physToVirtOffset	//convert this physical address to a virtual address if relocation vector ON
 .endm
 
 .macro SetupTTBR rBase,rTmp
@@ -1004,31 +1002,37 @@
 	CP15_TTBR_CONTROL	mrc,\rTmp
 .endm
 
-.macro	GetDebugMagicPhys	rTemp
-	CalcMemSize	\rTemp,MEMORY_CONTROL_BASE				//out: \rTemp - mem size
-	BigAdd	\rTemp,\rTemp,MEM_START-0x1000+((DEBUG_BASE+DBG_MAGIC)&0xfff)		//last 4k of memory
+.macro	GetDebugMagicPhys	rTmp0,rTmp1
+	CalcMemSize	\rTmp0,\rTmp1,MEMORY_CONTROL_BASE		//out: \rTmp0 - mem size
+	BigAdd	\rTmp0,\rTmp0,MEM_START-0x1000+((DEBUG_BASE+DBG_MAGIC)&0xfff)		//last 4k of memory
 .endm
 
-.macro	GetDebugMagic	rTemp
-	CP15_CONTROL mrc,\rTemp		//get the control register
-	tst	\rTemp,#0x1			//tst bit 0 - enable MMU
-	BigMovNe \rTemp,DEBUG_BASE+DBG_MAGIC
+.macro	GetDebugMagicPhys0	rTmp0
+	CalcMemSize0	\rTmp0,MEMORY_CONTROL_BASE		//out: \rTmp0 - mem size
+	BigAdd	\rTmp0,\rTmp0,MEM_START-0x1000+((DEBUG_BASE+DBG_MAGIC)&0xfff)		//last 4k of memory
+.endm
+
+.macro	GetDebugMagic	rTmp0
+	CP15_CONTROL mrc,\rTmp0		//get the control register
+	tst	\rTmp0,#0x1			//tst bit 0 - enable MMU
+	BigMovNe \rTmp0,DEBUG_BASE+DBG_MAGIC
 	bne		98f
-	GetDebugMagicPhys	\rTemp
+	GetDebugMagicPhys0	\rTmp0
 98:
 .endm
 
 
-.macro	GetDebugMagicCC	cc,ncc,rTemp
+.macro	GetDebugMagicCC	cc,ncc,rTmp0
 	b\ncc	99f
-	GetDebugMagic \rTemp
+	GetDebugMagic \rTmp0
 99:
 .endm
 
-.macro	GetDebugBase	rTemp
-	GetDebugMagic	\rTemp
-	BigSub2		\rTemp,DBG_MAGIC
+.macro	GetDebugBase	rTmp0
+	GetDebugMagic	\rTmp0
+	BigSub2		\rTmp0,DBG_MAGIC
 .endm
+
 .macro	GetDebugBaseStickyCheck rTemp,rEnd
 //MMU is off, so use physical address, (don't lock into cache)
 	BigAdd \rTemp,\rEnd,(-0x1000+((DEBUG_BASE)&0xfff)) //don't use virtual address if memory isn't working right

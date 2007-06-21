@@ -173,47 +173,23 @@
 
 // *******************************************************************************************
 // *******************************************************************************************
-// *******************************************************************************************
-// *******************************************************************************************
-// *******************************************************************************************
-//  ************************************************************************************************
-// *******************************************************************************************
-// *******************************************************************************************
-// *******************************************************************************************
+//out: rTmp0 - memory size
+.macro CalcMemSize rTmp0,rTmp1,mem_control_base
+	BigMov	\rTmp0,\mem_control_base
+	ldr		\rTmp1,[\rTmp0,#MDCNFG]
+	movs	\rTmp0,\rTmp1,LSR #3		//bits 14,4,3 column address bits,
+										//bit 2 - 1 means 16 bit mode, 0 means 32 bit mode, mov to carry flag
+	and		\rTmp0,\rTmp0,#3
+//	tst		\rTmp1,#1<<14				//extended column address bit
+//	orrne	\rTmp0,\rTmp0,#8
+	tst		\rTmp1,#1<<7				//# of bank address bits, 0-1, 1-2
+	addne	\rTmp0,\rTmp0,#1
+	mov		\rTmp1,\rTmp1,LSR #5		//bits 6,5 row address bits
+	and		\rTmp1,\rTmp1,#3
+	add		\rTmp0,\rTmp0,\rTmp1
 
-	.equiv	numColumnAddrBits, 9
-	.equiv	numBankAddrBits, 2
-	.equiv	ClkSelect, 1	//0 : tRP = 2, tRCD = 1, tRAS = 3, tRC = 4
-			//1 : tRP = 2, tRCD = 2, tRAS = 5, tRC = 8
-			//2 : tRP = 3, tRCD = 3, tRAS = 7, tRC = 10
-			//3 : tRP = 3, tRCD = 3, tRAS = 7, tRC = 11
-//64 meg option
-	.equiv	M64_numRowAddrBits, 13	//for k4s561632a
-	.equiv	M64_SA1111_mask, 0		//(1<<12)
-	.equiv	M64_DRI_cnt,  (((99530*64)>>M64_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
-	.equiv	M64_MDCNFG_VAL, 1+((numColumnAddrBits-8)<<3)+((M64_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(M64_SA1111_mask)	//DLATCH0, latch return data with return clock
-	.equiv	M64_MDREFR_VAL, (1<<16)+(1<<15)+(M64_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
-//	.equiv	M64_MDREFR_VAL, (1<<20)+(1<<16)+(1<<15)+(M64_DRI_cnt&0xfff)		//20: APD, bit 16: K1RUN, 15:E1PIN
-//			 13		9		  2	       2 (4bytes per address)=2**26=64 MB
-	.equiv	M64_MEM_SIZE, (1<<(M64_numRowAddrBits+numColumnAddrBits+numBankAddrBits+2))
-
-//32 meg option
-	.equiv	M32_numRowAddrBits, 12	//for MT48LC8M16A2 - 75 B
-	.equiv	M32_SA1111_mask, 0
-	.equiv	M32_DRI_cnt,  (((99530*64)>>M32_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
-	.equiv	M32_MDCNFG_VAL, 1+((numColumnAddrBits-8)<<3)+((M32_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(M32_SA1111_mask)	//DLATCH0, latch return data with return clock
-	.equiv	M32_MDREFR_VAL, (1<<16)+(1<<15)+(M32_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
-//			 12		9		  2	       2 (4bytes per address)=2**25=32 MB
-	.equiv	M32_MEM_SIZE, (1<<(M32_numRowAddrBits+numColumnAddrBits+numBankAddrBits+2))
-// *******************************************************************************************
-//out: rTemp - memory size
-.macro CalcMemSize rTemp,mem_control_base
-	BigMov	\rTemp,\mem_control_base
-	ldr	\rTemp,[\rTemp,#MDCNFG]
-	movs	\rTemp,\rTemp,LSR #2+1		//bit 2 - 1 means 16 bit mode, 0 means 32 bit mode, mov to carry flag
-	tst	\rTemp,#1<<(5-3)				//is number of row address bits 12 or 13 ?
-	moveq	\rTemp,#M64_MEM_SIZE
-	movne	\rTemp,#M32_MEM_SIZE
-	movcs	\rTemp,\rTemp,LSR #1		//half as much if 16 bit mode
+	addcc	\rTmp1,\rTmp0,#1			//one more if 32 bits wide
+	mov		\rTmp0,#1<<(1+8+11+1)		//offset of 1 bank bit, 8 column bits, 11 row bits, 1 for low/high byte select
+	mov		\rTmp0,\rTmp0, LSL \rTmp1
 .endm
 

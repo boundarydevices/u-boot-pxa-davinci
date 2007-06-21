@@ -459,20 +459,20 @@
 	CP15_TTBR mcr,\rBase
 .endm
 
-.macro	GetDebugMagicPhys	rTemp
-	CalcMemSize	\rTemp,MEMORY_CONTROL_BASE				//out: \rTemp - mem size
-	BigAdd	\rTemp,\rTemp,MEM_START-0x1000+((DEBUG_BASE+DBG_MAGIC)&0xfff)		//last 4k of memory
+.macro	GetDebugMagicPhys	rTmp0,rTmp1
+	CalcMemSize	\rTmp0,\rTmp1,MEMORY_CONTROL_BASE		//out: \rTmp0 - mem size
+	BigAdd	\rTmp0,\rTmp0,MEM_START-0x1000+((DEBUG_BASE+DBG_MAGIC)&0xfff)		//last 4k of memory
 .endm
 
-.macro	GetDebugMagic	rTemp
-	BigMov \rTemp,DEBUG_BASE+DBG_MAGIC
+.macro	GetDebugMagic	rTmp0
+	BigMov \rTmp0,DEBUG_BASE+DBG_MAGIC
 .endm
-.macro	GetDebugMagicCC	cc,ncc,rTemp
-	BigMovCC \cc,\rTemp,DEBUG_BASE+DBG_MAGIC
+.macro	GetDebugMagicCC	cc,ncc,rTmp0
+	BigMovCC \cc,\rTmp0,DEBUG_BASE+DBG_MAGIC
 .endm
 
-.macro	GetDebugBase	rTemp
-	BigMov \rTemp,DEBUG_BASE
+.macro	GetDebugBase	rTmp0
+	BigMov \rTmp0,DEBUG_BASE
 .endm
 .macro	GetDebugBaseStickyCheck rTemp,rEnd
 	CP14_DCSR mrc,\rTemp

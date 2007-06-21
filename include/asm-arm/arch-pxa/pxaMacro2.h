@@ -16,6 +16,49 @@
 #else
 	.set	RomWidthIsRamWidth,1
 #endif
+// *******************************************************************************************
+
+	.equiv	numBankAddrBits, 2
+	.equiv	ClkSelect, 1	//0 : tRP = 2, tRCD = 1, tRAS = 3, tRC = 4
+			//1 : tRP = 2, tRCD = 2, tRAS = 5, tRC = 8
+			//2 : tRP = 3, tRCD = 3, tRAS = 7, tRC = 10
+			//3 : tRP = 3, tRCD = 3, tRAS = 7, tRC = 11
+//BM big memory option
+#if (PLATFORM_TYPE==NEON270)
+	//64 meg option
+	.equiv	SM_numColumnAddrBits, 9
+	.equiv	SM_numRowAddrBits, 13	//for MT48LC8M16A2 - 75 B
+	.equiv	SM_ADDRESS_TEST_MASK,(1<<(1+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
+	//128 meg option
+	.equiv	BM_numColumnAddrBits, 10
+	.equiv	BM_numRowAddrBits, 13	//for k4s561632a
+	.equiv	BM_ADDRESS_TEST_MASK,(1<<(1+BM_numColumnAddrBits))
+#else
+	//32 meg option
+	.equiv	SM_numColumnAddrBits, 9
+	.equiv	SM_numRowAddrBits, 12	//for MT48LC8M16A2 - 75 B
+	.equiv	SM_ADDRESS_TEST_MASK,(1<<(1+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
+	//64 meg option
+	.equiv	BM_numColumnAddrBits, 9
+	.equiv	BM_numRowAddrBits, 13	//for k4s561632a
+	.equiv	BM_ADDRESS_TEST_MASK,(1<<(1+BM_numColumnAddrBits+BM_numRowAddrBits+numBankAddrBits))
+#endif
+	.equiv	BM_SA1111_mask, 0		//(1<<12)
+	.equiv	BM_DRI_cnt,  (((99530*64)>>BM_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
+	.equiv	BM_MDCNFG_VAL, 1+((BM_numColumnAddrBits-8)<<3)+((BM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(BM_SA1111_mask)	//DLATCH0, latch return data with return clock
+	.equiv	BM_MDREFR_VAL, (1<<16)+(1<<15)+(BM_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
+//	.equiv	BM_MDREFR_VAL, (1<<20)+(1<<16)+(1<<15)+(BM_DRI_cnt&0xfff)		//20: APD, bit 16: K1RUN, 15:E1PIN
+//			 13		9		  2	       2 (4bytes per address)=2**26=64 MB
+	.equiv	BM_MEM_SIZE, (1<<(2+BM_numColumnAddrBits+BM_numRowAddrBits+numBankAddrBits))
+
+//SM small memory option
+	.equiv	SM_SA1111_mask, 0
+	.equiv	SM_DRI_cnt,  (((99530*64)>>SM_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
+	.equiv	SM_MDCNFG_VAL, 1+((SM_numColumnAddrBits-8)<<3)+((SM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(SM_SA1111_mask)	//DLATCH0, latch return data with return clock
+	.equiv	SM_MDREFR_VAL, (1<<16)+(1<<15)+(SM_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
+//			 12		9		  2	       2 (4bytes per address)=2**25=32 MB
+	.equiv	SM_MEM_SIZE, (1<<(2+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
+// *******************************************************************************************
 
 //In: c-0 try 64meg, c-1 try 32meg
 // or if 16 bit mode
@@ -27,8 +70,8 @@
 	ldr	\rTemp,[\rBase,#BOOT_DEF]
 	tst	\rTemp,#1			//bit 0 - 1 means 16 bit mode
 	.endif
-	BigMov	\rTemp,M64_MDCNFG_VAL
-	BigEor2Cs \rTemp,(M64_MDCNFG_VAL)^(M32_MDCNFG_VAL)
+	BigMov	\rTemp,BM_MDCNFG_VAL
+	BigEor2Cs \rTemp,(BM_MDCNFG_VAL)^(SM_MDCNFG_VAL)
 	.if RomWidthIsRamWidth
 	BigOrr2Ne \rTemp,(1<<2)			//select 16 bit width
 	.endif
@@ -49,34 +92,44 @@
 	mov	\rTemp,#0
 	str	\rTemp,[\rBase,#MDMRS] 
 
-	BigMov	\rTemp,M64_MDREFR_VAL
-	BigEor2Cs \rTemp,(M64_MDREFR_VAL)^(M32_MDREFR_VAL)
+	BigMov	\rTemp,BM_MDREFR_VAL
+	BigEor2Cs \rTemp,(BM_MDREFR_VAL)^(SM_MDREFR_VAL)
 	str	\rTemp,[\rBase,#MDREFR]
 .endm
 
 
-//In: z-1   -  c-0 try 64meg, c-1 try 32meg
-//    z-0   -  c-0 try 32meg, c-1 try 16meg
+//In: c-0 try BM meg, c-1 try SM meg
+//	  z-1 32 bit wide, z-0 16 bit wide
 //out: rTemp - memory size
 .macro CheckRam	rBase,rTemp,rTemp2
 	// Issue read requests to disabled bank to start refresh
 	BigMov	\rBase,MEM_START+0x0C000000
 	ldr	\rTemp, [\rBase]
-	mov	\rTemp,#M32_MEM_SIZE
-	movcc	\rTemp,#M64_MEM_SIZE
+	mov	\rTemp,#SM_MEM_SIZE
+	movcc	\rTemp,#BM_MEM_SIZE
 	.if RomWidthIsRamWidth
 	movne	\rTemp,\rTemp,LSR #1
+	mrs		\rTemp2,CPSR			//copy Z to overflow
+	orreq	\rTemp2,\rTemp2,#1<<28	//overflow flag
+	bicne	\rTemp2,\rTemp2,#1<<28	//overflow flag
+	msr		CPSR_f,\rTemp2
 	.endif
 	BigMov	\rBase,MEM_START
 #if 1
 	mov	\rTemp2,#0x24<<2	//0x24 seems to work, but keep it safe
 81:	sub	\rTemp2,\rTemp2,#1
 	str	\rTemp2,[\rBase]
-	movs	\rTemp2,\rTemp2	//don't affect carry flag
+	movs	\rTemp2,\rTemp2	//don't affect carry flag, or overflow
 	bne	81b
 #endif
 	str	\rTemp,[\rBase]
-	str	\rBase,[\rBase,\rTemp,LSR #1]
+
+	mov	\rTemp2,#SM_ADDRESS_TEST_MASK
+	movcc	\rTemp2,#BM_ADDRESS_TEST_MASK
+	.if RomWidthIsRamWidth
+	movvc	\rTemp2,\rTemp2,LSR #1
+	.endif
+	str	\rBase,[\rBase,\rTemp2]
 	ldr	\rTemp2,[\rBase]
 	movcs	\rTemp2,\rTemp	//if 2nd time through, force match
 	cmp	\rTemp2,\rTemp

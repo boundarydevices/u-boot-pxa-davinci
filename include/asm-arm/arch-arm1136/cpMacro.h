@@ -235,9 +235,13 @@
 	sub	pc,pc,#4		//branch to the next instruction, flushing the instruction pipeline
 .endm
 
-//out: rTemp - memory size
-.macro CalcMemSize rTemp,mem_control_base
-	mov		\rTemp,#64<<20
+//out: rTmp0 - memory size
+.macro CalcMemSize rTmp0,rTmp1,mem_control_base
+	mov		\rTmp0,#64<<20
 .endm
 
+//out: rTmp0 - memory size
+.macro CalcMemSize0 rTmp0,mem_control_base
+	mov		\rTmp0,#64<<20
+.endm
 
