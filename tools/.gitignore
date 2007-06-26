@@ -6,3 +6,5 @@ envcrc
 bmp_logo
 gen_eth_addr
 img2srec
+crc32.c
+environment.c
