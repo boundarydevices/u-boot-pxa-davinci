@@ -2723,6 +2723,7 @@ InitializeCont2:
 	CP15_DACR mcr,r0
 
 	BigSub	r0,r3,0xc000			//MEM_END-0xc000
+Setup_TTBR:
 	SetupTTBR	r0,r1
 	
 //enable MMU
@@ -2783,9 +2784,9 @@ InitializeCont2:
 #endif
 #ifndef SKIP_LCD_SETUP
 Setup_Lcd:
-	sub	r3,r3,#0x100000		//last meg-8k for video ram
+	sub	r3,r3,#0x200000		//last even meg-8k for video ram
 	SetupLcd	r3,r0,r1,r2,sp,lr		//r0-r2,sp,lr trashed
-	add	r3,r3,#0x100000		//back to end of ram
+	add	r3,r3,#0x200000		//back to end of ram
 	FinalInitChangeCPUSpeed r0,r1,r2	//don't change without dma active???
 #endif
 
