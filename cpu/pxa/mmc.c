@@ -29,6 +29,8 @@
 #include <asm/arch/hardware.h>
 #include <part.h>
 #include <command.h>
+#define MMC_BLOCK_SHIFT			9
+#define MMC_BLOCK_SIZE			(1<<MMC_BLOCK_SHIFT)
 
 #ifdef CONFIG_MMC
 
@@ -67,9 +69,10 @@ block_dev_desc_t * mmc_get_dev(int dev)
  */
 static uchar mmc_buf[MMC_BLOCK_SIZE];
 static mmc_csd_t mmc_csd;
-static int mmc_ready = 0;
+static int startBlock = 0;
+static char mmc_ready = 0;
 static char f4BitMode = 0;
-static int startBlock = 0 ;
+static char bHighCapacity = 0;
 
 #ifdef CONFIG_IMX31
 #define CLEAR_END_CMD_STAT MMC_STAT = 0xc0007e2f;	//MMC_STAT_END_CMD_RES | MMC_STAT_RES_CRC_ERROR | MMC_STAT_TIME_OUT_RESPONSE;
@@ -291,23 +294,24 @@ int mmc_ReadFifo(unsigned int* pDst,ulong len)
 	}
 	return 0;
 }
-int mmc_block_read(uchar *dst, ulong src, ulong len)
+static int mmc_block_read(uchar *dst, ulong blockNum, ulong len)
 {
 	uchar *resp;
 	if (len == 0) {
 		return 0;
 	}
 
-	debug("mmc_block_rd dst %lx src %lx len %ld\n", (ulong)dst, src, len);
+	debug("mmc_block_rd dst %lx blk# %lx len %ld\n", (ulong)dst, blockNum, len);
 	mmc_setblklen( len );
-	src += (startBlock*MMC_BLOCK_SIZE);
 
 	/* send read command */
 	MMC_STRPCL = MMC_STRPCL_STOP_CLK;
 	MMC_RDTO = 0xffff;
 	MMC_NOB = 1;
 	MMC_BLKLEN = len;
-	resp = mmc_cmd(MMC_CMD_READ_BLOCK, src,
+	blockNum += startBlock;
+	if (!bHighCapacity) blockNum <<= MMC_BLOCK_SHIFT;
+	resp = mmc_cmd(MMC_CMD_READ_BLOCK, blockNum,
 			MMC_CMDAT_R1|MMC_CMDAT_READ|MMC_CMDAT_BLOCK|MMC_CMDAT_DATA_EN);
 
 	return mmc_ReadFifo((unsigned int*)dst,len);
@@ -316,7 +320,7 @@ int mmc_block_read(uchar *dst, ulong src, ulong len)
 
 int
 /****************************************************/
-mmc_block_write(ulong dst, uchar *src, int len)
+mmc_block_write(ulong blockNum, uchar *src, int len)
 /****************************************************/
 {
 	uchar *resp;
@@ -327,16 +331,19 @@ mmc_block_write(ulong dst, uchar *src, int len)
 		return 0;
 	}
 
-	debug("mmc_block_wr dst %lx src %lx len %d\n", dst, (ulong)pSrc, len);
+	debug("mmc_block_wr blockNum %lx src %lx len %d\n", blockNum, (ulong)pSrc, len);
 
 	/* set block len */
 	resp = mmc_cmd(MMC_CMD_SET_BLOCKLEN, len, MMC_CMDAT_R1);
+
 
 	/* send write command */
 	MMC_STRPCL = MMC_STRPCL_STOP_CLK;
 	MMC_NOB = 1;
 	MMC_BLKLEN = len;
-	resp = mmc_cmd(MMC_CMD_WRITE_BLOCK, dst,
+	blockNum += startBlock;
+	if (!bHighCapacity) blockNum <<=MMC_BLOCK_SHIFT;
+	resp = mmc_cmd(MMC_CMD_WRITE_BLOCK, blockNum,
 			MMC_CMDAT_R1|MMC_CMDAT_WRITE|MMC_CMDAT_BLOCK|MMC_CMDAT_DATA_EN);
 
 #ifdef CONFIG_IMX31
@@ -443,8 +450,8 @@ int
 mmc_read(ulong src, uchar *dst, int size)
 /****************************************************/
 {
-	ulong end, part_start, part_end, part_len, aligned_start, aligned_end;
-	ulong mmc_block_size, mmc_block_address;
+	ulong end, part_start, part_end, part_len, blockStart, blockEnd;
+	ulong mmc_block_size;
 
 	if (size == 0) {
 		return 0;
@@ -456,44 +463,43 @@ mmc_read(ulong src, uchar *dst, int size)
 	}
 
 	mmc_block_size = MMC_BLOCK_SIZE;
-	mmc_block_address = ~(mmc_block_size - 1);
 
 	src -= CFG_MMC_BASE;
 	end = src + size;
-	part_start = ~mmc_block_address & src;
-	part_end = ~mmc_block_address & end;
-	aligned_start = mmc_block_address & src;
-	aligned_end = mmc_block_address & end;
+	part_start = src & (MMC_BLOCK_SIZE-1);
+	part_end = end & (MMC_BLOCK_SIZE-1);
+	blockStart = src>>MMC_BLOCK_SHIFT;
+	blockEnd = end>>MMC_BLOCK_SHIFT;
 
 	/* all block aligned accesses */
-	debug("src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-	src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
+	debug("dst %lx end %lx pstart %lx pend %lx blockStart %lx blockEnd %lx\n",
+		(ulong)dst, end, part_start, part_end, blockStart, blockEnd);
 	if (part_start) {
 		part_len = mmc_block_size - part_start;
-		debug("ps src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-		src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
-		if ((mmc_block_read(mmc_buf, aligned_start, mmc_block_size)) < 0) {
+		debug("ps dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+			(ulong)dst, end, part_start, part_end, blockStart, blockEnd);
+		if ((mmc_block_read(mmc_buf, blockStart, mmc_block_size)) < 0) {
 			return -1;
 		}
 		memcpy(dst, mmc_buf+part_start, part_len);
 		dst += part_len;
-		src += part_len;
+		blockStart++;
 	}
-	debug("src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-	src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
-	for (; src < aligned_end; src += mmc_block_size, dst += mmc_block_size) {
-		debug("al src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-		src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
-		if ((mmc_block_read((uchar *)(dst), src, mmc_block_size)) < 0) {
+	debug("dst %lx end %lx pstart %lx pend %lx blockStart %lx blockEnd %lx\n",
+		(ulong)dst, end, part_start, part_end, blockStart, blockEnd);
+	for (; blockStart < blockEnd; blockStart++, dst += mmc_block_size) {
+		debug("al dst %lx end %lx pstart %lx pend %lx blockStart %lx blockEnd %lx\n",
+			(ulong)dst, end, part_start, part_end, blockStart, blockEnd);
+		if ((mmc_block_read((uchar *)(dst), blockStart, mmc_block_size)) < 0) {
 			return -1;
 		}
 	}
-	debug("src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-	src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
-	if (part_end && src < end) {
-		debug("pe src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-		src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
-		if ((mmc_block_read(mmc_buf, aligned_end, mmc_block_size)) < 0) {
+	debug("dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+		(ulong)dst, end, part_start, part_end, blockStart, blockEnd);
+	if (part_end) {
+		debug("pe dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+			(ulong)dst, end, part_start, part_end, blockStart, blockEnd);
+		if ((mmc_block_read(mmc_buf, blockEnd, mmc_block_size)) < 0) {
 			return -1;
 		}
 		memcpy(dst, mmc_buf, part_end);
@@ -506,8 +512,8 @@ int
 mmc_write(uchar *src, ulong dst, int size)
 /****************************************************/
 {
-	ulong end, part_start, part_end, part_len, aligned_start, aligned_end;
-	ulong mmc_block_size, mmc_block_address;
+	ulong end, part_start, part_end, part_len, blockStart, blockEnd;
+	ulong mmc_block_size;
 
 	if (size == 0) {
 		return 0;
@@ -519,51 +525,50 @@ mmc_write(uchar *src, ulong dst, int size)
 	}
 
 	mmc_block_size = MMC_BLOCK_SIZE;
-	mmc_block_address = ~(mmc_block_size - 1);
 
 	dst -= CFG_MMC_BASE;
 	end = dst + size;
-	part_start = ~mmc_block_address & dst;
-	part_end = ~mmc_block_address & end;
-	aligned_start = mmc_block_address & dst;
-	aligned_end = mmc_block_address & end;
+	part_start = dst & (MMC_BLOCK_SIZE-1);
+	part_end = end & (MMC_BLOCK_SIZE-1);
+	blockStart = dst>>MMC_BLOCK_SHIFT;
+	blockEnd = end>>MMC_BLOCK_SHIFT;
 
 	/* all block aligned accesses */
-	debug("src %p dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-	src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
+	debug("src %p end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+		src, end, part_start, part_end, blockStart, blockEnd);
 	if (part_start) {
 		part_len = mmc_block_size - part_start;
-		debug("ps src %lx dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-		(ulong)src, dst, end, part_start, part_end, aligned_start, aligned_end);
-		if ((mmc_block_read(mmc_buf, aligned_start, mmc_block_size)) < 0) {
+		debug("ps src %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+			(ulong)src, end, part_start, part_end, blockStart, blockEnd);
+		if ((mmc_block_read(mmc_buf, blockStart, mmc_block_size)) < 0) {
 			return -1;
 		}
 		memcpy(mmc_buf+part_start, src, part_len);
-		if ((mmc_block_write(aligned_start, mmc_buf, mmc_block_size)) < 0) {
+		if ((mmc_block_write(blockStart, mmc_buf, mmc_block_size)) < 0) {
 			return -1;
 		}
-		dst += part_len;
+		blockStart++;
 		src += part_len;
 	}
-	debug("src %p dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-	src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
-	for (; dst < aligned_end; src += mmc_block_size, dst += mmc_block_size) {
-		debug("al src %p dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-		src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
-		if ((mmc_block_write(dst, (uchar *)src, mmc_block_size)) < 0) {
+	debug("src %p end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+		src, end, part_start, part_end, blockStart, blockEnd);
+	for (; blockStart < blockEnd; src += mmc_block_size, blockStart++) {
+		debug("al src %p end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+			src, end, part_start, part_end, blockStart, blockEnd);
+		if ((mmc_block_write(blockStart, (uchar *)src, mmc_block_size)) < 0) {
 			return -1;
 		}
 	}
-	debug("src %p dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-	src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
-	if (part_end && dst < end) {
-		debug("pe src %p dst %lx end %lx pstart %lx pend %lx astart %lx aend %lx\n",
-		src, (ulong)dst, end, part_start, part_end, aligned_start, aligned_end);
-		if ((mmc_block_read(mmc_buf, aligned_end, mmc_block_size)) < 0) {
+	debug("src %p end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+		src, end, part_start, part_end, blockStart, blockEnd);
+	if (part_end) {
+		debug("pe src %p end %lx pstart %lx pend %lx astart %lx aend %lx\n",
+			src, end, part_start, part_end, blockStart, blockEnd);
+		if ((mmc_block_read(mmc_buf, blockEnd, mmc_block_size)) < 0) {
 			return -1;
 		}
 		memcpy(mmc_buf, src, part_end);
-		if ((mmc_block_write(aligned_end, mmc_buf, mmc_block_size)) < 0) {
+		if ((mmc_block_write(blockEnd, mmc_buf, mmc_block_size)) < 0) {
 			return -1;
 		}
 	}
@@ -584,7 +589,7 @@ mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 
 			mmc_read(src, (uchar *)dst, blkcnt*mmc_block_size);
 		} else {
-			ulong src = (blknr+startBlock) * MMC_BLOCK_SIZE ;
+			ulong curBlock = (blknr+startBlock);
 			ulong status ;
 			unsigned int* pDst = (unsigned int*)dst;
 			MMC_RDTO   = 0xffff;
@@ -592,10 +597,11 @@ mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 			MMC_NOB    = blkcnt ;
          
 			mmc_setblklen( MMC_BLOCK_SIZE );
-			mmc_cmd( MMC_CMD_RD_BLK_MULTI, src,
+
+			if (!bHighCapacity) curBlock <<= MMC_BLOCK_SHIFT;
+			mmc_cmd( MMC_CMD_RD_BLK_MULTI, curBlock,
                   MMC_CMDAT_R1|MMC_CMDAT_READ|MMC_CMDAT_BLOCK|MMC_CMDAT_DATA_EN );
-          
-         	
+
 #ifdef CONFIG_IMX31
 			MMC_STAT = MMC_STAT_DATA_TRAN_DONE;
 			{
@@ -700,7 +706,7 @@ unsigned char* mmc_reset()
 	unsigned char *resp;
 	int i=0;
 	do {
-		resp = mmc_cmd(0, 0, 0);	//reset
+		resp = mmc_cmd(0, 0, MMC_CMDAT_INIT|0);	//reset
 		if (resp) break;
 		printf( "mmc_reset error\n" );
 		i++;
@@ -708,75 +714,46 @@ unsigned char* mmc_reset()
 	} while (1);
 	udelay(50);
 	f4BitMode = 0;
+	bHighCapacity = 0;
 	return resp;
 }
 
 int SDCard_test( void )
 {
-   unsigned short response ;
-   unsigned long ignore ;
-   unsigned char *resp ;
-
+	unsigned char *resp ;
+	int highCapacityAllowed = 0;
+	int cmdatInit = MMC_CMDAT_INIT;
+	int bRetry=0;
 	resp = mmc_reset();
-   resp = mmc_cmd(8, (1<<8)|0xaa, MMC_CMDAT_R1);	//request 2.7-3.6 volts, r7 is same length as r1
+	resp = mmc_cmd(8, (1<<8)|0xaa, cmdatInit|MMC_CMDAT_R1);	//request 2.7-3.6 volts, r7 is same length as r1
+	if (resp) {
+		highCapacityAllowed = 1<<30;
+	}
 
-   resp = mmc_cmd(SD_APP_CMD55, 0, MMC_CMDAT_R1);
-   if( !resp )
-   {
-		resp = mmc_reset();
-		resp = mmc_cmd(SD_APP_CMD55, 0, MMC_CMDAT_R1);
-		if( !resp )
-   		{
-			printf( "SDInitErr1\n" );
-			return -ENODEV ;
-   		}
-   }
-   
-   resp = mmc_cmd(SD_APP_CMD41, 0x00200000, MMC_CMDAT_INIT|MMC_CMDAT_R1);
-   if( !resp )
-   {
-      printf( "SDInitErr2\n" );
-      return -ENODEV ;
-   }
-
-	memcpy( &response, resp, sizeof( response ) );
-
-	while (response != 0x3f80) { //continue doing ACMD1 until busy bit in response is set
-		//CMD55 APP_CMD
-		MMC_STRPCL = MMC_STRPCL_STOP_CLK;//stop clock
-		while (MMC_STAT & MMC_STAT_CLK_RUNNING); //wait for clock to stop
-		MMC_CMD = 0x00000037;//CMD55 index APP_CMD
-		SET_MMC_ARG(0x00000000);//relative card address 0x0,stuff bits
-		MMC_CMDAT = 0x00000001;//expect response 1
-		CLEAR_END_CMD_STAT
-		MMC_STRPCL = MMC_STRPCL_START_CLK;//start clock
-		while (!(MMC_STAT & MMC_STAT_END_CMD_RES));//wait for end_cmd_res
-		//read response FIFO
-		response = (unsigned short)MMC_RES;
-		ignore = MMC_RES ;
-		ignore = MMC_RES ;
-
-		//ACMD41
-		MMC_STRPCL = MMC_STRPCL_STOP_CLK;//stop clock
-		while (MMC_STAT & MMC_STAT_CLK_RUNNING); //wait for clock to stop
-		MMC_CMD = 0x00000029;//ACMD41 index SD_APP_SEND_OP_COND
-		SET_MMC_ARG(0x00200000);//set voltage limit of system in command argument
-		MMC_CMDAT = 0x00000003;//expect response 3
-		CLEAR_END_CMD_STAT
-		MMC_STRPCL = MMC_STRPCL_START_CLK;//start clock
-		while (!(MMC_STAT & MMC_STAT_END_CMD_RES));//wait for end_cmd_res
-      
-		//read response FIFO
-		{
-      		unsigned short r2,r3;
-	    	response = (unsigned short)MMC_RES;
-	    	r2 = (unsigned short)MMC_RES;
-	    	r3 = (unsigned short)MMC_RES;
-			debug("r1:%4x,r2:%4x,r3:%4x\n",response,r2,r3);
+	do {
+		resp = mmc_cmd(SD_APP_CMD55, 0, cmdatInit|MMC_CMDAT_R1);
+		if( !resp ) {
+			resp = mmc_reset();
+			resp = mmc_cmd(SD_APP_CMD55, 0, cmdatInit|MMC_CMDAT_R1);
+			if (!resp ) {
+				if (bRetry) continue;
+				printf( "SDInitErr1\n" );
+				return -ENODEV ;
+			}
 		}
-   }
-
-   return 0 ;
+									//bit 21 means 3.3 to 3.4 Volts
+		resp = mmc_cmd(SD_APP_CMD41, (1<<21)|highCapacityAllowed, cmdatInit|MMC_CMDAT_R3);
+		if ( !resp ) {
+			if (bRetry) continue;
+			printf( "SDInitErr2\n" );
+			return -ENODEV ;
+		}
+		cmdatInit = 0;
+		bRetry = 1;		//Keep trying until success
+		if ((resp[5] == 0x3f) && ( (resp[4]&0xbf) == 0x80)) break;
+	} while (1);
+	if (highCapacityAllowed) if (resp[4]&0x40) bHighCapacity = 1;
+	return 0 ;
 }
 
 #ifdef DEBUG
@@ -898,14 +875,14 @@ static int find_mbr( int max_blocks, lbaint_t* pmax)
 	int blockNum=-1;
 	struct partition part ;
 	int i ;
-	ulong addr = 0 ;
+	ulong curBlock = 0 ;
 
 	printf( "---- searching %d blocks for MBR\n", max_blocks );
 	memset( &part, 0, sizeof(part));
 
-	for( i = 0 ; i < 10 ; i++, addr += MMC_BLOCK_SIZE ) {
+	for( i = 0 ; i < 10 ; i++, curBlock++ ) {
 		uchar data[MMC_BLOCK_SIZE];
-		if( 0 == mmc_block_read(data, addr, sizeof(data) )) {
+		if( 0 == mmc_block_read(data, curBlock, sizeof(data) )) {
 			if( (data[DOS_PART_MAGIC_OFFSET] == MSDOS_LABEL_MAGIC1 ) &&
 				(data[DOS_PART_MAGIC_OFFSET + 1] == MSDOS_LABEL_MAGIC2 ) ) {            
 				memcpy( &part, data+0x1be, sizeof(part));
@@ -1001,6 +978,7 @@ int mmc_init__(int verbose)
 	mmc_csd.c_size = 0;
 	mmc_ready = 0;
 	f4BitMode = 0;	//default to 1bit mode
+	bHighCapacity = 0;
 	startBlock = 0 ;
 
 	MMC_CLKRT  = MMC_CLKRT_0_3125MHZ;

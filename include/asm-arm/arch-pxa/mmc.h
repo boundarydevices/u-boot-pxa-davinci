@@ -112,7 +112,6 @@
 
 #define MMC_DEFAULT_RCA			1
 
-#define MMC_BLOCK_SIZE			512
 #define MMC_CMD_RESET			0
 #define MMC_CMD_SEND_OP_COND		1
 #define MMC_CMD_ALL_SEND_CID 		2
