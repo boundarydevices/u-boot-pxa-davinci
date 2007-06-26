@@ -8,3 +8,6 @@
 /smc91111_eeprom
 *.bin
 *.srec
+*.depend
+*.o
+*.a
