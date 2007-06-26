@@ -1,0 +1,8 @@
+*.depend
+*.o
+*.a
+mkimage
+envcrc
+bmp_logo
+gen_eth_addr
+img2srec

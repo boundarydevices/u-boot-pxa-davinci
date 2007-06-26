@@ -1,0 +1,10 @@
+*.map 
+*.scr
+*.log
+select.mk
+*.out
+*.log
+*.map
+*.srec
+*.bin
+u-boot
