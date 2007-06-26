@@ -582,27 +582,18 @@ static int pxafb_init (vidinfo_t *vid)
 
 unsigned int get_lclk(void)
 {
-   /*
-    *    pfreq == LCLK/(2*(PCD+1))
-    *    pfreq*(2*(PCD+1)) == LCLK
-    *    2*(PCD+1) == LCLK/pfreq
-    *    (PCD+1) == LCLK/(pfreq*2)
-    *    PCD == (LCLK/(pfreq*2)) - 1 ;
-    */
-   unsigned L = CCCR & 0x1F ;
-   unsigned K ;
-   unsigned lclk ;
-
-   if( L < 2 )
-      L = 2 ;
-   K = ( 8 > L )
-       ? 1
-       : ( 16 >= L )
-         ? 2 
-         : 4 ;
-
-   lclk = (13000000*L)/K ;
-   return lclk;
+//    pfreq == LCLK/(2*(PCD+1))
+//    pfreq*(2*(PCD+1)) == LCLK
+//    2*(PCD+1) == LCLK/pfreq
+//    (PCD+1) == LCLK/(pfreq*2)
+//    PCD == (LCLK/(pfreq*2)) - 1 ;
+//
+	unsigned l = CCCR & 0x1F ;
+	unsigned lclk;
+	if (l<2) l = 2;
+	lclk = 13000000*l;
+	if (l>=8) lclk >>= (l<=16)? 1 : 2;
+	return lclk;
 }
 
 static inline unsigned int get_pcd(unsigned long pixclock)
