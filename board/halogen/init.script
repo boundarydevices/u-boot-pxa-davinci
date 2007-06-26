@@ -11,6 +11,7 @@ if fatload mmc 0 a2000000 uim* ; then
       echo 'using initrd' ;
       lecho "Booting Linux"
       set bootargs root=/dev/ram0 console=ttyS0,115200 debug=7 mtdparts=phys_mapped_flash:1024k(armboot),256k(params),-(rootfs1)
+		if test 1 -eq $sd1bit ; then set bootargs $bootargs pxamci.use1bit=1 ; fi
       bootm a2000000 a2200000
    else
       echo 'testing cramfs img' ;

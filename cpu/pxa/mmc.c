@@ -1213,7 +1213,6 @@ int mmc_init__(int verbose)
 		resp = mmc_cmd(SD_APP_CMD55, rca<<16, MMC_CMDAT_R1);
 		if (resp) {
 			/* send read command */
-			int i;
 			unsigned char buf[64];
 			unsigned char* p = buf;
 			MMC_STRPCL = MMC_STRPCL_STOP_CLK;
@@ -1230,6 +1229,7 @@ int mmc_init__(int verbose)
 				if (resp) {
 					resp = mmc_cmd(6, 0, MMC_CMDAT_R1);
 					f4BitMode = 0;	//back to 1 bit mode
+					setenv( "sd1bit", "1" );
 				}
 			}
 #else			
