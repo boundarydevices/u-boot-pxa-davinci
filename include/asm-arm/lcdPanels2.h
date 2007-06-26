@@ -1,21 +1,20 @@
 #include "lcdPanels.h"
-#define HITACHI_QVGA	0
-#define SHARP_QVGA		1
-#define DA320X240		2
-#define OKAYA_QVGA		3
-#define OKAYA_480X272	4
-#define DA640X240		5
-#define DA800X480		6
-#define DA640X480		7
-#define DA240X320		8
-#define lcd_svga		9
-#define DA800X600		10
-#define DA1024X768		11
-#define HITACHI_92		12
-#define tovis_w			13
-#define DP480X320		14
-#define DP320X240		15
-#define DL122X32		16
+#define hitachi_qvga	0
+#define sharp_qvga		1
+#define okaya_qvga		2
+#define okaya_480x272	3
+#define hitachi_hvga	4
+#define hitachi_wvga	5
+#define sharp_vga		6
+#define qvga_portrait	7
+#define lcd_svga		8
+#define crt800X600		9
+#define crt1024x768		10
+#define hitachi_92		11
+#define tovis_w			12
+#define DP480X320		13
+#define DP320X240		14
+#define DL122X32		15
 #define UNKNOWN		0xcc
 
 #ifdef __ARMASM
@@ -24,57 +23,53 @@
 
 //don't use #elif because converting to ARMASM format
 //there is no corresponding directive
-#if (DISPLAY_TYPE==HITACHI_QVGA)			//5.7 inch display
-#define DEF_P	HITACHI_QVGA_P
-#define DEF_DISPLAY_INDEX	HITACHI_QVGA
+#if (DISPLAY_TYPE==hitachi_qvga)			//5.7 inch display
+#define DEF_P	hitachi_qvga_P
+#define DEF_DISPLAY_INDEX	hitachi_qvga
 #else	
-#if (DISPLAY_TYPE==SHARP_QVGA)			//5.7 inch display
-#define DEF_P	SHARP_QVGA_P
-#define DEF_DISPLAY_INDEX	SHARP_QVGA
+#if (DISPLAY_TYPE==sharp_qvga)			//5.7 inch display
+#define DEF_P	sharp_qvga_P
+#define DEF_DISPLAY_INDEX	sharp_qvga
 #else	
-#if (DISPLAY_TYPE==DA320X240)			//5.7 inch display
-#define DEF_P	DA320X240_P
-#define DEF_DISPLAY_INDEX	DA320X240
+#if (DISPLAY_TYPE==okaya_qvga)			//3.5 inch display
+#define DEF_P	okaya_qvga_P
+#define DEF_DISPLAY_INDEX	okaya_qvga
 #else	
-#if (DISPLAY_TYPE==OKAYA_QVGA)			//3.5 inch display
-#define DEF_P	OKAYA_QVGA_P
-#define DEF_DISPLAY_INDEX	OKAYA_QVGA
-#else	
-#if (DISPLAY_TYPE==OKAYA_480X272)
-#define DEF_P	OKAYA_480X272_P
-#define DEF_DISPLAY_INDEX	OKAYA_480X272
+#if (DISPLAY_TYPE==okaya_480x272)
+#define DEF_P	okaya_480x272_P
+#define DEF_DISPLAY_INDEX	okaya_480x272
 #else
-#if (DISPLAY_TYPE==DA640X240)		//6.2 inch display
-#define DEF_P	DA640X240_P
-#define DEF_DISPLAY_INDEX	DA640X240
+#if (DISPLAY_TYPE==hitachi_hvga)		//6.2 inch display
+#define DEF_P	hitachi_hvga_P
+#define DEF_DISPLAY_INDEX	hitachi_hvga
 #else	
-#if (DISPLAY_TYPE==DA800X480)		//7 or 9 inch display
-#define DEF_P	DA800X480_P
-#define DEF_DISPLAY_INDEX	DA800X480
+#if (DISPLAY_TYPE==hitachi_wvga)		//7 or 9 inch display
+#define DEF_P	hitachi_wvga_P
+#define DEF_DISPLAY_INDEX	hitachi_wvga
 #else	
-#if (DISPLAY_TYPE==DA640X480)		//10.4 inch display
-#define DEF_P	DA640X480_P
-#define DEF_DISPLAY_INDEX	DA640X480
+#if (DISPLAY_TYPE==sharp_vga)		//10.4 inch display
+#define DEF_P	sharp_vga_P
+#define DEF_DISPLAY_INDEX	sharp_vga
 #else	
-#if (DISPLAY_TYPE==DA240X320)		//3.5 inch display
-#define DEF_P	DA240X320_P
-#define DEF_DISPLAY_INDEX	DA240X320
+#if (DISPLAY_TYPE==qvga_portrait)		//3.5 inch display
+#define DEF_P	qvga_portrait_P
+#define DEF_DISPLAY_INDEX	qvga_portrait
 #else	
 #if (DISPLAY_TYPE==lcd_svga)
 #define DEF_P	lcd_svga_P
 #define DEF_DISPLAY_INDEX	lcd_svga
 #else	
-#if (DISPLAY_TYPE==DA800X600)
-#define DEF_P	DA800X600_P
-#define DEF_DISPLAY_INDEX	DA800X600
+#if (DISPLAY_TYPE==crt800x600)
+#define DEF_P	crt800x600_P
+#define DEF_DISPLAY_INDEX	crt800x600
 #else	
-#if (DISPLAY_TYPE==DA1024X768)
-#define DEF_P	DA1024X768_P
-#define DEF_DISPLAY_INDEX	DA1024X768
+#if (DISPLAY_TYPE==crt1024x768)
+#define DEF_P	crt1024x768_P
+#define DEF_DISPLAY_INDEX	crt1024x768
 #else	
-#if (DISPLAY_TYPE==HITACHI_92)
-#define DEF_P	HITACHI_92_P
-#define DEF_DISPLAY_INDEX	HITACHI_92
+#if (DISPLAY_TYPE==hitachi_92)
+#define DEF_P	hitachi_92_P
+#define DEF_DISPLAY_INDEX	hitachi_92
 #else	
 #if (DISPLAY_TYPE==tovis_w)
 #define DEF_P	tovis_w_P
@@ -93,16 +88,14 @@
 #define DEF_DISPLAY_INDEX	DL122X32
 #else
 #if (DISPLAY_TYPE==UNKNOWN)
-#define DEF_P	DA320X240_P
-#define DEF_DISPLAY_INDEX	0xcc
-
+#define DEF_P	sharp_qvga_P
+#define DEF_DISPLAY_INDEX	UNKNOWN
 #else	
-#define DEF_P	HITACHI_QVGA_P
+#define DEF_P	hitachi_qvga_P
 #define DEF_DISPLAY_INDEX	0
-#warning "No display selected, defaulting to HITACHI_QVGA"
+#warning "No display selected, defaulting to hitachi_qvga"
 
 #endif		//0xcc
-#endif		//16
 #endif		//15
 #endif		//14
 #endif		//13
