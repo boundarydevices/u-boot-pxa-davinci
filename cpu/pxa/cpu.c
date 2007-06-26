@@ -39,6 +39,20 @@
 DECLARE_GLOBAL_DATA_PTR;
 #endif
 
+#define GP_INDEX(gp) ((gp<96)? (gp>>5) : 0x40)
+#define GP_BITMASK(gp)  (1 << ((gp) & 0x1f) )
+#define GPLRx(gp) __REG((0x40e00000+(GP_INDEX(gp)<<2)))
+#define GPSRx(gp) __REG((0x40e00018+(GP_INDEX(gp)<<2)))
+#define GPCRx(gp) __REG((0x40e00024+(GP_INDEX(gp)<<2)))
+
+#define GPIO_SET(val,gp)     if (val) GPSRx(gp) = GP_BITMASK(gp); else GPCRx(gp) = GP_BITMASK(gp)
+
+#if (PLATFORM_TYPE==NEON270)
+#define GPIO_SMSC_RESET 23
+#else
+#define GPIO_SMSC_RESET -1
+#endif
+
 int cpu_init (void)
 {
 	/*
@@ -48,6 +62,12 @@ int cpu_init (void)
 	IRQ_STACK_START = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4;
 	FIQ_STACK_START = IRQ_STACK_START - CONFIG_STACKSIZE_IRQ;
 #endif
+
+	if (GPIO_SMSC_RESET >=0) {
+		GPIO_SET(0,GPIO_SMSC_RESET);
+		udelay(10);
+		GPIO_SET(1,GPIO_SMSC_RESET);
+	}
 	return 0;
 }
 
