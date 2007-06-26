@@ -21,7 +21,7 @@
 .macro	CR0_INIT_VAL reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
 	BigMov	\reg,(\enable<<CR0_ENABLE)+(1<<CR0_IM_DISABLE_DONE)+(1<<CR0_IM_START_OF_FRAME)+\
 	(1<<CR0_IM_INPUT_FIFO_UNDERRUN)+(1<<CR0_IM_END_OF_FRAME)+(\active<<CR0_ACTIVE_SELECT)+\
-	(1<<CR0_IM_LCD_QUICK_DISABLE)+(1<<CR0_IM_BRANCH)+(1<<CR0_IM_OUTPUT_FIFO_UNDERRUN)
+	(1<<CR0_IM_LCD_QUICK_DISABLE)+(1<<CR0_IM_BRANCH)+(1<<CR0_IM_OUTPUT_FIFO_UNDERRUN)+(1<<CR0_LDDALT)
 .endm
 
 .macro	CR1_INIT_VAL reg,xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend, vsPol,hsPol,pPol,oePol,dPol, enable,unscramble,rotate,active,vSyncHz,type
@@ -40,9 +40,30 @@
 	GBLA PixClksPerSec
 	GBLA HspClksPerPixClk
 	GBLA PCD_VAL
+	GBLA _L
+	GBLA _LCLK
 	.endif
 	.set	PixClksPerSec,(\xres+\xsyncWidth+\xbegin+\xend)*(\yres+\ysyncWidth+\ybegin+\yend)*(\vSyncHz)
-	.set	HspClksPerPixClk,100000000 / PixClksPerSec
+	.ifdef CCCR_L
+	.set	_L,CCCR_L
+	.else
+	.set	_L,16
+	.endif
+
+	.if (_L<2)
+	.set	_L,2
+	.endif
+
+	.set _LCLK,13000000*_L
+
+	.if (_L>=8)
+		.if (_L<=16)
+		.set _LCLK,_LCLK>>1
+		.else
+		.set _LCLK,_LCLK>>2
+		.endif
+	.endif
+	.set	HspClksPerPixClk,_LCLK / PixClksPerSec
 	.set	PCD_VAL,((HspClksPerPixClk/2)-1)&0xff
 	BigMov	\reg,(PCD_VAL<<CR3_PCLK_DIVISOR)+((256-1)<<CR3_ACBIAS_TOGGLE)+\
 	(0<<CR3_API)+(\vsPol<<CR3_FCLK_POLARITY)+(\hsPol<<CR3_LCLK_POLARITY)+\
@@ -77,8 +98,8 @@
 	str	\rTemp,[\rBase,#LCD_TMEDC]
 
 	str	\rDescript,[\rBase,#LCD_FDADR0]
-
 	CR0_INIT_VAL	\rTemp,DEF_P
+
 	str	\rTemp,[\rBase,#LCD_CR0]
 .endm
 

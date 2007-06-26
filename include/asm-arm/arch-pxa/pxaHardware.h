@@ -172,8 +172,8 @@
 #define LCD_DCMD0	0x20c		//dma command
 #define LCD_DCMD1	0x21c		//dma command
 
-#define CRO_LDDALT	26	//LDDALT	;0 selects RGB 555, 1 selects RGB 565
-#define CRO_OUC		25	//OUC		;0 underlays, 1 overlays
+#define CR0_LDDALT	26	//LDDALT	;0 selects RGB 555, 1 selects RGB 565
+#define CR0_OUC		25	//OUC		;0 underlays, 1 overlays
 #define CR0_CMDIM	24	//CMDIM		;command interrupt mask, 0 - enabled, 1 disabled
 #define CR0_RDSTM	23	//RDSTM		;read status interrupt mask, 0 - enabled, 1 disabled
 #define CR0_LCDT	22	//LCDT		;LCD Panel Type, 1 - internal frame buffer
