@@ -67,6 +67,7 @@ block_dev_desc_t * mmc_get_dev(int dev)
  * FIXME needs to read cid and csd info to determine block size
  * and other parameters
  */
+static uchar resp[20] __attribute__ ((aligned (32)));
 static uchar mmc_buf[MMC_BLOCK_SIZE];
 static mmc_csd_t mmc_csd;
 static int startBlock = 0;
@@ -97,7 +98,6 @@ static void stop_clock( void )
 
 uchar *mmc_cmd(ushort cmd, uint arg, ushort cmdat)
 {
-	static uchar resp[20];
 	volatile u32 * res_fifo = &MMC_RES;
 	unsigned short* prsp;
 	ulong status;
@@ -171,6 +171,7 @@ uchar *mmc_cmd(ushort cmd, uint arg, ushort cmdat)
 			break;
 		//case 0 - no response to command is default
 		default:
+			*((unsigned int *)resp) = 0;
 			return resp;
 	}
 
@@ -742,16 +743,23 @@ int SDCard_test( void )
 				}
 			}
 		}
-									//bit 21 means 3.3 to 3.4 Volts
-		resp = mmc_cmd(SD_APP_CMD41, (1<<21)|highCapacityAllowed, cmdatInit|MMC_CMDAT_R3);
-		if ( !resp ) {
-			if (bRetry) continue;
-			printf( "SDInitErr2\n" );
-			return -ENODEV ;
+		
+		if (resp) {
+			//bit 21 means 3.3 to 3.4 Volts
+			resp = mmc_cmd(SD_APP_CMD41, (1<<21)|highCapacityAllowed, cmdatInit|MMC_CMDAT_R3);
+			if ( !resp ) {
+				if (!bRetry) {
+					printf( "SDInitErr2\n" );
+					return -ENODEV ;
+				}
+			} else {
+//				printf("response %02x %02x %02x %02x %02x %02x\n",resp[0],resp[1],resp[2],resp[3],resp[4],resp[5]);
+				if ((resp[5] == 0x3f) && ( (resp[4]&0xbf) == 0x80)) break;
+				cmdatInit = 0;
+			}
 		}
-		cmdatInit = 0;
-		bRetry = 1;		//Keep trying until success
-		if ((resp[5] == 0x3f) && ( (resp[4]&0xbf) == 0x80)) break;
+		bRetry++;
+		if (bRetry > 100) break;
 	} while (1);
 	if (highCapacityAllowed) if (resp[4]&0x40) bHighCapacity = 1;
 	return 0 ;
