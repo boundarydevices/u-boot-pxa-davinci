@@ -753,13 +753,15 @@ int SDCard_test( void )
 					return -ENODEV ;
 				}
 			} else {
-//				printf("response %02x %02x %02x %02x %02x %02x\n",resp[0],resp[1],resp[2],resp[3],resp[4],resp[5]);
 				if ((resp[5] == 0x3f) && ( (resp[4]&0xbf) == 0x80)) break;
 				cmdatInit = 0;
 			}
 		}
 		bRetry++;
-		if (bRetry > 100) break;
+		if (bRetry > 100) {
+			printf("response %02x %02x %02x %02x %02x %02x\n",resp[0],resp[1],resp[2],resp[3],resp[4],resp[5]);
+			return -ENODEV;
+		}
 	} while (1);
 	if (highCapacityAllowed) if (resp[4]&0x40) bHighCapacity = 1;
 	return 0 ;
