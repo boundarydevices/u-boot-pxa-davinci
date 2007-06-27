@@ -67,8 +67,8 @@ block_dev_desc_t * mmc_get_dev(int dev)
  * FIXME needs to read cid and csd info to determine block size
  * and other parameters
  */
+static uchar mmc_buf[MMC_BLOCK_SIZE] __attribute__ ((aligned (32)));
 static uchar resp[20] __attribute__ ((aligned (32)));
-static uchar mmc_buf[MMC_BLOCK_SIZE];
 static mmc_csd_t mmc_csd;
 static int startBlock = 0;
 static char mmc_ready = 0;
