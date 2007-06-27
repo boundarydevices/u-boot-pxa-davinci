@@ -758,7 +758,8 @@ int SDCard_test( void )
 			}
 		}
 		bRetry++;
-		if (bRetry > 100) {
+		udelay(1000);
+		if (bRetry > 1000) {
 			printf("response %02x %02x %02x %02x %02x %02x\n",resp[0],resp[1],resp[2],resp[3],resp[4],resp[5]);
 			return -ENODEV;
 		}
