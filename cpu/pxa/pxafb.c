@@ -632,7 +632,7 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
       panel_info.pxa.reg_lccr3 |= get_pcd( panel->pixclock );
       printf( "set panel to %s\n"
               "pcd == 0x%08lx\n"
-              "lclk == 0x%08lx\n"
+              "lclk == %i\n"
               "palette at %p\n"
               "frame buffer at %p\n"
             , panel->name ? panel->name : "<Unnamed>"
