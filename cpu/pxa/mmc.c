@@ -736,9 +736,10 @@ int SDCard_test( void )
 			resp = mmc_reset();
 			resp = mmc_cmd(SD_APP_CMD55, 0, cmdatInit|MMC_CMDAT_R1);
 			if (!resp ) {
-				if (bRetry) continue;
-				printf( "SDInitErr1\n" );
-				return -ENODEV ;
+				if (!bRetry) {
+					printf( "SDInitErr1\n" );
+					return -ENODEV ;
+				}
 			}
 		}
 									//bit 21 means 3.3 to 3.4 Volts
