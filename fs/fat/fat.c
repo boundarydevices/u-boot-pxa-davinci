@@ -774,6 +774,8 @@ do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
     int files = 0, dirs = 0;
     long ret = 0;
     int firsttime;
+    int haswild = (0 != strchr( filename, '*' ))
+                ||(0 != strchr( filename, '%' ));
 
     if (read_bootsectandvi (&bs, &volinfo, &mydata->fatsize)) {
 	FAT_DPRINT ("Error: reading boot sector\n");
@@ -934,6 +936,11 @@ do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
 		dentptr++;
 		continue;
 	    }
+	    if( haswild ){
+		char const *fn = l_name[0] ? l_name : s_name ;
+		setenv("filename", fn );
+	    }
+
 	    if (isdir && !(dentptr->attr & ATTR_DIR))
 		return -1;
 
