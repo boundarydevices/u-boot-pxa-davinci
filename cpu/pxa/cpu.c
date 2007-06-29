@@ -186,3 +186,65 @@ void set_GPIO_mode(int gpio_mode)
 	}
 }
 #endif /* CONFIG_CPU_MONAHANS */
+
+/*
+ * Note that only speeds where CLKCFG[B] = 1 are supported
+ * Position in this table indicates the value of CCCR[2N].
+ *
+ */
+static unsigned const cpuSpeeds[] = {
+	0   // 0
+,	0   // 1
+,	208 // 2
+,	312 // 3
+,	416 // 4
+,	520 // 5
+,	624 // 6
+};
+
+static unsigned const numCpuSpeeds = sizeof(cpuSpeeds)/sizeof(cpuSpeeds[0]);
+
+int do_cpuclk (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	int rval = 1 ;
+	if( 2 == argc ){
+		unsigned const speed = simple_strtoul(argv[1], 0, 0);
+		if( speed ){
+			unsigned idx = 0 ;
+			for( idx = 0 ; idx < numCpuSpeeds; idx++ ){
+				if( speed == cpuSpeeds[idx] )
+					break ;
+			}
+			if( idx < numCpuSpeeds ){
+				unsigned clkcfg ;
+				printf( "cpu speed %u, idx %u\n", speed, idx );
+				CCCR = ( CCCR & ~CCCR_N_MASK ) | (idx << 7);
+				asm volatile("mcr p14, 0, %0, c6,c0, 0" : "=r" (clkcfg));
+				udelay(50000);
+				clkcfg |= 2 ;
+				clkcfg &= ~5 ; // no turbo durinc clock change
+				asm volatile("mrc p14, 0, %0, c6,c0, 0" : : "r" (clkcfg));
+				clkcfg |= 1 ; // now turbo mode
+				asm volatile("mrc p14, 0, %0, c6,c0, 0" : : "r" (clkcfg));
+				rval = 0 ;
+			}
+		} // don't change speed to zero
+	} else {
+		int i = 0 ;
+		unsigned idx = ( CCCR & CCCR_N_MASK ) >> 7 ;
+		for( i = 0 ; i < numCpuSpeeds ; i++ ){
+			if( cpuSpeeds[i] ){
+				printf( "%c %u MHz\n", i==idx ? '*' : ' ', cpuSpeeds[i] );
+			}
+		}
+	}
+	return rval ;
+}
+
+U_BOOT_CMD(
+	cpuclk,	  2,	0,	do_cpuclk,
+	"cpuclk  - set CPU clock\n",
+	NULL
+);
+
+
