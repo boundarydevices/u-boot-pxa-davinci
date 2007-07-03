@@ -115,12 +115,12 @@
 	| CFG_CMD_LOADB \
 	| CFG_CMD_ITEST \
 	| CFG_CMD_FPGA \
-	| CFG_CMD_ECHO \
 	| CFG_CMD_DIAG \
 	| CFG_CMD_DATE \
 	| CFG_CMD_BOOTP \
 	| CFG_CMD_NFS \
 	)
+//						| CFG_CMD_ECHO \
 //                      | CFG_CMD_FLASH
 //                      | CFG_CMD_DHCP
 //                      | CFG_CMD_NET
