@@ -43,7 +43,12 @@
 #endif
 
 	SPEC_GP  11,OUT,HIGH,0		//NC
+#if (PLATFORM_TYPE==NEON270)
+	SPEC_GP  12,IN,HIGH,0		//float means USB Slave not ready to accept data
+								//out 1 means ready (D+ signal)
+#else
 	SPEC_GP  12,OUT,HIGH,0		//NC
+#endif
 	SPEC_GP  13,OUT,HIGH,0		//NC
 
 	SPEC_GP  14,OUT,HIGH,0		//NC
