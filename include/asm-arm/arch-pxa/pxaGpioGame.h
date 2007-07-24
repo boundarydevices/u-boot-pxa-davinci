@@ -245,10 +245,12 @@ SPECZ_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
 	SPEC_	ALL, 83,IN, LOW, 0		//GND (pin E15)
 	SPEC_	ALL, 84,IN, LOW, 0		//GND (pin D16)
 	SPEC_	ALL, 85,IN, LOW, 0		//GND (pin F15)
-	SPEC_	ALL, 86,OUT,HIGH,0		//SDCS2 (pin G3)
-	SPEC_	ALL, 87,OUT,HIGH,0		//SDCS3 (pin F2)
-	SPEC_	ALL, 88,OUT,HIGH,0		//old RDnWR(pin D3)
-	SPEC_	ALL, 89,OUT,HIGH,0		//old ac97_reset(pin D10)
+//to maintain compatibility with code written for the pxa250
+//the meaning of gp86-gp89's direction bit is reversed, and alternate function is forced to the SDRAM/AC97 unit's control
+	SPEC_	ALL, 86,IN,HIGH,0		//SDCS2 (pin G3) set as OUTPUT!!!
+	SPEC_	ALL, 87,IN,HIGH,0		//SDCS3 (pin F2) set as OUTPUT!!!
+	SPEC_	ALL, 88,IN,HIGH,0		//old RDnWR(pin D3) set as OUTPUT!!!
+	SPEC_	ALL, 89,IN,LOW,0		//old ac97_reset(pin D10), set as OUTPUT!!!
 	SPEC_	ALL, 90,IN, LOW, 0		//undefined
 	SPEC_	ALL, 91,IN, LOW, 0		//undefined
 	SPEC_	ALL, 92,IN, LOW, 0		//undefined
