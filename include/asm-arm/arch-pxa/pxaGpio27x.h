@@ -42,7 +42,7 @@
 	SPEC_GP  10,IN,HIGH,0		//MMC card detect
 #endif
 
-	SPEC_GP  11,OUT,HIGH,0		//NC
+	SPEC_GP  11,OUT,HIGH,0		//Neon270 SMSC Lan91c111 reset (high active)
 #if (PLATFORM_TYPE==NEON270)
 	SPEC_GP  12,IN,HIGH,0		//float means USB Slave not ready to accept data
 								//out 1 means ready (D+ signal)
@@ -68,7 +68,11 @@
 
 	SPEC_GP  20,OUT,HIGH,0		//NC
 	SPEC_GP  21,OUT,HIGH,0		//NC
+#if (PLATFORM_TYPE==NEON270)
+	SPEC_GP  22,IN,HIGH,0		//Neon270 SM501 interrupt
+#else
 	SPEC_GP  22,OUT,HIGH,0		//NC
+#endif
 
 #ifdef __HALOGEN1
 	SPEC_GP  23,OUT,HIGH,0		//NC
@@ -202,7 +206,8 @@
 	SPEC_GP  112,IN,HIGH,1		//MMCMD (IN or OUT)
 	SPEC_GP  113,OUT,HIGH,2		//AC97 Reset, NC
 	SPEC_GP  114,OUT,HIGH,0		//NC
-#if 0 //(PLATFORM_TYPE==NEON270)	//next rev of board
+#if (PLATFORM_TYPE==NEON270)	//next rev of board
+//only NEON270 has SM501 for Bus Mastering
 	SPEC_GP  115,IN,HIGH,0		//MC_MBREQ, alternate function 3 AFTER PSSR[RDH] is cleared
 	SPEC_GP  116,OUT,HIGH,3		//MC_MBGNT
 #else

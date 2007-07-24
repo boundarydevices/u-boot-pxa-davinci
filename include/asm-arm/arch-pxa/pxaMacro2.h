@@ -578,6 +578,11 @@
 	bne		99b
 	mov	\rTemp,#(1<<11)		//gp11 reset for SMSC lan91c111
 	str	\rTemp,[\rBase,#GPCR0]
+	
+#if (PLATFORM_TYPE==NEON270)
+	BigMov	\rTemp,(AFVAL112)|(3<<((115-112)<<1))	//MBREQ alternate function 3
+	str	\rTemp,[\rBase,#GAFR3_U]
+#endif
 	.endif
 
 .endm
