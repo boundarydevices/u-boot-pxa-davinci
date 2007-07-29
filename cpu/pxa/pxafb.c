@@ -515,7 +515,7 @@ static int pxafb_init (vidinfo_t *vid)
 	fbi->reg_lccr3 = (reg_lccr3 & ~(LCCR3_HSP | LCCR3_VSP))|
 		(vid->vl_hsp ? 0 : LCCR3_HSP) |
 		(vid->vl_vsp ? 0 : LCCR3_VSP) |
-		(vid->vl_clkp ? 0 : LCCR3_PCP);
+		(vid->vl_clkp ? LCCR3_PCP : 0);
 
 
 	/* setup dma descriptors */
@@ -605,6 +605,7 @@ static inline unsigned int get_pcd(unsigned long pixclock)
 
 void set_lcd_panel( struct lcd_panel_info_t const *panel )
 {
+   int pixClock = panel->pixclock;
    panel_info.vl_col = panel->xres ;
    panel_info.vl_row = panel->yres ;
    panel_info.vl_clkp = panel->pclk_redg ;
@@ -627,21 +628,25 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
 
    pxafb_init_mem( (void *)panel_info.pxa.screen, &panel_info);
    pxafb_init(&panel_info);
-   if( 1 < panel->pixclock ){
-      panel_info.pxa.reg_lccr3 &= ~0xFF ;
-      panel_info.pxa.reg_lccr3 |= get_pcd( panel->pixclock );
-      printf( "set panel to %s\n"
+   
+   if ( pixClock < 10) {
+   	  pixClock = (panel_info.vl_col+panel_info.vl_hpw+panel_info.vl_blw+panel_info.vl_elw)*
+   	  			 (panel_info.vl_row+panel_info.vl_vpw+panel_info.vl_bfw+panel_info.vl_efw)*55;
+   }
+   panel_info.pxa.reg_lccr3 &= ~0xFF ;
+   panel_info.pxa.reg_lccr3 |= get_pcd( pixClock );
+
+   printf( "set panel to %s\n"
               "pcd == 0x%08lx\n"
               "lclk == %i\n"
               "palette at %p\n"
               "frame buffer at %p\n"
             , panel->name ? panel->name : "<Unnamed>"
-            , get_pcd( panel->pixclock )
+            , get_pcd( pixClock )
             , get_lclk()
             , panel_info.pxa.palette
             , panel_info.pxa.screen
-      );
-   }
+   );
    pxafb_setup_gpio(&panel_info);
    pxafb_enable_controller(&panel_info);
 
