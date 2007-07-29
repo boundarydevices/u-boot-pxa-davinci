@@ -204,6 +204,16 @@ static unsigned const cpuSpeeds[] = {
 
 static unsigned const numCpuSpeeds = sizeof(cpuSpeeds)/sizeof(cpuSpeeds[0]);
 
+static int set_clkcfg( unsigned value )
+{
+	unsigned oldval ;
+	do {
+		asm volatile("mrc p14, 0, %0, c6,c0, 0" : : "r" (value));
+		asm volatile("mcr p14, 0, %0, c6,c0, 0" : "=r" (oldval));
+		printf( "%s: %08x..%08x\n", __FUNCTION__, value, oldval );
+	} while( oldval != value );
+}
+
 int do_cpuclk (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	int rval = 1 ;
@@ -223,9 +233,9 @@ int do_cpuclk (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 				udelay(50000);
 				clkcfg |= 2 ;
 				clkcfg &= ~5 ; // no turbo durinc clock change
-				asm volatile("mrc p14, 0, %0, c6,c0, 0" : : "r" (clkcfg));
+				set_clkcfg(clkcfg);
 				clkcfg |= 1 ; // now turbo mode
-				asm volatile("mrc p14, 0, %0, c6,c0, 0" : : "r" (clkcfg));
+				set_clkcfg(clkcfg);
 				rval = 0 ;
 			}
 		} // don't change speed to zero
