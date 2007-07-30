@@ -89,7 +89,15 @@ void print_panel_info( struct lcd_panel_info_t const *panel )
    printf( "upper_margin   : %u\n", panel->upper_margin );
    printf( "lower_margin   : %u\n", panel->lower_margin );
    printf( "active         : %u\n", panel->active );
-   printf( "CRT            ? %u\n", panel->crt );
+   printf( "CRT            ? %s\n", panel->crt ? "Yes" : "No" );
+}
+
+static void short_panel_info( struct lcd_panel_info_t const *panel )
+{
+   printf( "%4u\t%4u\t %c \t%s\n", 
+           panel->xres, panel->yres,
+           panel->crt ? 'Y' : 'N',
+           panel->name );
 }
 
 static struct lcd_panel_info_t const *prompt_for_panel( void )
@@ -241,6 +249,14 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
          int i ; 
          for( i = 0 ; i < num_lcd_panels ; i++ )
             print_panel_info( lcd_panels+i );
+      }
+      else if( '*' == *argv[1] )
+      {
+         int i ; 
+         printf( "xres\tyres\tCRT\tname\n" );
+      
+         for( i = 0 ; i < num_lcd_panels ; i++ )
+            short_panel_info( lcd_panels+i );
       }
       else if( '-' == *argv[1] )
       {
