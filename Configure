@@ -1,7 +1,7 @@
 #!/bin/bash
 #=======================================================================
 #DP320X240 DP480X320 DL122X32
-DISPLAY_TYPE_CHOICES="hitachi_qvga sharp_qvga okaya_qvga okaya_480x272 hitachi_hvga hitachi_wvga sharp_vga qvga_portrait lcd_svga crt800x600 crt1024x768 hitachi_92 tovis_w"
+DISPLAY_TYPE_CHOICES="hitachi_qvga sharp_qvga okaya_qvga okaya_480x272 hitachi_hvga hitachi_wvga sharp_vga qvga_portrait lcd_svga crt800x600 crt1024x768 hitachi_92 tovis_w hitachi_154"
 PLATFORM_TYPE_CHOICES="MERCURY NEONB NEON NEON270 HALOGEN ARGON BD2003 GAME_WITH_SMC GAME_CONTROLLER"
 # BOUNDARY_OLD_BOARD  #lcd pin reordering for rgb problem, don't use VLIO(gp18 is turnstile)
 # OLD_GAME_CONTROLLER GAME_CONTROLLER_PLAITED_A1 
