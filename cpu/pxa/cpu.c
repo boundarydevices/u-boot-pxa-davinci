@@ -204,7 +204,7 @@ static unsigned const cpuSpeeds[] = {
 
 static unsigned const numCpuSpeeds = sizeof(cpuSpeeds)/sizeof(cpuSpeeds[0]);
 
-static int set_clkcfg( unsigned value )
+static void set_clkcfg( unsigned value )
 {
 	unsigned oldval ;
 	do {
