@@ -58,6 +58,7 @@ int board_init (void)
 #ifdef CONFIG_LCD
    /* address of frame buffer */
 	gd->fb_base = fbStart ;
+#endif
 
 #if defined( CONFIG_LCD_MULTI )
    disable_sm501();
