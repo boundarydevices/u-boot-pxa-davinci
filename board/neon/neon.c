@@ -33,7 +33,10 @@
 #include <devices.h>
 #include <lcd.h>
 #include <lcd_panels.h>
-
+#include <lcd_multi.h>
+#include <pxafb.h>
+#include <malloc.h>
+#include <sm501_bd.h>
 
 /*
  * Miscelaneous platform dependent initialisations
@@ -52,8 +55,13 @@ int board_init (void)
 	/* adress of boot parameters */
 	gd->bd->bi_boot_params = 0xa0000100;
 
+#ifdef CONFIG_LCD
    /* address of frame buffer */
 	gd->fb_base = fbStart ;
+
+#if defined( CONFIG_LCD_MULTI )
+   disable_sm501();
+#endif
 
 	return 0;
 }
@@ -75,3 +83,54 @@ int dram_init (void)
 
 	return 0;
 }
+
+
+struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
+{
+   unsigned idx ;
+   unsigned num_lcd = 0 ;
+   unsigned num_crt = 0 ;
+   struct lcd_t *rval = 0 ;
+
+   /* 
+    * See what else is instantiated
+    */
+   for( idx = 0 ; idx < getPanelCount(); idx++ ){
+      struct lcd_t *oldp = getPanel(idx);
+      if( oldp ){
+         if( oldp->info.crt )
+            num_crt++ ;
+         else
+            num_lcd++ ;
+      }
+   }
+
+   rval = (struct lcd_t *)malloc(sizeof(struct lcd_t));
+   memset( rval, 0, sizeof(rval) );
+   memcpy( &rval->info, info, sizeof(rval->info) );
+   
+   if( info->crt ){
+      if( 0 == num_crt ){
+         printf( "Setup SM-501 CRT here\n" );
+         init_sm501_crt(rval);
+      }
+      else {
+         printf( "Only one CRT is supported on Neon!\n" );
+         free(rval); rval = 0 ;
+      }
+   } else {
+      if( 0 == num_lcd ){
+         printf( "Initialize SM-501 LCD here\n" );
+         init_sm501_lcd(rval);
+      } else if( 1 == num_lcd ){
+         printf( "Initialize PXA LCD here\n" );
+         init_pxa_fb(rval);
+      } else {
+         printf( "Only two LCD panels are supported on Neon!\n" );
+         free(rval); rval = 0 ;
+      }
+   }
+
+   return rval ;
+}
+

@@ -46,9 +46,7 @@ START	= start.o ministart.o
 endif
 OBJS	= serial.o interrupts.o cpu.o i2c.o mmc.o
 
-ifdef PXALCD
-   OBJS	+= pxafb.o
-endif
+OBJS	+= pxafb.o
 
 ifeq ($(PLATFORM_TYPE),HALOGEN)
    OBJS	+= usb_ohci.o

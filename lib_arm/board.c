@@ -52,6 +52,10 @@
 #include "../drivers/lan91c96.h"
 #endif
 
+#ifdef CONFIG_LCD_MULTI
+#include <lcd_multi.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #if (CONFIG_COMMANDS & CFG_CMD_NAND)
@@ -447,6 +451,11 @@ void start_armboot (void)
 #endif
 	eth_initialize(gd->bd);
 #endif
+
+#if defined(CONFIG_LCD_MULTI)
+   lcd_multi_init();
+#endif
+
 	/* main_loop() can return to retry autoboot, if so just run it again. */
 	for (;;) {
 		main_loop ();

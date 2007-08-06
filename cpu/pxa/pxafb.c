@@ -39,10 +39,11 @@
 #ifdef CONFIG_LCDPANEL
 #include <lcd_panels.h>
 #endif
+#include "pxafb.h"
 
 /* #define DEBUG */
 
-#ifdef CONFIG_LCD
+#if defined( CONFIG_LCD ) || defined( CONFIG_LCD_MULTI )
 
 /*----------------------------------------------------------------------*/
 /*
@@ -199,15 +200,6 @@ void lcd_getcolreg (ushort regno, ushort *red, ushort *green, ushort *blue);
 void lcd_ctrl_init	(void *lcdbase);
 void lcd_enable	(void);
 
-int lcd_color_fg;
-int lcd_color_bg;
-
-void *lcd_base;			/* Start of framebuffer memory	*/
-void *lcd_console_address;		/* Start of console buffer	*/
-
-short console_col;
-short console_row;
-
 static int pxafb_init_mem (void *lcdbase, vidinfo_t *vid);
 static void pxafb_setup_gpio (vidinfo_t *vid);
 static void pxafb_enable_controller (vidinfo_t *vid);
@@ -217,6 +209,16 @@ static int pxafb_init (vidinfo_t *vid);
 /************************************************************************/
 /* ---------------  PXA chipset specific functions  ------------------- */
 /************************************************************************/
+#if defined(CONFIG_LCD)
+
+int lcd_color_fg;
+int lcd_color_bg;
+
+void *lcd_base;			/* Start of framebuffer memory	*/
+void *lcd_console_address;		/* Start of console buffer	*/
+
+short console_col;
+short console_row;
 
 void lcd_ctrl_init (void *lcdbase)
 {
@@ -229,7 +231,7 @@ void lcd_ctrl_init (void *lcdbase)
       if( panel )
       {
          printf( "panel %s found: %u x %u\n", panelName, panel->xres, panel->yres );
-	 panel_info.pxa.screen = (u_long)lcdbase;
+         panel_info.pxa.screen = (u_long)lcdbase;
          set_lcd_panel( panel ); 
       }
       else
@@ -241,16 +243,7 @@ void lcd_ctrl_init (void *lcdbase)
 	pxafb_setup_gpio(&panel_info);
 	pxafb_enable_controller(&panel_info);
 #endif
-
 }
-
-/*----------------------------------------------------------------------*/
-#ifdef NOT_USED_SO_FAR
-void
-lcd_getcolreg (ushort regno, ushort *red, ushort *green, ushort *blue)
-{
-}
-#endif /* NOT_USED_SO_FAR */
 
 /*----------------------------------------------------------------------*/
 #if LCD_BPP == LCD_COLOR8
@@ -294,6 +287,12 @@ void lcd_setcolreg (ushort regno, ushort red, ushort green, ushort blue)
 		palette[regno]);
 }
 
+void lcd_enable (void)
+{
+}
+
+#endif
+
 #ifdef CONFIG_PXA270
 //each entry is in ARGB format, alpha high byte, blue low byte
 void lcd_SetPalette(ulong* palette,int colorCnt)
@@ -333,38 +332,9 @@ void lcd_initcolregs (void)
 }
 #endif /* LCD_MONOCHROME */
 
-/*----------------------------------------------------------------------*/
-void lcd_enable (void)
-{
-}
-
-/*----------------------------------------------------------------------*/
-#ifdef	NOT_USED_SO_FAR
-static void lcd_disable (void)
-{
-}
-#endif /* NOT_USED_SO_FAR */
-
-/*----------------------------------------------------------------------*/
-
 /************************************************************************/
 /* ** PXA255 specific routines						*/
 /************************************************************************/
-
-/*
- * Calculate fb size for VIDEOLFB_ATAG. Size returned contains fb,
- * descriptors and palette areas.
- */
-ulong calc_fbsize (void)
-{
-	ulong size;
-	int line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) / 8;
-
-	size = line_length * panel_info.vl_row;
-	size += PAGE_SIZE;
-
-	return size;
-}
 
 static int pxafb_init_mem (void *lcdbase, vidinfo_t *vid)
 {
@@ -577,6 +547,10 @@ static int pxafb_init (vidinfo_t *vid)
 	return 0;
 }
 
+/************************************************************************/
+/************************************************************************/
+
+#endif /* CONFIG_LCD */
 
 #ifdef CONFIG_LCDPANEL
 
@@ -603,9 +577,18 @@ static inline unsigned int get_pcd(unsigned long pixclock)
    return pcd & 0xFF ;
 }
 
+#ifdef CONFIG_LCD
 void set_lcd_panel( struct lcd_panel_info_t const *panel )
+#elif defined(CONFIG_LCD_MULTI)
+void init_pxa_fb( struct lcd_t *lcd )
+#endif
 {
+#if defined(CONFIG_LCD_MULTI)
+   struct lcd_panel_info_t const *panel = &lcd->info ;
+   vidinfo_t panel_info ;
+#endif
    int pixClock = panel->pixclock;
+
    panel_info.vl_col = panel->xres ;
    panel_info.vl_row = panel->yres ;
    panel_info.vl_clkp = panel->pclk_redg ;
@@ -650,12 +633,11 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    pxafb_setup_gpio(&panel_info);
    pxafb_enable_controller(&panel_info);
 
+#ifdef CONFIG_LCD
    cur_lcd_panel = panel ;
+#endif
 }
 
 #endif // dynamic LCD panel support
 
-/************************************************************************/
-/************************************************************************/
 
-#endif /* CONFIG_LCD */

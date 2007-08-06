@@ -86,9 +86,9 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 	void (*theKernel)(int zero, int arch, uint params);
 	image_header_t *hdr = &header;
 	bd_t *bd = gd->bd;
+   char *commandline = getenv ("bootargs");
 
-#ifdef CONFIG_CMDLINE_TAG
-	char *commandline = getenv ("bootargs");
+#if defined(CONFIG_CMDLINE_TAG) && defined(CONFIG_LCD)
    if( ( 0 != cur_lcd_panel ) && ( 0 != cur_lcd_panel->rotation ) )
    {
       char temp[80];

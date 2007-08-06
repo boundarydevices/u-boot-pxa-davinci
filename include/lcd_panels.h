@@ -82,9 +82,12 @@ extern struct lcd_panel_info_t const *find_lcd_panel( char const * name );
 // Each platform needs to define this routine, and  
 // set cur_lcd_panel within
 //
+#ifdef CONFIG_LCD
 void set_lcd_panel( struct lcd_panel_info_t const *panel );
 extern struct lcd_panel_info_t const *cur_lcd_panel ;
 void disable_lcd_panel( void );
+#endif
+
 void print_panel_info( struct lcd_panel_info_t const *panel );
 
 // parses panel info of the form: name,xres,yres,...

@@ -147,7 +147,9 @@ typedef struct vidinfo {
 	struct	pxafb_info pxa;
 } vidinfo_t;
 
+#ifdef CONFIG_LCD
 extern vidinfo_t panel_info;
+#endif
 
 #if defined( CONFIG_PXA250 )
 	#define PALETTEVAL_TYPE u16
@@ -169,7 +171,9 @@ typedef struct vidinfo {
 	u_char	vl_bpix;	/* Bits per pixel, 0 = 1, 1 = 2, 2 = 4, 3 = 8, 4 = 16 */
 } vidinfo_t;
 
+#ifdef CONFIG_LCD
 extern vidinfo_t panel_info;
+#endif
 
 #elif defined( CONFIG_IMX31 )
 
@@ -244,6 +248,7 @@ void	lcd_printf	(const char *fmt, ...);
 /* Calculate nr. of bits per pixel  and nr. of colors */
 #define NBITS(bit_code)		(1 << (bit_code))
 #define NCOLORS(bit_code)	(1 << NBITS(bit_code))
+int luminance( int red, int green, int blue );
 
 /************************************************************************/
 /* ** CONSOLE CONSTANTS							*/

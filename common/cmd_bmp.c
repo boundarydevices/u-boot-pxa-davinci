@@ -33,6 +33,11 @@
 
 #if (CONFIG_COMMANDS & CFG_CMD_BMP)
 
+#ifdef CONFIG_LCD_MULTI
+#include <lcd_multi.h>
+#endif
+
+#include <lcd.h>
 static int bmp_info (ulong addr);
 static int bmp_display (ulong addr, int x, int y);
 
@@ -183,8 +188,99 @@ static int bmp_display(ulong addr, int x, int y)
 #elif defined(CONFIG_VIDEO)
 	extern int video_display_bitmap (ulong, int, int);
 	return (video_display_bitmap (addr, x, y));
+#elif defined(CONFIG_LCD_MULTI)
+	ushort i, j;
+	uchar *fb;
+	bmp_image_t *bmp=(bmp_image_t *)addr ;
+	uchar *bmap;
+	ushort padded_line;
+	unsigned long width, height;
+	unsigned colors,bpix;
+	unsigned long compression;
+	int     maxLum = 0 ;
+	int     bgCol = 0 ;
+	int     minLum = 0xFFFF ;
+	int     fgCol = 0 ;
+
+	if (!((bmp->header.signature[0]=='B') &&
+		(bmp->header.signature[1]=='M'))) {
+		printf ("Error: no valid bmp image at %lx\n", addr);
+		return 1;
+	}
+
+	width = le32_to_cpu (bmp->header.width);
+	height = le32_to_cpu (bmp->header.height);
+	colors = 1<<le16_to_cpu (bmp->header.bit_count);
+	compression = le32_to_cpu (bmp->header.compression);
+
+	bpix = 8 ;
+
+	if ((bpix != 1) && (bpix != 8)) {
+		printf ("Error: %d bit/pixel mode not supported by U-Boot\n",
+			bpix);
+		return 1;
+	}
+
+	if (bpix != le16_to_cpu(bmp->header.bit_count)) {
+		printf ("Error: %d bit/pixel mode, but BMP has %d bit/pixel\n",
+			bpix,
+			le16_to_cpu(bmp->header.bit_count));
+		return 2;
+	}
+
+	if (bpix==8) {
+		unsigned long palette[256];
+		unsigned long* cmap = palette;
+      struct lcd_t *lcd = getPanel(getCurrentPanel());
+      if( ( 0 == lcd ) || ( 0 == lcd->set_palette ) ){
+         printf( "No current panel\n" );
+         return 3 ;
+      }
+printf( "current LCD: %ux%u at %p\n", lcd->info.xres, lcd->info.yres, lcd->fbAddr );
+
+		/* Set color map */
+		for (i=0; i<colors; ++i) {
+			int lum ;
+			bmp_color_table_entry_t cte = bmp->color_table[i];
+			*cmap++ = cte.blue | (cte.green << 8) | (cte.red << 16) | 0xFF000000;
+			lum = luminance( cte.red, cte.green, cte.blue );
+			if( lum > maxLum ) {
+				maxLum = lum ;
+				bgCol = i ;
+			}
+			if( lum < minLum ) {
+				minLum = lum ;
+				fgCol = i ;
+			}
+		}
+      lcd->set_palette( palette, colors);
+      lcd->colorCount = colors ;
+		printf( "bgcolor %u, fg %u\n", bgCol, fgCol );
+      lcd->bg = bgCol ;
+      lcd->fg = fgCol ;
+
+   	padded_line = (width+3)&~0x3;
+   	if ((x + width)>lcd->info.xres)
+   		width = lcd->info.xres - x;
+   	if ((y + height)>lcd->info.yres)
+   		height = lcd->info.yres - y;
+   
+   	bmap = (uchar *)bmp + le32_to_cpu (bmp->header.data_offset);
+   	fb   = ((uchar *)lcd->fbAddr) +((y + height - 1) * lcd->info.xres) + x;
+   //	printf("fb:0x%p,lcd_base:0x%p,x:%i,y:%i,width:%i,height:%i,colums:%i\n",
+   //		fb,lcd_base,x,y,width,height,panel_info.vl_lcd_line_length);
+   	for (i = 0; i < height; ++i) {
+   		for (j = 0; j < width ; j++)
+   			*fb++=*bmap++;
+   		bmap += (padded_line-width);
+   		fb   -= (width + lcd->info.xres);
+   	}
+	} 
+   else
+      printf( "Unsupported bit depth %u\n", bpix );
+
 #else
-# error bmp_display() requires CONFIG_LCD or CONFIG_VIDEO
+# error bmp_display() requires CONFIG_LCD, CONFIG_LCD_MULTI, or CONFIG_VIDEO
 #endif
 }
 
