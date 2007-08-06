@@ -553,4 +553,6 @@ int parse_panel_info( char const              *panelInfo, // input
    return 0 ;
 }
 
+#ifdef CONFIG_LCD
 struct lcd_panel_info_t const *cur_lcd_panel = 0 ;
+#endif

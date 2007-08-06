@@ -161,16 +161,7 @@ typedef struct vidinfo {
 	u_char	vl_bpix;	/* Bits per pixel, 0 = 1 */
 } vidinfo_t;
 
-#elif defined( CONFIG_SM501 )
-typedef struct vidinfo {
-	ushort	vl_col;		/* Number of columns (i.e. 640) */
-	ushort	vl_row;		/* Number of rows (i.e. 480) */
-	int 	vl_lcd_line_length;
-	u_char	vl_bpix;	/* Bits per pixel, 0 = 1, 1 = 2, 2 = 4, 3 = 8, 4 = 16 */
-} vidinfo_t;
-
 #elif defined(CONFIG_ATMEL_LCD)
-
 typedef struct vidinfo {
 	u_long vl_col;		/* Number of columns (i.e. 640) */
 	u_long vl_row;		/* Number of rows (i.e. 480) */
@@ -195,9 +186,17 @@ typedef struct vidinfo {
 
 } vidinfo_t;
 
+#elif defined( CONFIG_SM501 )
+typedef struct vidinfo {
+	ushort	vl_col;		/* Number of columns (i.e. 640) */
+	ushort	vl_row;		/* Number of rows (i.e. 480) */
+	int 	vl_lcd_line_length;
+	u_char	vl_bpix;	/* Bits per pixel, 0 = 1, 1 = 2, 2 = 4, 3 = 8, 4 = 16 */
+} vidinfo_t;
+
 #elif defined( CONFIG_IMX31 )
 /*
- * LCD controller stucture for PXA CPU
+ * LCD controller stucture
  */
 typedef struct vidinfo {
 	ushort	vl_col;		/* Number of columns (i.e. 640) */
@@ -208,7 +207,9 @@ typedef struct vidinfo {
 } vidinfo_t;
 #endif /* CONFIG_MPC823, CONFIG_PXA250 or CONFIG_MCC200 or CONFIG_ATMEL_LCD */
 
+#ifdef CONFIG_LCD
 extern vidinfo_t panel_info;
+#endif
 /* Video functions */
 
 #if defined(CONFIG_RBC823)
@@ -266,6 +267,7 @@ void	lcd_printf	(const char *fmt, ...);
 /* Calculate nr. of bits per pixel  and nr. of colors */
 #define NBITS(bit_code)		(1 << (bit_code))
 #define NCOLORS(bit_code)	(1 << NBITS(bit_code))
+int luminance( int red, int green, int blue );
 
 /************************************************************************/
 /* ** CONSOLE CONSTANTS							*/
