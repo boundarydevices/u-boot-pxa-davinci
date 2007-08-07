@@ -669,6 +669,19 @@ static unsigned long const *findFrequency
    return table ;
 }
 
+static unsigned long const bwPalette[] = {
+   0xffffff,
+   0
+};
+
+void lcd_init_fb( struct lcd_t *lcd )
+{
+   lcd->set_palette(bwPalette,sizeof(bwPalette)/sizeof(bwPalette[0]));
+   memset(lcd->fbAddr,0,lcd->fbMemSize);
+   lcd->fg = 1 ;
+   lcd->bg = 0 ;
+}
+
 void init_sm501_lcd( struct lcd_t *lcd )
 {
    struct lcd_panel_info_t *panel = &lcd->info ;
@@ -728,7 +741,6 @@ void init_sm501_lcd( struct lcd_t *lcd )
       useFastRAM();
 
    STUFFREG( dispctrlReg, reg_value );
-   SetPanelInfo(panel);
 
    /* Is CRT already enabled? */
    reg_value = READREG(crtctrlReg);
@@ -746,6 +758,7 @@ void init_sm501_lcd( struct lcd_t *lcd )
    lcd->set_palette = sm501_lcd_set_palette ;
    lcd->get_palette_color = sm501_lcd_get_palette_color ;
    lcd->disable = sm501_lcd_disable ;
+   lcd_init_fb(lcd);
 }
 
 static void sm501_crt_set_palette(unsigned long *colors, unsigned colorCount)
@@ -829,6 +842,7 @@ void init_sm501_crt( struct lcd_t *lcd )
    lcd->set_palette = sm501_crt_set_palette ;
    lcd->get_palette_color = sm501_crt_get_palette_color ;
    lcd->disable = sm501_crt_disable ;
+   lcd_init_fb(lcd);
 }
 #endif
 
