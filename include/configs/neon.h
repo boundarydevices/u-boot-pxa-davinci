@@ -140,7 +140,9 @@
  */
 #define CONFIG_NEON		1	/* on a Neon Board	    */
 #define CONFIG_SM501		1
-#define CONFIG_LCD		1
+#define PXALCD          1     /* Allow PXA display controller as well */
+// #define CONFIG_LCD		1
+#define CONFIG_LCD_MULTI 1
 
 #define CONFIG_MMC		1
 #define BOARD_LATE_INIT		1
@@ -388,13 +390,6 @@
 #define CFG_MCATT1_VAL		0x00010504
 #define CFG_MCIO0_VAL		0x00004715
 #define CFG_MCIO1_VAL		0x00004715
-
-#ifndef __ASSEMBLY__
-
-extern unsigned long const fbStart ;
-extern unsigned long       paletteRegs ;
-
-#endif  /* _ASMLANGUAGE */
 
 #endif
 

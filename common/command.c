@@ -73,7 +73,7 @@ do_echo (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 }
 
 U_BOOT_CMD(
-	echo,	CFG_MAXARGS,	1,	do_echo,
+	echo,	CFG_MAXARGS, 0,	do_echo,
  	"echo    - echo args to console\n",
  	"[args..]\n"
 	"    - echo args to console; \\c suppresses newline\n"
@@ -81,7 +81,7 @@ U_BOOT_CMD(
 
 #endif	/*  CFG_CMD_ECHO */
 
-#ifdef CONFIG_LCD
+#if defined( CONFIG_LCD ) || defined( CONFIG_LCD_MULTI )
 
 int
 do_lecho (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])

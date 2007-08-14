@@ -50,6 +50,45 @@
 #include <lcdvideo.h>
 #endif
 
+int luminance( int red, int green, int blue )
+{
+   // 
+   // I've seen a couple of different algorithms here:
+   // (max+min)/2
+/*
+
+   int max = MAX( red, MAX( green, blue ) );
+   int min = MIN( red, MIN( green, blue ) );
+   return (max+min)/2 ;
+*/
+
+   // A more mathematically-correct version
+// return (int)(c.R*0.3 + c.G*0.59+ c.B*0.11);
+
+   // Just return 'green'
+   // return green;
+
+   // and one that uses shifts and adds to come close to the above
+   //
+   //    red   = 5/16= 0.3125    == 1/4 + 1/16
+   //    green = 9/16= 0.5625    == 1/2 + 1/16
+   //    blue  = 1/8 = 0.125
+   //
+   if( 0 < red )
+      red = (red>>2) + (red>>4);
+   else
+      red = 0 ;
+   if( 0 < green )
+      green = (green>>1) + (green>>4) ;
+   else
+      green = 0 ;
+   if( 0 < blue )
+      blue = blue >> 3 ;
+   else
+      blue = 0 ;
+   return red+green+blue ;
+}
+
 #ifdef CONFIG_LCD
 
 /************************************************************************/
@@ -99,51 +138,6 @@ static void lcd_setbgcolor (int color);
 char lcd_is_enabled = 0;
 
 extern vidinfo_t panel_info;
-
-#ifdef	NOT_USED_SO_FAR
-static void lcd_getcolreg (ushort regno,
-				ushort *red, ushort *green, ushort *blue);
-static int lcd_getfgcolor (void);
-#endif	/* NOT_USED_SO_FAR */
-
-static int luminance( int red, int green, int blue )
-{
-   // 
-   // I've seen a couple of different algorithms here:
-   // (max+min)/2
-/*
-
-   int max = MAX( red, MAX( green, blue ) );
-   int min = MIN( red, MIN( green, blue ) );
-   return (max+min)/2 ;
-*/
-
-   // A more mathematically-correct version
-// return (int)(c.R*0.3 + c.G*0.59+ c.B*0.11);
-
-   // Just return 'green'
-   // return green;
-
-   // and one that uses shifts and adds to come close to the above
-   //
-   //    red   = 5/16= 0.3125    == 1/4 + 1/16
-   //    green = 9/16= 0.5625    == 1/2 + 1/16
-   //    blue  = 1/8 = 0.125
-   //
-   if( 0 < red )
-      red = (red>>2) + (red>>4);
-   else
-      red = 0 ;
-   if( 0 < green )
-      green = (green>>1) + (green>>4) ;
-   else
-      green = 0 ;
-   if( 0 < blue )
-      blue = blue >> 3 ;
-   else
-      blue = 0 ;
-   return red+green+blue ;
-}
 
 /************************************************************************/
 /*----------------------------------------------------------------------*/

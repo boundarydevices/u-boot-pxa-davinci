@@ -3,6 +3,7 @@
 #ifdef CONFIG_SM501
 #include <config.h>
 #include <common.h>
+#include <sm501_bd.h>
 #include <version.h>
 #include <stdarg.h>
 #include <linux/types.h>
@@ -37,7 +38,10 @@ unsigned long const mmioStart  = 0xFE00000 ;
 unsigned long const mmioLength = 0x00200000 ;
 unsigned long const lcdPaletteRegs = 0xFE80400 ;
 unsigned long const crtPaletteRegs = 0xFE80C00 ;
-unsigned long paletteRegs = 0xFE80400 ;
+
+#ifdef CONFIG_LCD
+unsigned long paletteRegs = lcdPaletteRegs ;
+#endif
 
 const unsigned int sm501_list1[]={
    0x0FE00000,
@@ -79,6 +83,7 @@ static unsigned const pm1ClockReg    = 0x0000004C ;
 static unsigned const miscTimReg     = 0x00000068 ;
 
 static unsigned const dispctrlReg    = 0x00080000 ;
+static unsigned const fbAddrReg      = 0x0008000c ;
 static unsigned const offsetReg      = 0x00080010 ;  // ((xres)<<16)+(xres),
 static unsigned const fbWidthReg     = 0x00080014 ;  // (xres<<16), 
 static unsigned const fbHeightReg    = 0x00080018 ;  // (yres<<16), 
@@ -102,6 +107,7 @@ static unsigned const crtFbVTotReg   = 0x00080214 ;
 static unsigned const crtFbVSynReg   = 0x00080218 ;
 
 #define DISPCRTL_ENABLE 4
+#define CRTCRTL_ENABLE 4
 
 #define CLOCK_ACTIVEHIGH 0
 #define CLOCK_ACTIVELOW  (1<<14)
@@ -141,6 +147,13 @@ const struct itemEntry lists[] = {
 	{sizeof(sm501_list5)>>2,sm501_list5}
 };
 
+void disable_sm501( void )
+{
+   STUFFREG(dispctrlReg,READREG(dispctrlReg)& ~(DISPCRTL_ENABLE));
+   STUFFREG(crtctrlReg,READREG(crtctrlReg)& ~(CRTCRTL_ENABLE));
+}
+
+#ifdef CONFIG_LCD
 int lcd_color_fg;
 int lcd_color_bg;
 
@@ -149,18 +162,6 @@ void *lcd_console_address;		/* Start of console buffer	*/
 
 short console_col;
 short console_row;
-
-
-ulong calc_fbsize (void)
-{
-   if( cur_lcd_panel )
-   {
-   	int line_length = (cur_lcd_panel->xres * NBITS (LCD_BPP)) / 8;
-      return ( cur_lcd_panel->yres * line_length ) + PAGE_SIZE ;
-   }
-   else
-      return 0 ;
-}
 
 void lcd_setcolreg (ushort regno, ushort red, ushort green, ushort blue)
 {
@@ -187,7 +188,6 @@ void lcd_ctrl_init	(void *lcdbase)
 	unsigned long val=0;
 	const struct itemEntry* l = lists;
 	int count = sizeof(lists)/sizeof(struct itemEntry);
-	printf( "sm501 init start\n");
 	
 	while (count) {
 		int cnt = l->cnt-1;
@@ -241,12 +241,13 @@ In bdlogo.bmp - offset 436 is pixel data
    STUFFREG( vTotalReg,      0x010700F0 );
    STUFFREG( vSyncReg,       0x00020100 );
 */
-	printf( "lcd_ctrl_init exit\n");
 }
 
 void lcd_enable	(void)
 {
 }
+
+#endif
 
 #define BIT29 (1<<29)
 #define BIT20 (1<<20)
@@ -408,12 +409,23 @@ unsigned const numFrequencies[] = {
    numCrtFrequencies
 };
 
+#define PANELCLOCKMASK  (0x3F<<24)
+#define CRTCLOCKMASK    (0x1F<<16)
+
 static unsigned long const clockMasks[] = {
-   0x3F<<24,
-   0x1F<<16
+   PANELCLOCKMASK,
+   CRTCLOCKMASK
 };
 
 #define XGA_PIXELS (1024*768)
+
+static void useFastRAM(void)
+{
+   STUFFREG( pm0ClockReg, READREG(pm0ClockReg)|0x10 ); // use 336 MHz input
+}
+
+
+#ifdef CONFIG_LCD
 
 static void updateCRT( unsigned long const           *freq,
                        struct lcd_panel_info_t const *panel )
@@ -440,11 +452,6 @@ static void updateCRT( unsigned long const           *freq,
 
    reg = READREG( miscCtrl ) & ~0x1000 ;
    STUFFREG( miscCtrl, reg );
-}
-
-static void useFastRAM(void)
-{
-   STUFFREG( pm0ClockReg, READREG(pm0ClockReg)|0x10 ); // use 336 MHz input
 }
 
 void set_lcd_panel( struct lcd_panel_info_t const *panel )
@@ -536,7 +543,7 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
       setClockReg( pm1ClockReg, reg );
       
       if (panel->crt) updateCRT( freq, panel );
-	  paletteRegs = lcdPaletteRegs ;
+         paletteRegs = lcdPaletteRegs ;
    }
 
    if(panel->xres*panel->yres > XGA_PIXELS)
@@ -558,4 +565,285 @@ void disable_lcd_panel( void )
    crtctrl  &= ~(DISPCRTL_ENABLE);
    STUFFREG( crtctrlReg, crtctrl );
 }
+
+#endif
+
+#ifdef CONFIG_LCD_MULTI
+static int initialized = 0 ;
+
+inline unsigned crtWidth( void )
+{
+   return READREG( crtFbOffsReg ) >> 16 ;
+}
+
+inline unsigned crtHeight( void )
+{
+   return ( READREG( crtFbVTotReg ) & 0x7ff ) + 1 ;
+}
+
+static void lcd_ctrl_init(void)
+{
+	unsigned long val=0;
+	const struct itemEntry* l = lists;
+	int count = sizeof(lists)/sizeof(struct itemEntry);
+	
+	while (count) {
+		int cnt = l->cnt-1;
+		const unsigned long* p = (unsigned long*)l->p;
+		volatile unsigned int* reg = (unsigned int*)(*p++);
+//		printf( "set regs: %p, cnt:%x, from %p, l:%p\n", reg, cnt, p,l );
+//		while (reg==0) {
+//		}
+		
+		while (cnt) {
+			val = *p++;
+//			printf( "set reg: %p = %x from %p\n", reg, val, p );
+			*reg++ = val;
+			cnt--;
+		}
+		count--;
+		l++;
+	}
+   initialized = 1 ; 
+}
+
+static void sm501_lcd_set_palette(unsigned long *colors, unsigned colorCount)
+{
+   if( colorCount > 256 )
+      colorCount = 256 ;
+   memcpy((void *)lcdPaletteRegs,colors,colorCount*sizeof(colors[0]));
+}
+
+static unsigned long sm501_lcd_get_palette_color(unsigned char idx)
+{
+   return ((unsigned long volatile *)lcdPaletteRegs)[idx];
+}
+
+static void sm501_lcd_disable(void)
+{
+   unsigned long dispctrl = READREG( dispctrlReg );
+   dispctrl &= ~(DISPCRTL_ENABLE); 
+   STUFFREG( dispctrlReg, dispctrl );
+}
+
+/*
+ * Return best frequency table entry
+ */
+static unsigned long const *findFrequency
+   ( unsigned long        frequency,
+     unsigned long const *table,
+     unsigned             count )
+{
+   unsigned long f, diffl, diffh ;
+   unsigned i ;
+   unsigned long low, high ;
+   
+   //
+   // linear scan for closest tableuency
+   //
+   for( i = 0 ; i < count ; i++, table += ENTRIESPERFREQ )
+   {
+      if( *table > frequency )
+         break;
+   }
+   
+   low  = (i > 0) 
+          ? table[0-ENTRIESPERFREQ]
+          : 0 ;
+   diffl = frequency - low ;
+   
+   high = (i < count ) ? *table : 0xFFFFFFFF ;
+   diffh = high - frequency ;
+   
+   if( diffh < diffl )
+   {
+      f = high ;
+   }
+   else
+   {
+      f = low ;
+      table -= ENTRIESPERFREQ ;
+   }
+
+   printf( "frequency %lu -> %u, source 0x%08X, divisor 0x%08X\n", f, table[1], table[2] );
+   return table ;
+}
+
+static unsigned long const bwPalette[] = {
+   0xffffff,
+   0
+};
+
+void lcd_init_fb( struct lcd_t *lcd )
+{
+   lcd->set_palette(bwPalette,sizeof(bwPalette)/sizeof(bwPalette[0]));
+   memset(lcd->fbAddr,0,lcd->fbMemSize);
+   lcd->fg = 1 ;
+   lcd->bg = 0 ;
+}
+
+void init_sm501_lcd( struct lcd_t *lcd )
+{
+   struct lcd_panel_info_t *panel = &lcd->info ;
+   unsigned long reg_value ;
+    
+   if( !initialized )
+      lcd_ctrl_init();
+
+   reg_value = READREG( dispctrlReg );
+   reg_value &= ~(CLOCK_ACTIVEMASK|LCDTYPE_MASK|LCD_SIGNAL_ENABLE|3);
+   if( !panel->pclk_redg ) reg_value |= CLOCK_ACTIVELOW ;
+   if( !panel->active ) reg_value |= LCDTYPE_STN12 ;
+   if (!panel->crt) reg_value |= LCD_SIGNAL_ENABLE;
+   reg_value |= 4;
+
+   STUFFREG( offsetReg,   ((panel->xres)<<16)+(panel->xres) );
+   STUFFREG( fbWidthReg,  (panel->xres<<16) );
+   STUFFREG( fbHeightReg, (panel->yres<<16) ); 
+   STUFFREG( brLocateReg, ((panel->yres-1)<<16)+(panel->xres-1) );
+   STUFFREG( hTotalReg,   (( panel->left_margin
+                            +panel->xres
+                            +panel->right_margin
+                            +panel->hsync_len - 1) << 16 )
+                          + panel->xres-1 );
+   STUFFREG( hSyncReg,    (panel->hsync_len<<16)+ (panel->xres+panel->left_margin-1) );
+   STUFFREG( vTotalReg,   (( panel->upper_margin
+                            +panel->yres
+                            +panel->lower_margin
+                            +panel->vsync_len-1 ) << 16 )
+                          + panel->yres-1 );
+   STUFFREG( vSyncReg,    (panel->vsync_len<<16) 
+                          + panel->yres+panel->upper_margin-1 );
+
+   if( panel->pixclock < numClockRegs )
+   {
+      unsigned long const *clk = clockRegs+(panel->pixclock*2);
+      setClockReg( curClockReg, *clk );
+      setClockReg( pm0ClockReg, *clk++ );
+      setClockReg( pm1ClockReg, *clk );
+   }
+   else
+   {
+      unsigned long reg ;
+      unsigned long const *tableEntry = findFrequency( panel->pixclock, panelFrequencies, numPanelFrequencies );
+
+      reg = READREG( curClockReg ) & ~(PANELCLOCKMASK);
+
+      reg |= tableEntry[1];
+      reg |= tableEntry[2];
+
+      setClockReg( curClockReg, reg );
+      setClockReg( pm0ClockReg, reg );
+      setClockReg( pm1ClockReg, reg );
+   }
+
+   if(panel->xres*panel->yres > XGA_PIXELS)
+      useFastRAM();
+
+   STUFFREG( dispctrlReg, reg_value );
+
+   /* Is CRT already enabled? */
+   reg_value = READREG(crtctrlReg);
+   if( 0 == ( reg_value & CRTCRTL_ENABLE ) ){
+      lcd->fbAddr = (void *)fbStart ;
+   } else {
+      unsigned const w = crtWidth(); 
+      unsigned const h = crtHeight();
+      lcd->fbAddr = (void *)(fbStart + w*h );
+   }
+   printf( "SM-501 LCD at %p\n", lcd->fbAddr );
+   STUFFREG(fbAddrReg, (unsigned long)lcd->fbAddr - fbStart );
+   lcd->fbMemSize = panel->xres*panel->yres ;
+
+   lcd->set_palette = sm501_lcd_set_palette ;
+   lcd->get_palette_color = sm501_lcd_get_palette_color ;
+   lcd->disable = sm501_lcd_disable ;
+   lcd_init_fb(lcd);
+}
+
+static void sm501_crt_set_palette(unsigned long *colors, unsigned colorCount)
+{
+   if( colorCount > 256 )
+      colorCount = 256 ;
+   memcpy((void *)crtPaletteRegs,colors,colorCount*sizeof(colors[0]));
+}
+
+static unsigned long sm501_crt_get_palette_color(unsigned char idx)
+{
+   return ((unsigned long volatile *)crtPaletteRegs)[idx];
+}
+
+static void sm501_crt_disable(void)
+{
+   unsigned long reg = READREG( crtctrlReg );
+   reg &= ~(CRTCRTL_ENABLE); 
+   STUFFREG( crtctrlReg, reg );
+}
+
+void init_sm501_crt( struct lcd_t *lcd )
+{
+   struct lcd_panel_info_t *panel = &lcd->info ;
+   unsigned long reg ;
+   unsigned long crtCtrl = 0x00010304 ; // FIFO 3 or more, enable CRT timing and data, 8-bit indexed
+   unsigned long const *tableEntry ;
+
+   if( !initialized )
+      lcd_ctrl_init();
+
+   printf( "Initialize SM-501 CRT to %ux%u here\n", lcd->info.xres, lcd->info.yres );
+   if ( !panel->pclk_redg ) crtCtrl |= (3<<14);     // horizontal and vertical phase
+   STUFFREG( crtFbAddrReg, 0 );
+   STUFFREG( crtFbOffsReg, ((panel->xres)<<16)+(panel->xres) );
+   STUFFREG( crtFbHTotReg, (( panel->left_margin
+                            +panel->xres
+                            +panel->right_margin
+                            +panel->hsync_len - 1) << 16 )
+                          + panel->xres-1 );
+   STUFFREG( crtFbHSynReg, (panel->hsync_len<<16)+ (panel->xres+panel->left_margin-1) );
+   STUFFREG( crtFbVTotReg, (( panel->upper_margin
+                            +panel->yres
+                            +panel->lower_margin
+                            +panel->vsync_len-1 ) << 16 )
+                          + panel->yres-1 );
+   STUFFREG( crtFbVSynReg,(panel->vsync_len<<16) 
+                          + panel->yres+panel->upper_margin-1 );
+   STUFFREG( crtctrlReg, crtCtrl );    // enable
+
+   reg = READREG( miscCtrl ) & ~0x1000 ;
+   STUFFREG( miscCtrl, reg );
+
+   /* Is panel already enabled? */
+   reg = READREG(dispctrlReg);
+   if( 0 == ( reg & DISPCRTL_ENABLE ) ){
+      lcd->fbAddr = (void *)fbStart ;
+   } else {
+      unsigned const w = READREG( fbWidthReg ) >> 16 ;
+      unsigned const h = READREG( fbHeightReg ) >> 16 ;
+      lcd->fbAddr = (void *)(fbStart + w*h );
+   }
+   printf( "SM-501 CRT at %p\n", lcd->fbAddr );
+   STUFFREG(crtFbAddrReg, (unsigned long)lcd->fbAddr - fbStart );
+
+   reg = READREG( curClockReg ) & ~(CRTCLOCKMASK);
+   tableEntry = findFrequency( panel->pixclock, crtFrequencies, numCrtFrequencies );
+
+   reg |= tableEntry[1];
+   reg |= tableEntry[2];
+
+   setClockReg( curClockReg, reg );
+   setClockReg( pm0ClockReg, reg );
+   setClockReg( pm1ClockReg, reg );
+
+   if(panel->xres*panel->yres > XGA_PIXELS)
+      useFastRAM();
+   
+   lcd->fbMemSize = panel->xres*panel->yres ;
+
+   lcd->set_palette = sm501_crt_set_palette ;
+   lcd->get_palette_color = sm501_crt_get_palette_color ;
+   lcd->disable = sm501_crt_disable ;
+   lcd_init_fb(lcd);
+}
+#endif
+
 #endif /* CONFIG_SM501 */
