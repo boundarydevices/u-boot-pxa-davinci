@@ -43,6 +43,36 @@
 
 #include <fat.h>
 
+int do_adler(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	char *ep;
+	unsigned long address ;
+	unsigned long count;
+        unsigned long result ;
+
+        if (argc < 3) {
+		printf ("usage: adler address length\n");
+		return 1;
+	}
+	address = simple_strtoul (argv[1], &ep, 16);
+        count = simple_strtoul (argv[2], &ep, 16);
+	if( 0 == count ){
+           printf( "Invalid address <%s>\n", argv[2] );
+        }
+
+        result = adler32(0, (Bytef *)address, count );
+        printf( "adler32 == 0x%08lx\n", result );
+
+        return 0 ;
+}
+
+U_BOOT_CMD(
+	adler,	3,	0,	do_adler,
+	"adler - perform adler (fast crc) on a memory range\n",
+	"address length \n"
+);
+
+
 
 block_dev_desc_t *get_dev (char* ifname, int dev)
 {
