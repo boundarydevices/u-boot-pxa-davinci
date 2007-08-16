@@ -421,7 +421,7 @@ static unsigned long const clockMasks[] = {
 
 static void useFastRAM(void)
 {
-   STUFFREG( pm0ClockReg, READREG(pm0ClockReg)|0x10 ); // use 336 MHz input
+//   STUFFREG( pm0ClockReg, READREG(pm0ClockReg)|0x10 ); // use 336 MHz input
 }
 
 
