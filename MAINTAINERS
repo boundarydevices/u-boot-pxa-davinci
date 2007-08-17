@@ -28,6 +28,7 @@ Pantelis Antoniou <panto@intracom.gr>
 Reinhard Arlt <reinhard.arlt@esd-electronics.com>
 
 	cpci5200		MPC5200
+	mecp5200		MPC5200
 	pf5200			MPC5200
 
 	CPCI750			PPC750FX/GX
@@ -157,7 +158,12 @@ Matthias Fuchs <matthias.fuchs@esd-electronics.com>
 	VOH405			PPC405EP
 	VOM405			PPC405EP
 	WUH405			PPC405EP
-	CMS700                  PPC405EP
+	CMS700			PPC405EP
+
+Niklaus Giger <niklaus.giger@netstal.com>
+
+	HCU4			PPC405GPr
+	HCU5			PPC440EPx
 
 Frank Gottschling <fgottschling@eltec.de>
 
@@ -177,6 +183,10 @@ Wolfgang Grandegger <wg@denx.de>
 Howard Gray <mvsensor@matrix-vision.de>
 
 	MVS1			MPC823
+
+Joe Hamman <joe.hamman@embeddedspecialties.com>
+
+	sbc8641d		MPC8641D
 
 Klaus Heydeck <heydeck@kieback-peter.de>
 
@@ -218,10 +228,13 @@ Jon Loeliger <jdl@freescale.com>
 	MPC8541CDS		MPC8541
 	MPC8555CDS		MPC8555
 
-Dan Malek <dan@embeddededge.com>
+	MPC8641HPCN		MPC8641D
 
-	STxGP3			MPC85xx
-	STxXTc			MPC8xx
+Dan Malek <dan@embeddedalley.com>
+
+	stxgp3			MPC85xx
+	stxssa			MPC85xx
+	stxxtc			MPC8xx
 
 Eran Man <eran@nbase.co.il>
 
@@ -244,6 +257,7 @@ Tolunay Orkun <torkun@nextio.com>
 John Otken <jotken@softadvances.com>
 
 	luan			PPC440SP
+	taihu			PPC405EP
 
 Keith Outwater <Keith_Outwater@mvis.com>
 
@@ -253,15 +267,6 @@ Keith Outwater <Keith_Outwater@mvis.com>
 Frank Panno <fpanno@delphintech.com>
 
 	ep8260			MPC8260
-
-Peter Pearse <peter.pearse@arm.com>
-	integratorcp		All current ARM supplied &
-				supported core modules
-				- see http://www.arm.com
-				/products/DevTools
-				/Hardware_Platforms.html
-	versatile		ARM926EJ-S
-	versatile		ARM926EJ-S
 
 Denis Peter <d.peter@mpl.ch>
 
@@ -275,20 +280,31 @@ Daniel Poirot <dan.poirot@windriver.com>
 
 Stefan Roese <sr@denx.de>
 
+	P3M7448			MPC7448
+
 	uc100			MPC857
 
 	TQM85xx			MPC8540/8541/8555/8560
 
+	acadia			PPC405EZ
+	alpr			PPC440GX
 	bamboo			PPC440EP
 	bunbinga		PPC405EP
 	ebony			PPC440GP
+	katmai			PPC440SPe
+	lwmon5			PPC440EPx
 	ocotea			PPC440GX
 	p3p440			PPC440GP
 	pcs440ep		PPC440EP
+	sequoia			PPC440EPx
 	sycamore		PPC405GPr
+	taishan			PPC440GX
 	walnut			PPC405GP
 	yellowstone		PPC440GR
 	yosemite		PPC440EP
+	zeus			PPC405EP
+
+	P3M750			PPC750FX/GX/GL
 
 Yusdi Santoso <yusdi_santoso@adaptec.com>
 
@@ -318,6 +334,11 @@ Rune Torgersen <runet@innovsys.com>
 
 	MPC8266ADS		MPC8266
 
+
+David Updegraff <dave@cray.com>
+
+	CRAYL1			PPC4xx
+
 Josef Wagner <Wagner@Microsys.de>
 
 	CPC45			MPC8245
@@ -330,6 +351,19 @@ Stephen Williams <steve@icarus.com>
 John Zhan <zhanz@sinovee.com>
 
 	svm_sc8xx		MPC8xx
+
+Timur Tabi <timur@freescale.com>
+
+	MPC8349E-mITX		MPC8349
+	MPC8349E-mITX-GP	MPC8349
+
+Kim Phillips <kim.phillips@freescale.com>
+
+	MPC8349EMDS		MPC8349
+
+Dave Liu <daveliu@freescale.com>
+
+	MPC8360EMDS		MPC8360
 
 -------------------------------------------------------------------------
 
@@ -347,7 +381,6 @@ Unknown / orphaned boards:
 	RPXClassic		MPC8xx
 	RPXlite			MPC8xx
 
-	CRAYL1			PPC4xx
 	ERIC			PPC4xx
 
 	MOUSSE			MPC824x
@@ -415,9 +448,18 @@ Gary Jennejohn <gj@denx.de>
 	smdk2400		ARM920T
 	trab			ARM920T
 
+Konstantin Kletschke <kletschke@synertronixx.de>
+	scb9328			ARM920T
+
 Nishant Kamat <nskamat@ti.com>
 
 	omap1610h2		ARM926EJS
+
+Sergey Kubushyn <ksi@koi8.net>
+
+	DV-EVM			ARM926EJS
+	SONATA			ARM926EJS
+	SCHMOOGIE		ARM926EJS
 
 Prakash Kumar <prakash@embedx.com>
 
@@ -432,6 +474,15 @@ Rolf Offermanns <rof@sysgo.de>
 
 	shannon			SA1100
 
+Peter Pearse <peter.pearse@arm.com>
+	integratorcp		All current ARM supplied &
+				supported core modules
+				-see http://www.arm.com
+				/products/DevTools
+				/Hardware_Platforms.html
+	versatile		ARM926EJ-S
+	versatile		ARM926EJ-S
+
 Dave Peverley <dpeverley@mpc-data.co.uk>
 
 	omap730p2		ARM926EJS
@@ -440,6 +491,7 @@ Stefan Roese <sr@denx.de>
 
 	ixdpg425		xscale
 	pdnb3			xscale
+	scpu			xscale
 
 Robert Schwebel <r.schwebel@pengutronix.de>
 
@@ -534,6 +586,11 @@ Yasushi Shoji <yashi@atmark-techno.com>
 
 	SUZAKU			MicroBlaze
 
+Michal Simek <monstr@monstr.eu>
+
+	ML401			MicroBlaze
+	XUPV2P			MicroBlaze
+
 #########################################################################
 # Coldfire Systems:							#
 #									#
@@ -548,6 +605,17 @@ Matthias Fuchs <matthias.fuchs@esd-electronics.com>
 Zachary P. Landau <zachary.landau@labxtechnologies.com>
 
 	r5200			mcf52x2
+
+#########################################################################
+# AVR32 Systems:							#
+#									#
+# Maintainer Name, Email Address					#
+#	Board			CPU					#
+#########################################################################
+
+Haavard Skinnemoen <hskinnemoen@atmel.com>
+
+	ATSTK1000		AT32AP7000
 
 #########################################################################
 # End of MAINTAINERS list						#

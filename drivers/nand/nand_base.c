@@ -72,7 +72,7 @@
 
 #include <common.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_NAND) && !defined(CFG_NAND_LEGACY)
+#if defined(CONFIG_CMD_NAND) && !defined(CFG_NAND_LEGACY)
 
 #include <malloc.h>
 #include <watchdog.h>
@@ -427,8 +427,9 @@ static int nand_block_bad(struct mtd_info *mtd, loff_t ofs, int getchip)
 	struct nand_chip *this = mtd->priv;
 	u16 bad;
 
+	page = (int)(ofs >> this->page_shift) & this->pagemask;
+
 	if (getchip) {
-		page = (int)(ofs >> this->page_shift);
 		chipnr = (int)(ofs >> this->chip_shift);
 
 		/* Grab the lock and see if the device is available */
@@ -436,18 +437,17 @@ static int nand_block_bad(struct mtd_info *mtd, loff_t ofs, int getchip)
 
 		/* Select the NAND device */
 		this->select_chip(mtd, chipnr);
-	} else
-		page = (int) ofs;
+	}
 
 	if (this->options & NAND_BUSWIDTH_16) {
-		this->cmdfunc (mtd, NAND_CMD_READOOB, this->badblockpos & 0xFE, page & this->pagemask);
+		this->cmdfunc (mtd, NAND_CMD_READOOB, this->badblockpos & 0xFE, page);
 		bad = cpu_to_le16(this->read_word(mtd));
 		if (this->badblockpos & 0x1)
 			bad >>= 1;
 		if ((bad & 0xFF) != 0xff)
 			res = 1;
 	} else {
-		this->cmdfunc (mtd, NAND_CMD_READOOB, this->badblockpos, page & this->pagemask);
+		this->cmdfunc (mtd, NAND_CMD_READOOB, this->badblockpos, page);
 		if (this->read_byte(mtd) != 0xff)
 			res = 1;
 	}
@@ -838,9 +838,9 @@ static int nand_wait(struct mtd_info *mtd, struct nand_chip *this, int state)
 	unsigned long	timeo;
 
 	if (state == FL_ERASING)
-		timeo = CFG_HZ * 400;
+ 		timeo = (CFG_HZ * 400) / 1000;
 	else
-		timeo = CFG_HZ * 20;
+		timeo = (CFG_HZ * 20) / 1000;
 
 	if ((state == FL_ERASING) && (this->options & NAND_IS_AND))
 		this->cmdfunc(mtd, NAND_CMD_STATUS_MULTI, -1, -1);
@@ -852,8 +852,8 @@ static int nand_wait(struct mtd_info *mtd, struct nand_chip *this, int state)
 	while (1) {
 		if (get_timer(0) > timeo) {
 			printf("Timeout!");
-			return 0;
-			}
+			return 0x01;
+		}
 
 		if (this->dev_ready) {
 			if (this->dev_ready(mtd))
@@ -1720,6 +1720,7 @@ static int nand_write_ecc (struct mtd_info *mtd, loff_t to, size_t len,
 				goto out;
 			}
 			*retlen = written;
+			bufstart = (u_char*) &buf[written];
 
 			ofs = autoplace ? mtd->oobavail : mtd->oobsize;
 			if (eccbuf)
@@ -2407,7 +2408,7 @@ int nand_scan (struct mtd_info *mtd, int maxchips)
 			mtd->oobblock = 1024 << (extid & 0x3);
 			extid >>= 2;
 			/* Calc oobsize */
-			mtd->oobsize = (8 << (extid & 0x03)) * (mtd->oobblock / 512);
+			mtd->oobsize = (8 << (extid & 0x01)) * (mtd->oobblock / 512);
 			extid >>= 2;
 			/* Calc blocksize. Blocksize is multiples of 64KiB */
 			mtd->erasesize = (64 * 1024)  << (extid & 0x03);
@@ -2477,7 +2478,9 @@ int nand_scan (struct mtd_info *mtd, int maxchips)
 	}
 
 	if (!nand_flash_ids[i].name) {
+#ifndef CFG_NAND_QUIET_TEST
 		printk (KERN_WARNING "No NAND device found!!!\n");
+#endif
 		this->select_chip(mtd, -1);
 		return 1;
 	}

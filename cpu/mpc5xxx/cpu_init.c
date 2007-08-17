@@ -123,7 +123,7 @@ void cpu_init_f (void)
 #endif
 
 #if defined(CFG_CS7_START) && defined(CFG_CS7_SIZE)
-	*(vu_long *)MPC5XXX_CS7_START = START_REG(CFG_CS5_START);
+	*(vu_long *)MPC5XXX_CS7_START = START_REG(CFG_CS7_START);
 	*(vu_long *)MPC5XXX_CS7_STOP = STOP_REG(CFG_CS7_START, CFG_CS7_SIZE);
 	addecr |= (1 << 27);
 #endif
@@ -156,21 +156,21 @@ void cpu_init_f (void)
 	*(vu_long *)(MPC5XXX_XLBARB + 0x40) |= (1 << 15);
 	*(vu_long *)(MPC5XXX_XLBARB + 0x70) = CFG_SDRAM_BASE | 0x1d;
 
-# if defined(CFG_IPBSPEED_133)
+# if defined(CFG_IPBCLK_EQUALS_XLBCLK)
 	/* Motorola reports IPB should better run at 133 MHz. */
 	*(vu_long *)MPC5XXX_ADDECR |= 1;
 	/* pci_clk_sel = 0x02, ipb_clk_sel = 0x00; */
 	addecr = *(vu_long *)MPC5XXX_CDM_CFG;
 	addecr &= ~0x103;
-#  if defined(CFG_PCISPEED_66)
+#  if defined(CFG_PCICLK_EQUALS_IPBCLK_DIV2)
 	/* pci_clk_sel = 0x01 -> IPB_CLK/2 */
 	addecr |= 0x01;
 #  else
 	/* pci_clk_sel = 0x02 -> XLB_CLK/4 = IPB_CLK/4 */
 	addecr |= 0x02;
-#  endif /* CFG_PCISPEED_66 */
+#  endif /* CFG_PCICLK_EQUALS_IPBCLK_DIV2 */
 	*(vu_long *)MPC5XXX_CDM_CFG = addecr;
-# endif	/* CFG_IPBSPEED_133 */
+# endif	/* CFG_IPBCLK_EQUALS_XLBCLK */
 	/* Configure the XLB Arbiter */
 	*(vu_long *)MPC5XXX_XLBARB_MPRIEN = 0xff;
 	*(vu_long *)MPC5XXX_XLBARB_MPRIVAL = 0x11111111;
@@ -198,7 +198,7 @@ int cpu_init_r (void)
 	/* route critical ints to normal ints */
 	*(vu_long *)MPC5XXX_ICTL_EXT |= 0x00000001;
 
-#if (CONFIG_COMMANDS & CFG_CMD_NET) && defined(CONFIG_MPC5xxx_FEC)
+#if defined(CONFIG_CMD_NET) && defined(CONFIG_MPC5xxx_FEC)
 	/* load FEC microcode */
 	loadtask(0, 2);
 #endif

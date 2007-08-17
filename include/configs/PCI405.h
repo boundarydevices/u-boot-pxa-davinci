@@ -1,6 +1,9 @@
 /*
+ * (C) Copyright 2007
+ * Matthias Fuchs, esd gmbh, matthias.fuchs@esd-electronics.com
+ *
  * (C) Copyright 2001-2004
- * Stefan Roese, esd gmbh germany, stefan.roese@esd-electronics.com
+ * Stefan Roese, DENX Software Engineering, sr@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -32,8 +35,6 @@
  * High Level Configuration Options
  * (easy to change)
  */
-#define CONFIG_IDENT_STRING     " $Name: esd_PCI405_05_07_28 $"
-
 #define CONFIG_405GP		1	/* This is a PPC405 CPU		*/
 #define CONFIG_4xx		1	/* ...member of PPC4xx family	*/
 #define CONFIG_PCI405		1	/* ...on a PCI405 board		*/
@@ -53,9 +54,9 @@
 	"mem_linux=14336k\0"					        \
 	"optargs=panic=0\0"					        \
 	"ramargs=setenv bootargs mem=$mem_linux root=/dev/ram rw\0"	\
-	"addcon=setenv bootargs $bootargs console=ttyS0,$baudrate $optargs\0" \
+	"addcons=setenv bootargs $bootargs console=ttyS0,$baudrate $optargs\0" \
 	""
-#define	CONFIG_BOOTCOMMAND      "run ramargs;run addcon;loadpci"
+#define	CONFIG_BOOTCOMMAND      "run ramargs;run addcons;loadpci"
 
 #define CONFIG_PREBOOT                  /* enable preboot variable      */
 
@@ -67,17 +68,29 @@
 
 #define CONFIG_RTC_M48T35A	1		/* ST Electronics M48 timekeeper */
 
-#define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
-				CFG_CMD_PCI	| \
-				CFG_CMD_IRQ	| \
-				CFG_CMD_ELF	| \
-				CFG_CMD_DATE	| \
-				CFG_CMD_I2C	| \
-				CFG_CMD_BSP	| \
-				CFG_CMD_EEPROM	)
 
-/* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
-#include <cmd_confdefs.h>
+/*
+ * BOOTP options
+ */
+#define CONFIG_BOOTP_BOOTFILESIZE
+#define CONFIG_BOOTP_BOOTPATH
+#define CONFIG_BOOTP_GATEWAY
+#define CONFIG_BOOTP_HOSTNAME
+
+
+/*
+ * Command line configuration.
+ */
+#include <config_cmd_default.h>
+
+#define CONFIG_CMD_PCI
+#define CONFIG_CMD_IRQ
+#define CONFIG_CMD_ELF
+#define CONFIG_CMD_DATE
+#define CONFIG_CMD_I2C
+#define CONFIG_CMD_BSP
+#define CONFIG_CMD_EEPROM
+
 
 #undef	CONFIG_WATCHDOG			/* watchdog disabled		*/
 
@@ -96,7 +109,7 @@
 #define CFG_PROMPT_HUSH_PS2	"> "
 #endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CFG_CBSIZE	1024		/* Console I/O Buffer Size	*/
 #else
 #define CFG_CBSIZE	256		/* Console I/O Buffer Size	*/
@@ -243,7 +256,7 @@
  */
 #define CFG_DCACHE_SIZE		8192	/* For AMCC 405 CPUs			*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/
 #endif
 

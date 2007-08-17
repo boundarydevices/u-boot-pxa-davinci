@@ -133,9 +133,6 @@
 ////////////
 /* #define CONFIG_BOOTP_MASK	CONFIG_BOOTP_DEFAULT */
 
-/* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
-#include <cmd_confdefs.h>
-
 /* Use the new NAND code. (BOARDLIBS = drivers/nand/libnand.a required) */
 #define CFG_MAX_NAND_DEVICE	1	/* Max number of NAND devices */
 #define NAND_MAX_CHIPS		1

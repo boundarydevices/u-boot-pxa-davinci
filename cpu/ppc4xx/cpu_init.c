@@ -25,14 +25,12 @@
 #include <watchdog.h>
 #include <ppc4xx_enet.h>
 #include <asm/processor.h>
+#include <asm/gpio.h>
 #include <ppc4xx.h>
 
 #if defined(CONFIG_405GP)  || defined(CONFIG_405EP)
 DECLARE_GLOBAL_DATA_PTR;
 #endif
-
-
-#define mtebc(reg, data)  mtdcr(ebccfga,reg);mtdcr(ebccfgd,data)
 
 #ifdef CFG_INIT_DCACHE_CS
 # if (CFG_INIT_DCACHE_CS == 0)
@@ -101,118 +99,6 @@ DECLARE_GLOBAL_DATA_PTR;
 # endif
 #endif /* CFG_INIT_DCACHE_CS */
 
-#if defined(CFG_440_GPIO_TABLE)
-gpio_param_s gpio_tab[GPIO_GROUP_MAX][GPIO_MAX] = CFG_440_GPIO_TABLE;
-
-void set_chip_gpio_configuration(gpio_param_s (*gpio_tab)[GPIO_GROUP_MAX][GPIO_MAX])
-{
-	unsigned char i=0, j=0, reg_offset = 0, gpio_core;
-	unsigned long gpio_reg, gpio_core_add;
-
-	for (gpio_core=0; gpio_core<GPIO_GROUP_MAX; gpio_core++) {
-		j = 0;
-		reg_offset = 0;
-		/* GPIO config of the GPIOs 0 to 31 */
-		for (i=0; i<GPIO_MAX; i++, j++) {
-			if (i == GPIO_MAX/2) {
-				reg_offset = 4;
-				j = i-16;
-			}
-
-			gpio_core_add = (*gpio_tab)[gpio_core][i].add;
-
-			if (((*gpio_tab)[gpio_core][i].in_out == GPIO_IN) ||
-			     ((*gpio_tab)[gpio_core][i].in_out == GPIO_BI)) {
-
-				switch ((*gpio_tab)[gpio_core][i].alt_nb) {
-				case GPIO_SEL:
-					break;
-
-				case GPIO_ALT1:
-					gpio_reg = in32(GPIO_IS1(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					gpio_reg = gpio_reg | (GPIO_IN_SEL >> (j*2));
-					out32(GPIO_IS1(gpio_core_add+reg_offset), gpio_reg);
-					break;
-
-				case GPIO_ALT2:
-					gpio_reg = in32(GPIO_IS2(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					gpio_reg = gpio_reg | (GPIO_IN_SEL >> (j*2));
-					out32(GPIO_IS2(gpio_core_add+reg_offset), gpio_reg);
-					break;
-
-				case GPIO_ALT3:
-					gpio_reg = in32(GPIO_IS3(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					gpio_reg = gpio_reg | (GPIO_IN_SEL >> (j*2));
-					out32(GPIO_IS3(gpio_core_add+reg_offset), gpio_reg);
-					break;
-				}
-			}
-
-			if (((*gpio_tab)[gpio_core][i].in_out == GPIO_OUT) ||
-			     ((*gpio_tab)[gpio_core][i].in_out == GPIO_BI)) {
-
-				switch ((*gpio_tab)[gpio_core][i].alt_nb) {
-				case GPIO_SEL:
-					if (gpio_core == GPIO0) {
-						gpio_reg = in32(GPIO0_TCR) | (0x80000000 >> (j));
-						out32(GPIO0_TCR, gpio_reg);
-					}
-
-					if (gpio_core == GPIO1) {
-						gpio_reg = in32(GPIO1_TCR) | (0x80000000 >> (j));
-						out32(GPIO1_TCR, gpio_reg);
-					}
-
-					gpio_reg = in32(GPIO_OS(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					out32(GPIO_OS(gpio_core_add+reg_offset), gpio_reg);
-					gpio_reg = in32(GPIO_TS(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					out32(GPIO_TS(gpio_core_add+reg_offset), gpio_reg);
-					break;
-
-				case GPIO_ALT1:
-					gpio_reg = in32(GPIO_OS(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					gpio_reg = gpio_reg | (GPIO_ALT1_SEL >> (j*2));
-					out32(GPIO_OS(gpio_core_add+reg_offset), gpio_reg);
-					gpio_reg = in32(GPIO_TS(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					gpio_reg = gpio_reg | (GPIO_ALT1_SEL >> (j*2));
-					out32(GPIO_TS(gpio_core_add+reg_offset), gpio_reg);
-					break;
-
-				case GPIO_ALT2:
-					gpio_reg = in32(GPIO_OS(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					gpio_reg = gpio_reg | (GPIO_ALT2_SEL >> (j*2));
-					out32(GPIO_OS(gpio_core_add+reg_offset), gpio_reg);
-					gpio_reg = in32(GPIO_TS(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					gpio_reg = gpio_reg | (GPIO_ALT2_SEL >> (j*2));
-					out32(GPIO_TS(gpio_core_add+reg_offset), gpio_reg);
-					break;
-
-				case GPIO_ALT3:
-					gpio_reg = in32(GPIO_OS(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					gpio_reg = gpio_reg | (GPIO_ALT3_SEL >> (j*2));
-					out32(GPIO_OS(gpio_core_add+reg_offset), gpio_reg);
-					gpio_reg = in32(GPIO_TS(gpio_core_add+reg_offset))
-						& ~(GPIO_MASK >> (j*2));
-					gpio_reg = gpio_reg | (GPIO_ALT3_SEL >> (j*2));
-					out32(GPIO_TS(gpio_core_add+reg_offset), gpio_reg);
-					break;
-				}
-			}
-		}
-	}
-}
-#endif /* CFG_440_GPIO_TABLE */
-
 /*
  * Breath some life into the CPU...
  *
@@ -222,17 +108,27 @@ void set_chip_gpio_configuration(gpio_param_s (*gpio_tab)[GPIO_GROUP_MAX][GPIO_M
 void
 cpu_init_f (void)
 {
+#if defined(CONFIG_WATCHDOG)
+	unsigned long val;
+#endif
+
 #if defined(CONFIG_405EP)
 	/*
 	 * GPIO0 setup (select GPIO or alternate function)
 	 */
-	out32(GPIO0_OSRH, CFG_GPIO0_OSRH);   /* output select */
+#if defined(CFG_GPIO0_OR)
+	out32(GPIO0_OR, CFG_GPIO0_OR);		/* set initial state of output pins	*/
+#endif
+#if defined(CFG_GPIO0_ODR)
+	out32(GPIO0_ODR, CFG_GPIO0_ODR);	/* open-drain select			*/
+#endif
+	out32(GPIO0_OSRH, CFG_GPIO0_OSRH);	/* output select			*/
 	out32(GPIO0_OSRL, CFG_GPIO0_OSRL);
-	out32(GPIO0_ISR1H, CFG_GPIO0_ISR1H); /* input select */
+	out32(GPIO0_ISR1H, CFG_GPIO0_ISR1H);	/* input select				*/
 	out32(GPIO0_ISR1L, CFG_GPIO0_ISR1L);
-	out32(GPIO0_TSRH, CFG_GPIO0_TSRH);   /* three-state select */
+	out32(GPIO0_TSRH, CFG_GPIO0_TSRH);	/* three-state select			*/
 	out32(GPIO0_TSRL, CFG_GPIO0_TSRL);
-	out32(GPIO0_TCR, CFG_GPIO0_TCR);     /* enable output driver for outputs */
+	out32(GPIO0_TCR, CFG_GPIO0_TCR);	/* enable output driver for outputs	*/
 
 	/*
 	 * Set EMAC noise filter bits
@@ -241,7 +137,7 @@ cpu_init_f (void)
 #endif /* CONFIG_405EP */
 
 #if defined(CFG_440_GPIO_TABLE)
-	set_chip_gpio_configuration(&gpio_tab);
+	gpio_set_chip_configuration();
 #endif /* CFG_440_GPIO_TABLE */
 
 	/*
@@ -249,14 +145,15 @@ cpu_init_f (void)
 	 */
 #if (defined(CFG_EBC_PB0AP) && defined(CFG_EBC_PB0CR))
 #if (defined(CONFIG_405GP) || defined(CONFIG_405CR) || \
-     defined(CONFIG_405EP) || defined(CONFIG_405))
+     defined(CONFIG_405EP) || defined(CONFIG_405EZ) || \
+     defined(CONFIG_405))
 	/*
 	 * Move the next instructions into icache, since these modify the flash
 	 * we are running from!
 	 */
 	asm volatile("	bl	0f"		::: "lr");
 	asm volatile("0:	mflr	3"		::: "r3");
-	asm volatile("	addi 	4, 0, 14"	::: "r4");
+	asm volatile("	addi	4, 0, 14"	::: "r4");
 	asm volatile("	mtctr	4"		::: "ctr");
 	asm volatile("1:	icbt	0, 3");
 	asm volatile("	addi	3, 3, 32"	::: "r3");
@@ -306,14 +203,22 @@ cpu_init_f (void)
 	mtebc(pb7cr, CFG_EBC_PB7CR);
 #endif
 
-#if defined(CONFIG_WATCHDOG)
-	unsigned long val;
+#if defined (CFG_EBC_CFG)
+	mtebc(EBC0_CFG, CFG_EBC_CFG);
+#endif
 
+#if defined(CONFIG_WATCHDOG)
 	val = mfspr(tcr);
 #if defined(CONFIG_440EP) || defined(CONFIG_440GR)
 	val |= 0xb8000000;      /* generate system reset after 1.34 seconds */
+#elif defined(CONFIG_440EPX)
+	val |= 0xb0000000;      /* generate system reset after 1.34 seconds */
 #else
 	val |= 0xf0000000;      /* generate system reset after 2.684 seconds */
+#endif
+#if defined(CFG_4xx_RESET_TYPE)
+	val &= ~0x30000000;			/* clear WRC bits */
+	val |= CFG_4xx_RESET_TYPE << 28;	/* set board specific WRC type */
 #endif
 	mtspr(tcr, val);
 

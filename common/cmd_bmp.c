@@ -31,7 +31,7 @@
 #include <asm/byteorder.h>
 #include <malloc.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_BMP)
+#if defined(CONFIG_CMD_BMP)
 
 #ifdef CONFIG_LCD_MULTI
 #include <lcd_multi.h>
@@ -284,4 +284,4 @@ printf( "current LCD: %ux%u at %p\n", lcd->info.xres, lcd->info.yres, lcd->fbAdd
 #endif
 }
 
-#endif /* (CONFIG_COMMANDS & CFG_CMD_BMP) */
+#endif /* defined(CONFIG_CMD_BMP) */

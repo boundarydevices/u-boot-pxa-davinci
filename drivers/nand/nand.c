@@ -23,7 +23,7 @@
 
 #include <common.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_NAND) && !defined(CFG_NAND_LEGACY)
+#if defined(CONFIG_CMD_NAND) && !defined(CFG_NAND_LEGACY)
 
 #include <nand.h>
 
@@ -39,7 +39,7 @@ static ulong base_address[CFG_MAX_NAND_DEVICE] = CFG_NAND_BASE_LIST;
 
 static const char default_nand_name[] = "nand";
 
-extern void board_nand_init(struct nand_chip *nand);
+extern int board_nand_init(struct nand_chip *nand);
 
 static void nand_init_chip(struct mtd_info *mtd, struct nand_chip *nand,
 			   ulong base_addr)
@@ -47,13 +47,16 @@ static void nand_init_chip(struct mtd_info *mtd, struct nand_chip *nand,
 	mtd->priv = nand;
 
 	nand->IO_ADDR_R = nand->IO_ADDR_W = (void  __iomem *)base_addr;
-	board_nand_init(nand);
-
-	if (nand_scan(mtd, 1) == 0) {
-		if (!mtd->name)
-			mtd->name = (char *)default_nand_name;
-	} else
+	if (board_nand_init(nand) == 0) {
+		if (nand_scan(mtd, 1) == 0) {
+			if (!mtd->name)
+				mtd->name = (char *)default_nand_name;
+		} else
+			mtd->name = NULL;
+	} else {
 		mtd->name = NULL;
+		mtd->size = 0;
+	}
 
 }
 
@@ -68,6 +71,13 @@ void nand_init(void)
 			nand_curr_device = i;
 	}
 	printf("%lu MiB\n", size / (1024 * 1024));
+
+#ifdef CFG_NAND_SELECT_DEVICE
+	/*
+	 * Select the chip in the board/cpu specific driver
+	 */
+	board_nand_select_device(nand_info[nand_curr_device].priv, nand_curr_device);
+#endif
 }
 
 #endif

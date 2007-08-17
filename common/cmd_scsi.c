@@ -34,7 +34,7 @@
 #include <image.h>
 #include <pci.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_SCSI)
+#if defined(CONFIG_CMD_SCSI)
 
 #ifdef CONFIG_SCSI_SYM53C8XX
 #define SCSI_VEND_ID	0x1000
@@ -43,8 +43,13 @@
 #else
 #define SCSI_DEV_ID		CONFIG_SCSI_DEV_ID
 #endif
+#elif defined CONFIG_SATA_ULI5288
+
+#define SCSI_VEND_ID 0x10b9
+#define SCSI_DEV_ID  0x5288
+
 #else
-#error CONFIG_SCSI_SYM53C8XX must be defined
+#error no scsi device defined
 #endif
 
 
@@ -69,7 +74,7 @@ void scsi_setup_inquiry(ccb * pccb);
 void scsi_ident_cpy (unsigned char *dest, unsigned char *src, unsigned int len);
 
 
-ulong scsi_read(int device, ulong blknr, ulong blkcnt, ulong *buffer);
+ulong scsi_read(int device, ulong blknr, ulong blkcnt, void *buffer);
 
 
 /*********************************************************************************
@@ -189,7 +194,7 @@ void scsi_init(void)
 
 block_dev_desc_t * scsi_get_dev(int dev)
 {
-	return((block_dev_desc_t *)&scsi_dev_desc[dev]);
+	return (dev < CFG_SCSI_MAX_DEVICE) ? &scsi_dev_desc[dev] : NULL;
 }
 
 
@@ -243,7 +248,7 @@ int do_scsiboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		}
 		part = simple_strtoul(++ep, NULL, 16);
 	}
-	if (get_partition_info (scsi_dev_desc, part, &info)) {
+	if (get_partition_info (&scsi_dev_desc[dev], part, &info)) {
 		printf("error reading partinfo\n");
 		return 1;
 	}
@@ -419,7 +424,7 @@ int do_scsi (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 #define SCSI_MAX_READ_BLK 0xFFFF /* almost the maximum amount of the scsi_ext command.. */
 
-ulong scsi_read(int device, ulong blknr, ulong blkcnt, ulong *buffer)
+ulong scsi_read(int device, ulong blknr, ulong blkcnt, void *buffer)
 {
 	ulong start,blks, buf_addr;
 	unsigned short smallblks;
@@ -604,4 +609,4 @@ U_BOOT_CMD(
 	"loadAddr dev:part\n"
 );
 
-#endif /* #if (CONFIG_COMMANDS & CFG_CMD_SCSI) */
+#endif

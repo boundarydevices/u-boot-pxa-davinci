@@ -94,9 +94,9 @@
  * network support enabled.
  * Remark: CONFIG_405 describes Xilinx PPC405 FPGA without EMAC controller!
  */
-#if (CONFIG_COMMANDS & CFG_CMD_NET) && !defined(CONFIG_405) && !defined(CONFIG_IOP480)
+#if defined(CONFIG_CMD_NET) && !defined(CONFIG_405) && !defined(CONFIG_IOP480)
 
-#if !(defined(CONFIG_MII) || (CONFIG_COMMANDS & CFG_CMD_MII))
+#if !(defined(CONFIG_MII) || defined(CONFIG_CMD_MII))
 #error "CONFIG_MII has to be defined!"
 #endif
 
@@ -130,7 +130,17 @@
 #define BI_PHYMODE_NONE	 0
 #define BI_PHYMODE_ZMII	 1
 #define BI_PHYMODE_RGMII 2
+#define BI_PHYMODE_GMII  3
+#define BI_PHYMODE_RTBI  4
+#define BI_PHYMODE_TBI   5
+#if defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
+#define BI_PHYMODE_SMII  6
+#define BI_PHYMODE_MII   7
+#endif
 
+#if defined(CONFIG_440SPE) || defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
+#define SDR0_MFR_ETH_CLK_SEL_V(n)	((0x01<<27) / (n+1))
+#endif
 
 /*-----------------------------------------------------------------------------+
  * Global variables. TX and RX descriptors and buffers.
@@ -154,6 +164,11 @@ struct eth_device *emac0_dev = NULL;
 #define LAST_EMAC_NUM	2
 #else
 #define LAST_EMAC_NUM	1
+#endif
+
+/* normal boards start with EMAC0 */
+#if !defined(CONFIG_EMAC_NR_START)
+#define CONFIG_EMAC_NR_START	0
 #endif
 
 /*-----------------------------------------------------------------------------+
@@ -181,7 +196,7 @@ static void ppc_4xx_eth_halt (struct eth_device *dev)
 {
 	EMAC_4XX_HW_PST hw_p = dev->priv;
 	uint32_t failsafe = 10000;
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_440SPE) || defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 	unsigned long mfr;
 #endif
 
@@ -205,19 +220,19 @@ static void ppc_4xx_eth_halt (struct eth_device *dev)
 	}
 
 	/* EMAC RESET */
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_440SPE) || defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 	/* provide clocks for EMAC internal loopback  */
 	mfsdr (sdr_mfr, mfr);
-	mfr |= 0x08000000;
+	mfr |= SDR0_MFR_ETH_CLK_SEL_V(hw_p->devnum);
 	mtsdr(sdr_mfr, mfr);
 #endif
 
 	out32 (EMAC_M0 + hw_p->hw_addr, EMAC_M0_SRST);
 
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_440SPE) || defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 	/* remove clocks for EMAC internal loopback  */
 	mfsdr (sdr_mfr, mfr);
-	mfr &= ~0x08000000;
+	mfr &= ~SDR0_MFR_ETH_CLK_SEL_V(hw_p->devnum);
 	mtsdr(sdr_mfr, mfr);
 #endif
 
@@ -254,10 +269,10 @@ int ppc_4xx_eth_setup_bridge(int devnum, bd_t * bis)
 		bis->bi_phymode[3] = BI_PHYMODE_ZMII;
 		break;
 	case 2:
-		zmiifer = ZMII_FER_SMII << ZMII_FER_V(0);
-		zmiifer = ZMII_FER_SMII << ZMII_FER_V(1);
-		zmiifer = ZMII_FER_SMII << ZMII_FER_V(2);
-		zmiifer = ZMII_FER_SMII << ZMII_FER_V(3);
+		zmiifer |= ZMII_FER_SMII << ZMII_FER_V(0);
+		zmiifer |= ZMII_FER_SMII << ZMII_FER_V(1);
+		zmiifer |= ZMII_FER_SMII << ZMII_FER_V(2);
+		zmiifer |= ZMII_FER_SMII << ZMII_FER_V(3);
 		bis->bi_phymode[0] = BI_PHYMODE_ZMII;
 		bis->bi_phymode[1] = BI_PHYMODE_ZMII;
 		bis->bi_phymode[2] = BI_PHYMODE_ZMII;
@@ -317,9 +332,61 @@ int ppc_4xx_eth_setup_bridge(int devnum, bd_t * bis)
 	out32 (RGMII_FER, rmiifer);
 
 	return ((int)pfc1);
-
 }
 #endif	/* CONFIG_440_GX */
+
+#if defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
+int ppc_4xx_eth_setup_bridge(int devnum, bd_t * bis)
+{
+	unsigned long zmiifer=0x0;
+	unsigned long pfc1;
+
+	mfsdr(sdr_pfc1, pfc1);
+	pfc1 &= SDR0_PFC1_SELECT_MASK;
+
+	switch (pfc1) {
+	case SDR0_PFC1_SELECT_CONFIG_2:
+		/* 1 x GMII port */
+		out32 (ZMII_FER, 0x00);
+		out32 (RGMII_FER, 0x00000037);
+		bis->bi_phymode[0] = BI_PHYMODE_GMII;
+		bis->bi_phymode[1] = BI_PHYMODE_NONE;
+		break;
+	case SDR0_PFC1_SELECT_CONFIG_4:
+		/* 2 x RGMII ports */
+		out32 (ZMII_FER, 0x00);
+		out32 (RGMII_FER, 0x00000055);
+		bis->bi_phymode[0] = BI_PHYMODE_RGMII;
+		bis->bi_phymode[1] = BI_PHYMODE_RGMII;
+		break;
+	case SDR0_PFC1_SELECT_CONFIG_6:
+		/* 2 x SMII ports */
+		out32 (ZMII_FER,
+		       ((ZMII_FER_SMII) << ZMII_FER_V(0)) |
+		       ((ZMII_FER_SMII) << ZMII_FER_V(1)));
+		out32 (RGMII_FER, 0x00000000);
+		bis->bi_phymode[0] = BI_PHYMODE_SMII;
+		bis->bi_phymode[1] = BI_PHYMODE_SMII;
+		break;
+	case SDR0_PFC1_SELECT_CONFIG_1_2:
+		/* only 1 x MII supported */
+		out32 (ZMII_FER, (ZMII_FER_MII) << ZMII_FER_V(0));
+		out32 (RGMII_FER, 0x00000000);
+		bis->bi_phymode[0] = BI_PHYMODE_MII;
+		bis->bi_phymode[1] = BI_PHYMODE_NONE;
+		break;
+	default:
+		break;
+	}
+
+	/* Ensure we setup mdio for this devnum and ONLY this devnum */
+	zmiifer = in32 (ZMII_FER);
+	zmiifer |= (ZMII_FER_MDI) << ZMII_FER_V(devnum);
+	out32 (ZMII_FER, zmiifer);
+
+	return ((int)0x0);
+}
+#endif	/* CONFIG_440EPX */
 
 static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 {
@@ -332,13 +399,16 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 	unsigned mode_reg;
 	unsigned short devnum;
 	unsigned short reg_short;
-#if defined(CONFIG_440GX) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)
+#if defined(CONFIG_440GX) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX) || \
+    defined(CONFIG_440SP) || defined(CONFIG_440SPE)
 	sys_info_t sysinfo;
-#if defined(CONFIG_440GX) || defined(CONFIG_440SPE)
+#if defined(CONFIG_440GX) || defined(CONFIG_440SPE) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 	int ethgroup = -1;
 #endif
 #endif
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_440EPX) || defined(CONFIG_440GRX) || defined(CONFIG_440SPE)
 	unsigned long mfr;
 #endif
 
@@ -352,7 +422,9 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 		return -1;
 	}
 
-#if defined(CONFIG_440GX) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)
+#if defined(CONFIG_440GX) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX) || \
+    defined(CONFIG_440SP) || defined(CONFIG_440SPE)
 	/* Need to get the OPB frequency so we can access the PHY */
 	get_sys_info (&sysinfo);
 #endif
@@ -407,7 +479,7 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 
 #if defined(CONFIG_440EP) || defined(CONFIG_440GR)
 	out32 (ZMII_FER, (ZMII_FER_RMII | ZMII_FER_MDI) << ZMII_FER_V (devnum));
-#elif defined(CONFIG_440GX)
+#elif defined(CONFIG_440GX) || defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 	ethgroup = ppc_4xx_eth_setup_bridge(devnum, bis);
 #elif defined(CONFIG_440GP)
 	/* set RMII mode */
@@ -415,8 +487,7 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 #else
 	if ((devnum == 0) || (devnum == 1)) {
 		out32 (ZMII_FER, (ZMII_FER_SMII | ZMII_FER_MDI) << ZMII_FER_V (devnum));
-	}
-	else { /* ((devnum == 2) || (devnum == 3)) */
+	} else { /* ((devnum == 2) || (devnum == 3)) */
 		out32 (ZMII_FER, ZMII_FER_MDI << ZMII_FER_V (devnum));
 		out32 (RGMII_FER, ((RGMII_FER_RGMII << RGMII_FER_V (2)) |
 				   (RGMII_FER_RGMII << RGMII_FER_V (3))));
@@ -429,10 +500,10 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 	__asm__ volatile ("eieio");
 
 	/* reset emac so we have access to the phy */
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_440SPE) || defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 	/* provide clocks for EMAC internal loopback  */
 	mfsdr (sdr_mfr, mfr);
-	mfr |= 0x08000000;
+	mfr |= SDR0_MFR_ETH_CLK_SEL_V(devnum);
 	mtsdr(sdr_mfr, mfr);
 #endif
 
@@ -444,15 +515,19 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 		udelay (1000);
 		failsafe--;
 	}
+	if (failsafe <= 0)
+		printf("\nProblem resetting EMAC!\n");
 
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_440SPE) || defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 	/* remove clocks for EMAC internal loopback  */
 	mfsdr (sdr_mfr, mfr);
-	mfr &= ~0x08000000;
+	mfr &= ~SDR0_MFR_ETH_CLK_SEL_V(devnum);
 	mtsdr(sdr_mfr, mfr);
 #endif
 
-#if defined(CONFIG_440GX) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)
+#if defined(CONFIG_440GX) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX) || \
+    defined(CONFIG_440SP) || defined(CONFIG_440SPE)
 	/* Whack the M1 register */
 	mode_reg = 0x0;
 	mode_reg &= ~0x00000038;
@@ -502,15 +577,24 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 	 * otherwise, just check the speeds & feeds
 	 */
 	if (hw_p->first_init == 0) {
+#if defined(CONFIG_M88E1111_PHY)
+		miiphy_write (dev->name, reg, 0x14, 0x0ce3);
+		miiphy_write (dev->name, reg, 0x18, 0x4101);
+		miiphy_write (dev->name, reg, 0x09, 0x0e00);
+		miiphy_write (dev->name, reg, 0x04, 0x01e1);
+#endif
 		miiphy_reset (dev->name, reg);
 
-#if defined(CONFIG_440GX) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)
+#if defined(CONFIG_440GX) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX) || \
+    defined(CONFIG_440SP) || defined(CONFIG_440SPE)
+
 #if defined(CONFIG_CIS8201_PHY)
 		/*
 		 * Cicada 8201 PHY needs to have an extended register whacked
 		 * for RGMII mode.
 		 */
-		if ( ((devnum == 2) || (devnum ==3)) && (4 == ethgroup) ) {
+		if (((devnum == 2) || (devnum == 3)) && (4 == ethgroup)) {
 #if defined(CONFIG_CIS8201_SHORT_ETCH)
 			miiphy_write (dev->name, reg, 23, 0x1300);
 #else
@@ -534,6 +618,26 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 			/* end Vitesse/Cicada errata */
 		}
 #endif
+
+#if defined(CONFIG_ET1011C_PHY)
+		/*
+		 * Agere ET1011c PHY needs to have an extended register whacked
+		 * for RGMII mode.
+		 */
+		if (((devnum == 2) || (devnum ==3)) && (4 == ethgroup)) {
+			miiphy_read (dev->name, reg, 0x16, &reg_short);
+			reg_short &= ~(0x7);
+			reg_short |= 0x6;	/* RGMII DLL Delay*/
+			miiphy_write (dev->name, reg, 0x16, reg_short);
+
+			miiphy_read (dev->name, reg, 0x17, &reg_short);
+			reg_short &= ~(0x40);
+			miiphy_write (dev->name, reg, 0x17, reg_short);
+
+			miiphy_write(dev->name, reg, 0x1c, 0x74f0);
+		}
+#endif
+
 #endif
 		/* Start/Restart autonegotiation */
 		phy_setup_aneg (dev->name, reg);
@@ -576,11 +680,13 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 
 	if (hw_p->print_speed) {
 		hw_p->print_speed = 0;
-		printf ("ENET Speed is %d Mbps - %s duplex connection\n",
-			(int) speed, (duplex == HALF) ? "HALF" : "FULL");
+		printf ("ENET Speed is %d Mbps - %s duplex connection (EMAC%d)\n",
+			(int) speed, (duplex == HALF) ? "HALF" : "FULL",
+			hw_p->devnum);
 	}
 
-#if defined(CONFIG_440) && !defined(CONFIG_440SP) && !defined(CONFIG_440SPE)
+#if defined(CONFIG_440) && !defined(CONFIG_440SP) && !defined(CONFIG_440SPE) && \
+    !defined(CONFIG_440EPX) && !defined(CONFIG_440GRX)
 #if defined(CONFIG_440EP) || defined(CONFIG_440GR)
 	mfsdr(sdr_mfr, reg);
 	if (speed == 100) {
@@ -603,15 +709,34 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 			reg = (RGMII_SSR_SP_1000MBPS << RGMII_SSR_V (devnum));
 		else if (speed == 100)
 			reg = (RGMII_SSR_SP_100MBPS << RGMII_SSR_V (devnum));
-		else
+		else if (speed == 10)
 			reg = (RGMII_SSR_SP_10MBPS << RGMII_SSR_V (devnum));
-
+		else {
+			printf("Error in RGMII Speed\n");
+			return -1;
+		}
 		out32 (RGMII_SSR, reg);
 	}
 #endif /* defined(CONFIG_440) && !defined(CONFIG_440SP) */
 
+#if defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
+	if (speed == 1000)
+		reg = (RGMII_SSR_SP_1000MBPS << RGMII_SSR_V (devnum));
+	else if (speed == 100)
+		reg = (RGMII_SSR_SP_100MBPS << RGMII_SSR_V (devnum));
+	else if (speed == 10)
+		reg = (RGMII_SSR_SP_10MBPS << RGMII_SSR_V (devnum));
+	else {
+		printf("Error in RGMII Speed\n");
+		return -1;
+	}
+	out32 (RGMII_SSR, reg);
+#endif
+
 	/* set the Mal configuration reg */
-#if defined(CONFIG_440GX) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)
+#if defined(CONFIG_440GX) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX) || \
+    defined(CONFIG_440SP) || defined(CONFIG_440SPE)
 	mtdcr (malmcr, MAL_CR_PLBB | MAL_CR_OPBBL | MAL_CR_LEA |
 	       MAL_CR_PLBLT_DEFAULT | MAL_CR_EOPIE | 0x00330000);
 #else
@@ -705,7 +830,7 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 		hw_p->rx[i].ctrl |= MAL_RX_CTRL_EMPTY | MAL_RX_CTRL_INTR;
 		hw_p->rx_ready[i] = -1;
 #if 0
-		printf ("RX_BUFF %d @ 0x%08lx\n", i, (ulong) rx[i].data_ptr);
+		printf ("RX_BUFF %d @ 0x%08lx\n", i, (ulong) hw_p->rx[i].data_ptr);
 #endif
 	}
 
@@ -795,8 +920,10 @@ static int ppc_4xx_eth_init (struct eth_device *dev, bd_t * bis)
 
 	/* set speed */
 	if (speed == _1000BASET) {
-#if defined(CONFIG_440SP) || defined(CONFIG_440SPE)
+#if defined(CONFIG_440SP) || defined(CONFIG_440SPE) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 		unsigned long pfc1;
+
 		mfsdr (sdr_pfc1, pfc1);
 		pfc1 |= SDR0_PFC1_EM_1000;
 		mtsdr (sdr_pfc1, pfc1);
@@ -942,6 +1069,14 @@ static int ppc_4xx_eth_send (struct eth_device *dev, volatile void *ptr,
 #define UIC0SR		uic0sr
 #endif
 
+#if defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
+#define UICMSR_ETHX	uic0msr
+#define UICSR_ETHX	uic0sr
+#else
+#define UICMSR_ETHX	uic1msr
+#define UICSR_ETHX	uic1sr
+#endif
+
 int enetInt (struct eth_device *dev)
 {
 	int serviced;
@@ -950,6 +1085,7 @@ int enetInt (struct eth_device *dev)
 	unsigned long emac_isr = 0;
 	unsigned long mal_rx_eob;
 	unsigned long my_uic0msr, my_uic1msr;
+	unsigned long my_uicmsr_ethx;
 
 #if defined(CONFIG_440GX)
 	unsigned long my_uic2msr;
@@ -977,8 +1113,11 @@ int enetInt (struct eth_device *dev)
 #if defined(CONFIG_440GX)
 		my_uic2msr = mfdcr (uic2msr);
 #endif
+		my_uicmsr_ethx = mfdcr (UICMSR_ETHX);
+
 		if (!(my_uic0msr & (UIC_MRE | UIC_MTE))
-		    && !(my_uic1msr & (UIC_ETH0 | UIC_ETH1 | UIC_MS | UIC_MTDE | UIC_MRDE))) {
+		    && !(my_uic1msr & (UIC_MS | UIC_MTDE | UIC_MRDE))
+		    && !(my_uicmsr_ethx & (UIC_ETH0 | UIC_ETH1))) {
 			/* not for us */
 			return (rc);
 		}
@@ -997,8 +1136,7 @@ int enetInt (struct eth_device *dev)
 			mal_isr = mfdcr (malesr);
 			/* look for mal error */
 			if (my_uic1msr & (UIC_MS | UIC_MTDE | UIC_MRDE)) {
-				mal_err (dev, mal_isr, my_uic0msr,
-					 MAL_UIC_DEF, MAL_UIC_ERR);
+				mal_err (dev, mal_isr, my_uic1msr, MAL_UIC_DEF, MAL_UIC_ERR);
 				serviced = 1;
 				rc = 0;
 			}
@@ -1006,7 +1144,7 @@ int enetInt (struct eth_device *dev)
 
 		/* port by port dispatch of emac interrupts */
 		if (hw_p->devnum == 0) {
-			if (UIC_ETH0 & my_uic1msr) {	/* look for EMAC errors */
+			if (UIC_ETH0 & my_uicmsr_ethx) {	/* look for EMAC errors */
 				emac_isr = in32 (EMAC_ISR + hw_p->hw_addr);
 				if ((hw_p->emac_ier & emac_isr) != 0) {
 					emac_err (dev, emac_isr);
@@ -1017,14 +1155,15 @@ int enetInt (struct eth_device *dev)
 			if ((hw_p->emac_ier & emac_isr)
 			    || (my_uic1msr & (UIC_MS | UIC_MTDE | UIC_MRDE))) {
 				mtdcr (UIC0SR, UIC_MRE | UIC_MTE);	/* Clear */
-				mtdcr (uic1sr, UIC_ETH0 | UIC_MS | UIC_MTDE | UIC_MRDE);	/* Clear */
+				mtdcr (uic1sr, UIC_MS | UIC_MTDE | UIC_MRDE);	/* Clear */
+				mtdcr (UICSR_ETHX, UIC_ETH0); /* Clear */
 				return (rc);	/* we had errors so get out */
 			}
 		}
 
 #if !defined(CONFIG_440SP)
 		if (hw_p->devnum == 1) {
-			if (UIC_ETH1 & my_uic1msr) {	/* look for EMAC errors */
+			if (UIC_ETH1 & my_uicmsr_ethx) {	/* look for EMAC errors */
 				emac_isr = in32 (EMAC_ISR + hw_p->hw_addr);
 				if ((hw_p->emac_ier & emac_isr) != 0) {
 					emac_err (dev, emac_isr);
@@ -1035,7 +1174,8 @@ int enetInt (struct eth_device *dev)
 			if ((hw_p->emac_ier & emac_isr)
 			    || (my_uic1msr & (UIC_MS | UIC_MTDE | UIC_MRDE))) {
 				mtdcr (UIC0SR, UIC_MRE | UIC_MTE);	/* Clear */
-				mtdcr (uic1sr, UIC_ETH1 | UIC_MS | UIC_MTDE | UIC_MRDE);	/* Clear */
+				mtdcr (uic1sr, UIC_MS | UIC_MTDE | UIC_MRDE); /* Clear */
+				mtdcr (UICSR_ETHX, UIC_ETH1); /* Clear */
 				return (rc);	/* we had errors so get out */
 			}
 		}
@@ -1102,10 +1242,10 @@ int enetInt (struct eth_device *dev)
 		mtdcr (uic1sr, UIC_MS | UIC_MTDE | UIC_MRDE);	/* Clear */
 		switch (hw_p->devnum) {
 		case 0:
-			mtdcr (uic1sr, UIC_ETH0);
+			mtdcr (UICSR_ETHX, UIC_ETH0);
 			break;
 		case 1:
-			mtdcr (uic1sr, UIC_ETH1);
+			mtdcr (UICSR_ETHX, UIC_ETH1);
 			break;
 #if defined (CONFIG_440GX)
 		case 2:
@@ -1205,6 +1345,9 @@ int enetInt (struct eth_device *dev)
 			}
 		}
 		mtdcr (uicsr, MAL_UIC_DEF|EMAC_UIC_DEF|EMAC_UIC_DEF1);	/* Clear */
+#if defined(CONFIG_405EZ)
+		mtsdr (sdricintstat, SDR_ICRX_STAT | SDR_ICTX0_STAT | SDR_ICTX1_STAT);
+#endif	/* defined(CONFIG_405EZ) */
 	}
 	while (serviced);
 
@@ -1272,10 +1415,8 @@ static void enet_rcv (struct eth_device *dev, unsigned long malisr)
 			if ((MAL_RX_CTRL_EMPTY & hw_p->rx[i].ctrl)
 			    || (loop_count >= NUM_RX_BUFF))
 				break;
+
 			loop_count++;
-			hw_p->rx_slot++;
-			if (NUM_RX_BUFF == hw_p->rx_slot)
-				hw_p->rx_slot = 0;
 			handled++;
 			data_len = (unsigned long) hw_p->rx[i].data_len;	/* Get len */
 			if (data_len) {
@@ -1324,6 +1465,10 @@ static void enet_rcv (struct eth_device *dev, unsigned long malisr)
 				hw_p->rx_i_index++;
 				if (NUM_RX_BUFF == hw_p->rx_i_index)
 					hw_p->rx_i_index = 0;
+
+				hw_p->rx_slot++;
+				if (NUM_RX_BUFF == hw_p->rx_slot)
+					hw_p->rx_slot = 0;
 
 				/*  AS.HARNOIS
 				 * free receive buffer only when
@@ -1391,6 +1536,8 @@ int ppc_4xx_eth_initialize (bd_t * bis)
 	struct eth_device *dev;
 	int eth_num = 0;
 	EMAC_4XX_HW_PST hw = NULL;
+	u8 ethaddr[4 + CONFIG_EMAC_NR_START][6];
+	u32 hw_addr[4];
 
 #if defined(CONFIG_440GX)
 	unsigned long pfc1;
@@ -1400,6 +1547,43 @@ int ppc_4xx_eth_initialize (bd_t * bis)
 	pfc1 |= 0x01200000;
 	mtsdr (sdr_pfc1, pfc1);
 #endif
+
+	/* first clear all mac-addresses */
+	for (eth_num = 0; eth_num < LAST_EMAC_NUM; eth_num++)
+		memcpy(ethaddr[eth_num], "\0\0\0\0\0\0", 6);
+
+	for (eth_num = 0; eth_num < LAST_EMAC_NUM; eth_num++) {
+		switch (eth_num) {
+		default:		/* fall through */
+		case 0:
+			memcpy(ethaddr[eth_num + CONFIG_EMAC_NR_START],
+			       bis->bi_enetaddr, 6);
+			hw_addr[eth_num] = 0x0;
+			break;
+#ifdef CONFIG_HAS_ETH1
+		case 1:
+			memcpy(ethaddr[eth_num + CONFIG_EMAC_NR_START],
+			       bis->bi_enet1addr, 6);
+			hw_addr[eth_num] = 0x100;
+			break;
+#endif
+#ifdef CONFIG_HAS_ETH2
+		case 2:
+			memcpy(ethaddr[eth_num + CONFIG_EMAC_NR_START],
+			       bis->bi_enet2addr, 6);
+			hw_addr[eth_num] = 0x400;
+			break;
+#endif
+#ifdef CONFIG_HAS_ETH3
+		case 3:
+			memcpy(ethaddr[eth_num + CONFIG_EMAC_NR_START],
+			       bis->bi_enet3addr, 6);
+			hw_addr[eth_num] = 0x600;
+			break;
+#endif
+		}
+	}
+
 	/* set phy num and mode */
 	bis->bi_phynum[0] = CONFIG_PHY_ADDR;
 	bis->bi_phymode[0] = 0;
@@ -1418,40 +1602,13 @@ int ppc_4xx_eth_initialize (bd_t * bis)
 #endif
 
 	for (eth_num = 0; eth_num < LAST_EMAC_NUM; eth_num++) {
-
-		/* See if we can actually bring up the interface, otherwise, skip it */
-		switch (eth_num) {
-		default:		/* fall through */
-		case 0:
-			if (memcmp (bis->bi_enetaddr, "\0\0\0\0\0\0", 6) == 0) {
-				bis->bi_phymode[eth_num] = BI_PHYMODE_NONE;
-				continue;
-			}
-			break;
-#ifdef CONFIG_HAS_ETH1
-		case 1:
-			if (memcmp (bis->bi_enet1addr, "\0\0\0\0\0\0", 6) == 0) {
-				bis->bi_phymode[eth_num] = BI_PHYMODE_NONE;
-				continue;
-			}
-			break;
-#endif
-#ifdef CONFIG_HAS_ETH2
-		case 2:
-			if (memcmp (bis->bi_enet2addr, "\0\0\0\0\0\0", 6) == 0) {
-				bis->bi_phymode[eth_num] = BI_PHYMODE_NONE;
-				continue;
-			}
-			break;
-#endif
-#ifdef CONFIG_HAS_ETH3
-		case 3:
-			if (memcmp (bis->bi_enet3addr, "\0\0\0\0\0\0", 6) == 0) {
-				bis->bi_phymode[eth_num] = BI_PHYMODE_NONE;
-				continue;
-			}
-			break;
-#endif
+		/*
+		 * See if we can actually bring up the interface,
+		 * otherwise, skip it
+		 */
+		if (memcmp (ethaddr[eth_num], "\0\0\0\0\0\0", 6) == 0) {
+			bis->bi_phymode[eth_num] = BI_PHYMODE_NONE;
+			continue;
 		}
 
 		/* Allocate device structure */
@@ -1474,36 +1631,12 @@ int ppc_4xx_eth_initialize (bd_t * bis)
 		}
 		memset(hw, 0, sizeof(*hw));
 
-		switch (eth_num) {
-		default:		/* fall through */
-		case 0:
-			hw->hw_addr = 0;
-			memcpy (dev->enetaddr, bis->bi_enetaddr, 6);
-			break;
-#ifdef CONFIG_HAS_ETH1
-		case 1:
-			hw->hw_addr = 0x100;
-			memcpy (dev->enetaddr, bis->bi_enet1addr, 6);
-			break;
-#endif
-#ifdef CONFIG_HAS_ETH2
-		case 2:
-			hw->hw_addr = 0x400;
-			memcpy (dev->enetaddr, bis->bi_enet2addr, 6);
-			break;
-#endif
-#ifdef CONFIG_HAS_ETH3
-		case 3:
-			hw->hw_addr = 0x600;
-			memcpy (dev->enetaddr, bis->bi_enet3addr, 6);
-			break;
-#endif
-		}
-
+		hw->hw_addr = hw_addr[eth_num];
+		memcpy (dev->enetaddr, ethaddr[eth_num], 6);
 		hw->devnum = eth_num;
 		hw->print_speed = 1;
 
-		sprintf (dev->name, "ppc_4xx_eth%d", eth_num);
+		sprintf (dev->name, "ppc_4xx_eth%d", eth_num - CONFIG_EMAC_NR_START);
 		dev->priv = (void *) hw;
 		dev->init = ppc_4xx_eth_init;
 		dev->halt = ppc_4xx_eth_halt;
@@ -1512,7 +1645,7 @@ int ppc_4xx_eth_initialize (bd_t * bis)
 
 		if (0 == virgin) {
 			/* set the MAL IER ??? names may change with new spec ??? */
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_440SPE) || defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 			mal_ier =
 				MAL_IER_PT | MAL_IER_PRE | MAL_IER_PWE |
 				MAL_IER_DE | MAL_IER_OTE | MAL_IER_OE | MAL_IER_PE ;
@@ -1552,7 +1685,7 @@ int ppc_4xx_eth_initialize (bd_t * bis)
 #endif
 
 #if defined(CONFIG_NET_MULTI)
-#if defined(CONFIG_MII) || (CONFIG_COMMANDS & CFG_CMD_MII)
+#if defined(CONFIG_MII) || defined(CONFIG_CMD_MII)
 		miiphy_register (dev->name,
 				 emac4xx_miiphy_read, emac4xx_miiphy_write);
 #endif
@@ -1560,7 +1693,6 @@ int ppc_4xx_eth_initialize (bd_t * bis)
 	}			/* end for each supported device */
 	return (1);
 }
-
 
 #if !defined(CONFIG_NET_MULTI)
 void eth_halt (void) {
@@ -1594,7 +1726,7 @@ int eth_rx(void)
 
 int emac4xx_miiphy_initialize (bd_t * bis)
 {
-#if defined(CONFIG_MII) || (CONFIG_COMMANDS & CFG_CMD_MII)
+#if defined(CONFIG_MII) || defined(CONFIG_CMD_MII)
 	miiphy_register ("ppc_4xx_eth0",
 			 emac4xx_miiphy_read, emac4xx_miiphy_write);
 #endif
@@ -1603,4 +1735,4 @@ int emac4xx_miiphy_initialize (bd_t * bis)
 }
 #endif /* !defined(CONFIG_NET_MULTI) */
 
-#endif /* #if (CONFIG_COMMANDS & CFG_CMD_NET) */
+#endif

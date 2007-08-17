@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2000-2003
+# (C) Copyright 2000-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 #
 # See file CREDITS for list of people who contributed to this
@@ -21,22 +21,23 @@
 # MA 02111-1307 USA
 #
 
-BINS	= img2srec$(SFX) mkimage$(SFX) envcrc$(SFX) gen_eth_addr$(SFX) bmp_logo$(SFX)
+BIN_FILES	= img2srec$(SFX) mkimage$(SFX) envcrc$(SFX) ubsha1$(SFX) gen_eth_addr$(SFX) bmp_logo$(SFX)
 
-OBJS	= environment.o img2srec.o mkimage.o crc32.o envcrc.o gen_eth_addr.o bmp_logo.o
+OBJ_LINKS	= environment.o crc32.o sha1.o
+OBJ_FILES	= img2srec.o mkimage.o envcrc.o ubsha1.o gen_eth_addr.o bmp_logo.o
 
 ifeq ($(ARCH),mips)
-BINS   += inca-swap-bytes$(SFX)
-OBJS   += inca-swap-bytes.o
+BIN_FILES	+= inca-swap-bytes$(SFX)
+OBJ_FILES	+= inca-swap-bytes.o
 endif
 
 # Don't build by default
 #ifeq ($(ARCH),ppc)
-#BINS   += mpc86x_clk$(SFX)
-#OBJS   += mpc86x_clk.o
+#BIN_FILES		+= mpc86x_clk$(SFX)
+#OBJ_FILES	+= mpc86x_clk.o
 #endif
 
-LOGO_H	= $(TOPDIR)/include/bmp_logo.h
+LOGO_H	= $(OBJTREE)/include/bmp_logo.h
 
 ifeq ($(LOGO_BMP),)
 LOGO_BMP= logos/denx.bmp
@@ -73,7 +74,7 @@ TOOLSUBDIRS =
 ifeq ($(HOSTOS)-$(HOSTARCH),darwin-ppc)
 HOST_CFLAGS = -traditional-cpp -Wall
 HOST_LDFLAGS =-multiply_defined suppress
-HOST_ENVIRO_CFLAGS = -traditional-cpp
+HOST_ENVIRO_CFLAGS =
 
 else
 ifeq ($(HOSTOS)-$(HOSTARCH),netbsd-ppc)
@@ -106,69 +107,85 @@ endif
 #
 include $(TOPDIR)/config.mk
 
+# now $(obj) is defined
+SRCS	:= $(addprefix $(obj),$(OBJ_LINKS:.o=.c)) $(OBJ_FILES:.o=.c)
+BINS	:= $(addprefix $(obj),$(BIN_FILES))
+
 #
 # Use native tools and options
 #
-CPPFLAGS   = -idirafter ../include -DTEXT_BASE=$(TEXT_BASE) -DUSE_HOSTCC
+CPPFLAGS   = -idirafter $(SRCTREE)/include \
+		-idirafter $(OBJTREE)/include2 \
+		-idirafter $(OBJTREE)/include \
+		-DTEXT_BASE=$(TEXT_BASE) -DUSE_HOSTCC
 CFLAGS     = $(HOST_CFLAGS) $(CPPFLAGS) -O
 AFLAGS	   = -D__ASSEMBLY__ $(CPPFLAGS)
 CC	   = $(HOSTCC)
 STRIP	   = $(HOSTSTRIP)
 MAKEDEPEND = makedepend
 
-all:	.depend $(BINS) $(LOGO_H) subdirs
+all:	$(obj).depend $(BINS) $(LOGO_H) subdirs
 
-envcrc$(SFX):	envcrc.o crc32.o environment.o
+$(obj)envcrc$(SFX):	$(obj)envcrc.o $(obj)crc32.o $(obj)environment.o $(obj)sha1.o
 		$(CC) $(CFLAGS) -o $@ $^
 
-img2srec$(SFX):	img2srec.o
+$(obj)ubsha1$(SFX):	$(obj)ubsha1.o $(obj)sha1.o
+		$(CC) $(CFLAGS) -o $@ $^
+
+$(obj)img2srec$(SFX):	$(obj)img2srec.o
 		$(CC) $(CFLAGS) $(HOST_LDFLAGS) -o $@ $^
 		$(STRIP) $@
 
-mkimage$(SFX):	mkimage.o crc32.o
+$(obj)mkimage$(SFX):	$(obj)mkimage.o $(obj)crc32.o $(obj)sha1.o
 		$(CC) $(CFLAGS) $(HOST_LDFLAGS) -o $@ $^
 		$(STRIP) $@
 
-ncb$(SFX):	ncb.o
+$(obj)ncb$(SFX):	$(obj)ncb.o
 		$(CC) $(CFLAGS) $(HOST_LDFLAGS) -o $@ $^
 		$(STRIP) $@
 
-gen_eth_addr$(SFX):	gen_eth_addr.o
+$(obj)gen_eth_addr$(SFX):	$(obj)gen_eth_addr.o
 		$(CC) $(CFLAGS) $(HOST_LDFLAGS) -o $@ $^
 		$(STRIP) $@
 
-bmp_logo$(SFX):	bmp_logo.o
+$(obj)bmp_logo$(SFX):	$(obj)bmp_logo.o
 		$(CC) $(CFLAGS) $(HOST_LDFLAGS) -o $@ $^
 		$(STRIP) $@
 
-inca-swap-bytes$(SFX):	inca-swap-bytes.o
+$(obj)inca-swap-bytes$(SFX):	$(obj)inca-swap-bytes.o
 		$(CC) $(CFLAGS) $(HOST_LDFLAGS) -o $@ $^
 		$(STRIP) $@
 
-mpc86x_clk$(SFX):	mpc86x_clk.o
+$(obj)mpc86x_clk$(SFX):	$(obj)mpc86x_clk.o
 		$(CC) $(CFLAGS) $(HOST_LDFLAGS) -o $@ $^
 		$(STRIP) $@
 
-envcrc.o:	envcrc.c
-		$(CC) -g $(CFLAGS) -c $<
+$(obj)envcrc.o:	$(src)envcrc.c
+		$(CC) -g $(CFLAGS) -c -o $@ $<
 
-crc32.o:	crc32.c
-		$(CC) -g $(CFLAGS) -c $<
+$(obj)ubsha1.o:	$(src)ubsha1.c
+		$(CC) -g $(CFLAGS) -c -o $@ $<
 
-mkimage.o:	mkimage.c
-		$(CC) -g $(CFLAGS) -c $<
+$(obj)crc32.o:	$(obj)crc32.c
+		$(CC) -g $(CFLAGS) -c -o $@ $<
 
-ncb.o:		ncb.c
-		$(CC) -g $(CFLAGS) -c $<
+$(obj)sha1.o:	$(obj)sha1.c
+		$(CC) -g $(CFLAGS) -c -o $@ $<
 
-gen_eth_addr.o:	gen_eth_addr.c
-		$(CC) -g $(CFLAGS) -c $<
+$(obj)mkimage.o:	$(src)mkimage.c
+		$(CC) -g $(CFLAGS) -c -o $@ $<
 
-inca-swap-bytes.o:	inca-swap-bytes.c
-		$(CC) -g $(CFLAGS) -c $<
+$(obj)ncb.o:		$(src)ncb.c
+		$(CC) -g $(CFLAGS) -c -o $@ $<
 
-mpc86x_clk.o:	mpc86x_clk.c
-		$(CC) -g $(CFLAGS) -c $<
+$(obj)gen_eth_addr.o:	$(src)gen_eth_addr.c
+		$(CC) -g $(CFLAGS) -c -o $@ $<
+
+$(obj)inca-swap-bytes.o:	$(src)inca-swap-bytes.c
+		$(CC) -g $(CFLAGS) -c -o $@ $<
+
+$(obj)mpc86x_clk.o:	$(src)mpc86x_clk.c
+		$(CC) -g $(CFLAGS) -c -o $@ $<
 
 subdirs:
 ifeq ($(TOOLSUBDIRS),)
@@ -184,25 +201,29 @@ else
 		done
 endif
 
-environment.c:
-		@rm -f environment.c
-		ln -s ../common/environment.c environment.c
+$(obj)environment.c:
+		@rm -f $(obj)environment.c
+		ln -s $(src)../common/environment.c $(obj)environment.c
 
-environment.o: environment.c
-		$(CC) -g $(HOST_ENVIRO_CFLAGS) $(CPPFLAGS) -c $<
+$(obj)environment.o:	$(obj)environment.c
+		$(CC) -g $(HOST_ENVIRO_CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-crc32.c:
-		@rm -f crc32.c
-		ln -s ../lib_generic/crc32.c crc32.c
+$(obj)crc32.c:
+		@rm -f $(obj)crc32.c
+		ln -s $(src)../lib_generic/crc32.c $(obj)crc32.c
 
-$(LOGO_H):	bmp_logo $(LOGO_BMP)
-		./bmp_logo $(LOGO_BMP) >$@
+$(obj)sha1.c:
+		@rm -f $(obj)sha1.c
+		ln -s $(src)../lib_generic/sha1.c $(obj)sha1.c
+
+$(LOGO_H):	$(obj)bmp_logo $(LOGO_BMP)
+		$(obj)./bmp_logo $(LOGO_BMP) >$@
 
 #########################################################################
 
-.depend:	Makefile $(OBJS:.o=.c)
-		$(CC) -M $(HOST_CFLAGS) $(CPPFLAGS) $(OBJS:.o=.c) > $@
+# defines $(obj).depend target
+include $(SRCTREE)/rules.mk
 
-sinclude .depend
+sinclude $(obj).depend
 
 #########################################################################

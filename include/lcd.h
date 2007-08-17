@@ -189,13 +189,24 @@ typedef struct vidinfo {
 
 extern vidinfo_t panel_info;
 
-#endif /* CONFIG_MPC823 */
+#elif defined(CONFIG_MCC200)
+typedef struct vidinfo {
+	ushort	vl_col;		/* Number of columns (i.e. 160) */
+	ushort	vl_row;		/* Number of rows (i.e. 100) */
+
+	u_char	vl_bpix;	/* Bits per pixel, 0 = 1 */
+} vidinfo_t;
+
+extern vidinfo_t panel_info;
+
+#endif /* CONFIG_MPC823, CONFIG_PXA250 or CONFIG_MCC200 */
 
 /* Video functions */
 
 #if defined(CONFIG_RBC823)
 void	lcd_disable	(void);
 #endif
+
 
 /* int	lcd_init	(void *lcdbase); */
 void	lcd_putc	(const char c);
@@ -206,10 +217,10 @@ void	lcd_printf	(const char *fmt, ...);
 /************************************************************************/
 /* ** BITMAP DISPLAY SUPPORT						*/
 /************************************************************************/
-#if (CONFIG_COMMANDS & CFG_CMD_BMP) || defined(CONFIG_SPLASH_SCREEN)
+#if defined(CONFIG_CMD_BMP) || defined(CONFIG_SPLASH_SCREEN)
 # include <bmp_layout.h>
 # include <asm/byteorder.h>
-#endif /* (CONFIG_COMMANDS & CFG_CMD_BMP) || CONFIG_SPLASH_SCREEN */
+#endif
 
 /*
  *  Information about displays we are using. This is for configuring

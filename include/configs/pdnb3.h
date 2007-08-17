@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2006
+ * (C) Copyright 2006-2007
  * Stefan Roese, DENX Software Engineering, sr@denx.de.
  *
  * Configuation settings for the PDNB3 board.
@@ -71,19 +71,33 @@
 #define CONFIG_BAUDRATE         115200
 #define CFG_IXP425_CONSOLE	IXP425_UART1   /* we use UART1 for console */
 
-#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL	| \
-				CFG_CMD_DHCP	| \
-				CFG_CMD_DATE	| \
-				CFG_CMD_NET	| \
-				CFG_CMD_MII	| \
-				CFG_CMD_NAND	| \
-				CFG_CMD_I2C	| \
-				CFG_CMD_ELF	| \
-				CFG_CMD_PING)
 
-/* This must be included AFTER the definition of CONFIG_COMMANDS (if any) */
-/* These are u-boot generic parameters */
-#include <cmd_confdefs.h>
+/*
+ * BOOTP options
+ */
+#define CONFIG_BOOTP_BOOTFILESIZE
+#define CONFIG_BOOTP_BOOTPATH
+#define CONFIG_BOOTP_GATEWAY
+#define CONFIG_BOOTP_HOSTNAME
+
+
+/*
+ * Command line configuration.
+ */
+#include <config_cmd_default.h>
+
+#define CONFIG_CMD_DHCP
+#define CONFIG_CMD_DATE
+#define CONFIG_CMD_NET
+#define CONFIG_CMD_MII
+#define CONFIG_CMD_I2C
+#define CONFIG_CMD_ELF
+#define CONFIG_CMD_PING
+
+#if !defined(CONFIG_SCPU)
+#define CONFIG_CMD_NAND
+#endif
+
 
 #define CONFIG_ZERO_BOOTDELAY_CHECK	/* check for keypress on bootdelay==0 */
 #define CONFIG_BOOTDELAY	5	/* autoboot after 5 seconds	*/
@@ -176,12 +190,20 @@
 
 #define CFG_FLASH_BASE          0x50000000
 #define CFG_MONITOR_BASE	CFG_FLASH_BASE
+#if defined(CONFIG_SCPU)
+#define CFG_MONITOR_LEN		(384 << 10)	/* Reserve 512 kB for Monitor	*/
+#else
 #define CFG_MONITOR_LEN		(504 << 10)	/* Reserve 512 kB for Monitor	*/
+#endif
 
 /*
  * Expansion bus settings
  */
+#if defined(CONFIG_SCPU)
+#define CFG_EXP_CS0		0x94d23C42	/* 8bit, max size		*/
+#else
 #define CFG_EXP_CS0		0x94913C43	/* 8bit, max size		*/
+#endif
 #define CFG_EXP_CS1		0x85000043	/* 8bit, 512bytes		*/
 
 /*
@@ -194,6 +216,12 @@
 /*
  * FLASH and environment organization
  */
+#if defined(CONFIG_SCPU)
+#define CFG_FLASH_CFI				/* The flash is CFI compatible	*/
+#define CFG_FLASH_CFI_DRIVER			/* Use common CFI driver	*/
+#define CFG_FLASH_CFI_WIDTH	FLASH_CFI_16BIT	/* no byte writes on IXP4xx	*/
+#endif
+
 #define FLASH_BASE0_PRELIM	CFG_FLASH_BASE		/* FLASH bank #0	*/
 
 #define CFG_MAX_FLASH_BANKS	1	/* max number of memory banks		*/
@@ -217,20 +245,28 @@
 
 #define	CFG_ENV_IS_IN_FLASH	1
 
-#define CFG_ENV_SECT_SIZE	0x1000 	/* size of one complete sector	*/
 #define CFG_ENV_ADDR		(CFG_FLASH_BASE + CFG_MONITOR_LEN)
+#if defined(CONFIG_SCPU)
+/* no redundant environment on SCPU */
+#define CFG_ENV_SECT_SIZE	0x20000 /* size of one complete sector		*/
+#define	CFG_ENV_SIZE		0x4000	/* Total Size of Environment Sector	*/
+#else
+#define CFG_ENV_SECT_SIZE	0x1000 	/* size of one complete sector		*/
 #define	CFG_ENV_SIZE		0x1000	/* Total Size of Environment Sector	*/
 
 /* Address and size of Redundant Environment Sector	*/
 #define CFG_ENV_ADDR_REDUND	(CFG_ENV_ADDR + CFG_ENV_SECT_SIZE)
 #define CFG_ENV_SIZE_REDUND	(CFG_ENV_SIZE)
+#endif
 
+#if !defined(CONFIG_SCPU)
 /*
  * NAND-FLASH stuff
  */
 #define CFG_MAX_NAND_DEVICE	1
 #define NAND_MAX_CHIPS		1
 #define CFG_NAND_BASE		0x51000000	/* NAND FLASH Base Address	*/
+#endif
 
 /*
  * GPIO settings
@@ -284,9 +320,15 @@
 /*
  * I2C RTC
  */
+#if 0 /* test-only */
+#define CONFIG_RTC_DS1340	1
+#define CFG_I2C_RTC_ADDR	0x68
+#else
+/* M41T11 Serial Access Timekeeper(R) SRAM */
 #define CONFIG_RTC_M41T11	1
 #define CFG_I2C_RTC_ADDR	0x68
 #define CFG_M41T11_BASE_YEAR	1900	/* play along with the linux driver */
+#endif
 
 /*
  * Spartan3 FPGA configuration support

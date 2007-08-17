@@ -144,6 +144,7 @@ _start:
 	move.l	#(CFG_INIT_RAM_ADDR + 0x21), %d0
 	movec	%d0, %RAMBAR1
 
+#if defined(CONFIG_M5282)
 #if (TEXT_BASE == CFG_INT_FLASH_BASE)
 	/* Setup code in SRAM to initialize FLASHBAR, if start from internal Flash */
 
@@ -170,6 +171,7 @@ _after_flashbar_copy:
 	movec	%d0, %RAMBAR0
 #endif /* (TEXT_BASE == CFG_INT_FLASH_BASE) */
 
+#endif
 #endif
 	/* if we come from a pre-loader we have no exception table and
 	 * therefore no VBR to set

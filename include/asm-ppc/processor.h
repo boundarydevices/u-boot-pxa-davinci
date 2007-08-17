@@ -35,18 +35,18 @@
 #define MSR_DWE         (1<<10)         /* Debug Wait Enable (4xx) */
 #define MSR_UBLE        (1<<10)         /* BTB lock enable (e500) */
 #define MSR_BE		(1<<9)		/* Branch Trace */
-#define MSR_DE		(1<<9) 		/* Debug Exception Enable */
+#define MSR_DE		(1<<9)		/* Debug Exception Enable */
 #define MSR_FE1		(1<<8)		/* Floating Exception mode 1 */
 #define MSR_IP		(1<<6)		/* Exception prefix 0x000/0xFFF */
-#define MSR_IR		(1<<5) 		/* Instruction Relocate */
+#define MSR_IR		(1<<5)		/* Instruction Relocate */
 #define MSR_IS          (1<<5)          /* Book E Instruction space */
-#define MSR_DR		(1<<4) 		/* Data Relocate */
+#define MSR_DR		(1<<4)		/* Data Relocate */
 #define MSR_DS          (1<<4)          /* Book E Data space */
 #define MSR_PE		(1<<3)		/* Protection Enable */
 #define MSR_PX		(1<<2)		/* Protection Exclusive Mode */
 #define MSR_PMM         (1<<2)          /* Performance monitor mark bit (e500) */
 #define MSR_RI		(1<<1)		/* Recoverable Exception */
-#define MSR_LE		(1<<0) 		/* Little Endian */
+#define MSR_LE		(1<<0)		/* Little Endian */
 
 #ifdef CONFIG_APUS_FAST_EXCEPT
 #define MSR_		MSR_ME|MSR_IP|MSR_RI
@@ -58,7 +58,6 @@
 #else
 #define MSR_KERNEL	MSR_ME
 #endif
-#define MSR_USER	MSR_KERNEL|MSR_PR|MSR_EE
 
 /* Floating Point Status and Control Register (FPSCR) Fields */
 
@@ -123,9 +122,9 @@
 #define   DBCR_EDM	0x80000000
 #define   DBCR_IDM	0x40000000
 #define   DBCR_RST(x)	(((x) & 0x3) << 28)
-#define     DBCR_RST_NONE       	0
-#define     DBCR_RST_CORE       	1
-#define     DBCR_RST_CHIP       	2
+#define     DBCR_RST_NONE		0
+#define     DBCR_RST_CORE		1
+#define     DBCR_RST_CHIP		2
 #define     DBCR_RST_SYSTEM		3
 #define   DBCR_IC	0x08000000	/* Instruction Completion Debug Evnt */
 #define   DBCR_BT	0x04000000	/* Branch Taken Debug Event */
@@ -218,12 +217,14 @@
 #define   HID0_DPM	(1<<20)
 #define   HID0_ICE	(1<<HID0_ICE_SHIFT)	/* Instruction Cache Enable */
 #define   HID0_DCE	(1<<HID0_DCE_SHIFT)	/* Data Cache Enable */
+#define   HID0_TBEN	(1<<14)		/* Time Base Enable */
 #define   HID0_ILOCK	(1<<13)		/* Instruction Cache Lock */
 #define   HID0_DLOCK	(1<<HID0_DLOCK_SHIFT)	/* Data Cache Lock */
 #define   HID0_ICFI	(1<<11)		/* Instr. Cache Flash Invalidate */
 #define   HID0_DCFI	(1<<10)		/* Data Cache Flash Invalidate */
 #define   HID0_DCI	HID0_DCFI
 #define   HID0_SPD	(1<<9)		/* Speculative disable */
+#define   HID0_ENMAS7	(1<<7)		/* Enable MAS7 Update for 36-bit phys */
 #define   HID0_SGE	(1<<7)		/* Store Gathering Enable */
 #define   HID0_SIED	HID_SGE		/* Serial Instr. Execution [Disable] */
 #define   HID0_DCFA	(1<<6)		/* Data Cache Flush Assist */
@@ -232,6 +233,9 @@
 #define   HID0_BHTE	(1<<2)		/* Branch History Table Enable */
 #define   HID0_BTCD	(1<<1)		/* Branch target cache disable */
 #define SPRN_HID1	0x3F1	/* Hardware Implementation Register 1 */
+#define	  HID1_RFXE	(1<<17)		/* Read Fault Exception Enable */
+#define	  HID1_ASTME	(1<<13)		/* Address bus streaming mode */
+#define	  HID1_ABE	(1<<12)		/* Address broadcast enable */
 #define SPRN_IABR	0x3F2	/* Instruction Address Breakpoint Register */
 #ifndef CONFIG_BOOKE
 #define SPRN_IAC1	0x3F4	/* Instruction Address Compare 1 */
@@ -263,7 +267,8 @@
 #define SPRN_ICMP	0x3D5	/* Instruction TLB Compare Register */
 #define SPRN_ICTC	0x3FB	/* Instruction Cache Throttling Control Reg */
 #define SPRN_IMISS	0x3D4	/* Instruction TLB Miss Register */
-#define SPRN_IMMR	0x27E  	/* Internal Memory Map Register */
+#define SPRN_IMMR	0x27E	/* Internal Memory Map Register */
+#define SPRN_LDSTCR	0x3F8   /* Load/Store Control Register */
 #define SPRN_L2CR	0x3F9	/* Level 2 Cache Control Regsiter */
 #define SPRN_LR		0x008	/* Link Register */
 #define SPRN_MBAR       0x137   /* System memory base address */
@@ -297,10 +302,14 @@
 #define SPRN_SPRG1	0x111	/* Special Purpose Register General 1 */
 #define SPRN_SPRG2	0x112	/* Special Purpose Register General 2 */
 #define SPRN_SPRG3	0x113	/* Special Purpose Register General 3 */
+#define SPRN_SPRG4	0x114	/* Special Purpose Register General 4 */
+#define SPRN_SPRG5	0x115	/* Special Purpose Register General 5 */
+#define SPRN_SPRG6	0x116	/* Special Purpose Register General 6 */
+#define SPRN_SPRG7	0x117	/* Special Purpose Register General 7 */
 #define SPRN_SRR0	0x01A	/* Save/Restore Register 0 */
 #define SPRN_SRR1	0x01B	/* Save/Restore Register 1 */
 #define SPRN_SRR2	0x3DE	/* Save/Restore Register 2 */
-#define SPRN_SRR3 	0x3DF	/* Save/Restore Register 3 */
+#define SPRN_SRR3	0x3DF	/* Save/Restore Register 3 */
 #ifdef CONFIG_BOOKE
 #define SPRN_SVR	0x3FF	/* System Version Register */
 #else
@@ -410,10 +419,12 @@
 #define SPRN_IVOR15	0x19f	/* Interrupt Vector Offset Register 15 */
 
 /* e500 definitions */
-#define SPRN_L1CSR0     0x3f2   /* L1 Cache Control and Status Register 0 */
+#define SPRN_L1CSR0     0x3f2   /* L1 Data Cache Control and Status Register 0 */
+#define   L1CSR0_CPE            0x00010000	/* Data Cache Parity Enable */
 #define   L1CSR0_DCFI           0x00000002      /* Data Cache Flash Invalidate */
 #define   L1CSR0_DCE            0x00000001      /* Data Cache Enable */
-#define SPRN_L1CSR1     0x3f3   /* L1 Cache Control and Status Register 1 */
+#define SPRN_L1CSR1     0x3f3   /* L1 Instruction Cache Control and Status Register 1 */
+#define   L1CSR1_CPE            0x00010000	/* Instruction Cache Parity Enable */
 #define   L1CSR1_ICFI           0x00000002      /* Instruction Cache Flash Invalidate */
 #define   L1CSR1_ICE            0x00000001      /* Instruction Cache Enable */
 
@@ -441,7 +452,25 @@
 #define SPRN_PID1       0x279   /* Process ID Register 1 */
 #define SPRN_PID2       0x27a   /* Process ID Register 2 */
 #define SPRN_MCSR	0x23c	/* Machine Check Syndrome register */
+#define SPRN_MCAR	0x23d	/* Machine Check Address register */
+#ifdef CONFIG_440
+#define MCSR_MCS	0x80000000	/* Machine Check Summary */
+#define MCSR_IB		0x40000000	/* Instruction PLB Error */
+#define MCSR_DRB	0x20000000	/* Data Read PLB Error */
+#define MCSR_DWB	0x10000000	/* Data Write PLB Error */
+#define MCSR_TLBP	0x08000000	/* TLB Parity Error */
+#define MCSR_ICP	0x04000000	/* I-Cache Parity Error */
+#define MCSR_DCSP	0x02000000	/* D-Cache Search Parity Error */
+#define MCSR_DCFP	0x01000000	/* D-Cache Flush Parity Error */
+#define MCSR_IMPE	0x00800000	/* Imprecise Machine Check Exception */
+#endif
 #define ESR_ST          0x00800000      /* Store Operation */
+
+#if defined(CONFIG_MPC86xx)
+#define SPRN_MSSCR0	0x3f6
+#define SPRN_MSSSR0	0x3f7
+#endif
+
 
 /* Short-hand versions for a number of the above SPRNs */
 
@@ -469,17 +498,17 @@
 #define DBCR0	SPRN_DBCR0	/* Debug Control Register 0 */
 #define DBCR1	SPRN_DBCR1	/* Debug Control Register 1 */
 #define DBSR	SPRN_DBSR	/* Debug Status Register */
-#define DCMP	SPRN_DCMP      	/* Data TLB Compare Register */
-#define DEC	SPRN_DEC       	/* Decrement Register */
-#define DMISS	SPRN_DMISS     	/* Data TLB Miss Register */
+#define DCMP	SPRN_DCMP	/* Data TLB Compare Register */
+#define DEC	SPRN_DEC	/* Decrement Register */
+#define DMISS	SPRN_DMISS	/* Data TLB Miss Register */
 #define DSISR	SPRN_DSISR	/* Data Storage Interrupt Status Register */
-#define EAR	SPRN_EAR       	/* External Address Register */
+#define EAR	SPRN_EAR	/* External Address Register */
 #define ESR	SPRN_ESR	/* Exception Syndrome Register */
 #define HASH1	SPRN_HASH1	/* Primary Hash Address Register */
 #define HASH2	SPRN_HASH2	/* Secondary Hash Address Register */
 #define HID0	SPRN_HID0	/* Hardware Implementation Register 0 */
 #define HID1	SPRN_HID1	/* Hardware Implementation Register 1 */
-#define IABR	SPRN_IABR      	/* Instruction Address Breakpoint Register */
+#define IABR	SPRN_IABR	/* Instruction Address Breakpoint Register */
 #define IAC1	SPRN_IAC1	/* Instruction Address Register 1 */
 #define IAC2	SPRN_IAC2	/* Instruction Address Register 2 */
 #define IBAT0L	SPRN_IBAT0L	/* Instruction BAT 0 Lower Register */
@@ -496,21 +525,25 @@
 #define IBAT5U	SPRN_IBAT5U	/* Instruction BAT 5 Upper Register */
 #define IBAT6L	SPRN_IBAT6L	/* Instruction BAT 6 Lower Register */
 #define IBAT6U	SPRN_IBAT6U	/* Instruction BAT 6 Upper Register */
-#define IBAT7L 	SPRN_IBAT7L	/* Instruction BAT 7 Lower Register */
+#define IBAT7L	SPRN_IBAT7L	/* Instruction BAT 7 Lower Register */
 #define IBAT7U	SPRN_IBAT7U	/* Instruction BAT 7 Lower Register */
 #define ICMP	SPRN_ICMP	/* Instruction TLB Compare Register */
 #define IMISS	SPRN_IMISS	/* Instruction TLB Miss Register */
-#define IMMR	SPRN_IMMR      	/* PPC 860/821 Internal Memory Map Register */
-#define L2CR	SPRN_L2CR    	/* PPC 750 L2 control register */
+#define IMMR	SPRN_IMMR	/* PPC 860/821 Internal Memory Map Register */
+#define LDSTCR	SPRN_LDSTCR     /* Load/Store Control Register */
+#define L2CR	SPRN_L2CR	/* PPC 750 L2 control register */
 #define LR	SPRN_LR
 #define MBAR    SPRN_MBAR       /* System memory base address */
-#if defined(CONFIG_E500)
+#if defined(CONFIG_MPC86xx)
+#define MSSCR0	SPRN_MSSCR0
+#endif
+#if defined(CONFIG_E500) || defined(CONFIG_MPC86xx)
 #define PIR	SPRN_PIR
 #endif
 #define SVR	SPRN_SVR	/* System-On-Chip Version Register */
 #define PVR	SPRN_PVR	/* Processor Version */
 #define RPA	SPRN_RPA	/* Required Physical Address Register */
-#define SDR1	SPRN_SDR1      	/* MMU hash base register */
+#define SDR1	SPRN_SDR1	/* MMU hash base register */
 #define SPR0	SPRN_SPRG0	/* Supervisor Private Registers */
 #define SPR1	SPRN_SPRG1
 #define SPR2	SPRN_SPRG2
@@ -519,8 +552,14 @@
 #define SPRG1   SPRN_SPRG1
 #define SPRG2   SPRN_SPRG2
 #define SPRG3   SPRN_SPRG3
+#define SPRG4   SPRN_SPRG4
+#define SPRG5   SPRN_SPRG5
+#define SPRG6   SPRN_SPRG6
+#define SPRG7   SPRN_SPRG7
 #define SRR0	SPRN_SRR0	/* Save and Restore Register 0 */
 #define SRR1	SPRN_SRR1	/* Save and Restore Register 1 */
+#define SRR2	SPRN_SRR2	/* Save and Restore Register 2 */
+#define SRR3	SPRN_SRR3	/* Save and Restore Register 3 */
 #define SVR	SPRN_SVR	/* System Version Register */
 #define TBRL	SPRN_TBRL	/* Time Base Read Lower Register */
 #define TBRU	SPRN_TBRU	/* Time Base Read Upper Register */
@@ -538,7 +577,7 @@
 #define CSRR0	SPRN_CSRR0
 #define CSRR1	SPRN_CSRR1
 #define IVPR	SPRN_IVPR
-#define USPRG0	SPRN_USPRG0
+#define USPRG0	SPRN_USPRG
 #define SPRG4R	SPRN_SPRG4R
 #define SPRG5R	SPRN_SPRG5R
 #define SPRG6R	SPRN_SPRG6R
@@ -575,7 +614,7 @@
 #define IVOR35	SPRN_IVOR35
 #define MCSRR0	SPRN_MCSRR0
 #define MCSRR1	SPRN_MCSRR1
-#define L1CSR0 	SPRN_L1CSR0
+#define L1CSR0	SPRN_L1CSR0
 #define L1CSR1	SPRN_L1CSR1
 #define MCSR	SPRN_MCSR
 #define MMUCSR0	SPRN_MMUCSR0
@@ -584,7 +623,7 @@
 #define PID1	SPRN_PID1
 #define PID2	SPRN_PID2
 #define MAS0	SPRN_MAS0
-#define MAS1 	SPRN_MAS1
+#define MAS1	SPRN_MAS1
 #define MAS2	SPRN_MAS2
 #define MAS3	SPRN_MAS3
 #define MAS4	SPRN_MAS4
@@ -592,11 +631,17 @@
 #define MAS6	SPRN_MAS6
 #define MAS7	SPRN_MAS7
 
+#if defined(CONFIG_4xx) || defined(CONFIG_44x) || defined(CONFIG_MPC85xx)
+#define DAR_DEAR DEAR
+#else
+#define DAR_DEAR DAR
+#endif
+
 /* Device Control Registers */
 
 #define DCRN_BEAR	0x090	/* Bus Error Address Register */
 #define DCRN_BESR	0x091	/* Bus Error Syndrome Register */
-#define   BESR_DSES    	0x80000000	/* Data-Side Error Status */
+#define   BESR_DSES	0x80000000	/* Data-Side Error Status */
 #define   BESR_DMES	0x40000000	/* DMA Error Status */
 #define   BESR_RWS	0x20000000	/* Read/Write Status */
 #define   BESR_ETMASK	0x1C000000	/* Error Type */
@@ -653,8 +698,8 @@
 #define   IOCR_E3LP	0x01000000
 #define   IOCR_E4TE	0x00800000
 #define   IOCR_E4LP	0x00400000
-#define   IOCR_EDT     	0x00080000
-#define   IOCR_SOR     	0x00040000
+#define   IOCR_EDT	0x00080000
+#define   IOCR_SOR	0x00040000
 #define   IOCR_EDO	0x00008000
 #define   IOCR_2XC	0x00004000
 #define   IOCR_ATC	0x00002000
@@ -683,8 +728,6 @@
 #define SVR_MJREV(svr)	(((svr) >>  4) & 0x0F)   /* Major SOC design revision indicator */
 #define SVR_MNREV(svr)	(((svr) >>  0) & 0x0F)   /* Minor SOC design revision indicator */
 
-/* System-On-Chip Version Numbers (version field only) */
-#define SVR_MPC5200	0x8011
 
 /* Processor Version Register */
 
@@ -721,6 +764,7 @@
 #define PVR_405CR_RC	0x40110145  /* same as pc405gp rev e */
 #define PVR_405EP_RA	0x51210950
 #define PVR_405GPR_RB	0x50910951
+#define PVR_405EZ_RA	0x41511460
 #define PVR_440GP_RB	0x40120440
 #define PVR_440GP_RC	0x40120481
 #define PVR_440EP_RA	0x42221850
@@ -728,15 +772,23 @@
 #define PVR_440EP_RC	0x422218D4 /* 440EP rev C and 440GR rev B have same PVR */
 #define PVR_440GR_RA	0x422218D3 /* 440EP rev B and 440GR rev A have same PVR */
 #define PVR_440GR_RB	0x422218D4 /* 440EP rev C and 440GR rev B have same PVR */
+#define PVR_440EPX1_RA  0x216218D0 /* 440EPX rev A with Security / Kasumi */
+#define PVR_440EPX2_RA  0x216218D4 /* 440EPX rev A without Security / Kasumi */
+#define PVR_440GRX1_RA  0x216218D0 /* 440GRX rev A with Security / Kasumi */
+#define PVR_440GRX2_RA  0x216218D4 /* 440GRX rev A without Security / Kasumi */
 #define PVR_440GX_RA	0x51B21850
 #define PVR_440GX_RB	0x51B21851
 #define PVR_440GX_RC	0x51B21892
 #define PVR_440GX_RF	0x51B21894
 #define PVR_405EP_RB	0x51210950
-#define PVR_440SP_RA	0x53221850
-#define PVR_440SP_RB	0x53221891
-#define PVR_440SPe_RA	0x53421890
-#define PVR_440SPe_RB	0x53421891
+#define PVR_440SP_6_RAB	0x53221850 /* 440SP rev A&B with RAID 6 support enabled	*/
+#define PVR_440SP_RAB	0x53321850 /* 440SP rev A&B without RAID 6 support	*/
+#define PVR_440SP_6_RC	0x53221891 /* 440SP rev C with RAID 6 support enabled	*/
+#define PVR_440SP_RC	0x53321891 /* 440SP rev C without RAID 6 support	*/
+#define PVR_440SPe_6_RA	0x53421890 /* 440SPe rev A with RAID 6 support enabled	*/
+#define PVR_440SPe_RA	0x53521890 /* 440SPe rev A without RAID 6 support	*/
+#define PVR_440SPe_6_RB	0x53421891 /* 440SPe rev B with RAID 6 support enabled	*/
+#define PVR_440SPe_RB	0x53521891 /* 440SPe rev B without RAID 6 support	*/
 #define PVR_601		0x00010000
 #define PVR_602		0x00050000
 #define PVR_603		0x00030000
@@ -759,6 +811,8 @@
 #define PVR_85xx_REV1	(PVR_85xx | 0x0010)
 #define PVR_85xx_REV2	(PVR_85xx | 0x0020)
 
+#define PVR_86xx	0x80040000
+#define PVR_86xx_REV1	(PVR_86xx | 0x0010)
 
 /*
  * For the 8xx processors, all of them report the same PVR family for
@@ -770,7 +824,7 @@
 #define PVR_823		PVR_821
 #define PVR_850		PVR_821
 #define PVR_860		PVR_821
-#define PVR_7400       	0x000C0000
+#define PVR_7400	0x000C0000
 #define PVR_8240	0x00810100
 
 /*
@@ -784,6 +838,12 @@
 #define PVR_8260_HIP7R1 0x80822013
 #define PVR_8260_HIP7RA	0x80822014
 
+/*
+ * MPC 52xx
+ */
+#define PVR_5200	0x80822011
+#define PVR_5200B	0x80822014
+
 
 /*
  * System Version Register
@@ -793,6 +853,8 @@
 
 #define SVR_VER(svr)	(((svr) >>  16) & 0xFFFF)	/* Version field */
 #define SVR_REV(svr)	(((svr) >>   0) & 0xFFFF)	/* Revison field */
+
+#define SVR_SUBVER(svr)	(((svr) >>  8) & 0xFF)	/* Process/MFG sub-version */
 
 #define SVR_FAM(svr)	(((svr) >> 20) & 0xFFF)	/* Family field */
 #define SVR_MEM(svr)	(((svr) >> 16) & 0xF)	/* Member field */
@@ -809,8 +871,12 @@
 #define SVR_8560	0x8070
 #define SVR_8555	0x8079
 #define SVR_8541	0x807A
+#define SVR_8544	0x8034
+#define SVR_8544_E	0x803C
 #define SVR_8548	0x8031
 #define SVR_8548_E	0x8039
+#define SVR_8641	0x8090
+#define SVR_8568_E	0x807D
 
 
 /* I am just adding a single entry for 8260 boards.  I think we may be

@@ -29,6 +29,7 @@
 #include <s_record.h>
 #include <net.h>
 #include <ata.h>
+#include <part.h>
 
 #define CONFIG_FATLOAD_TICKS
 #define CONFIG_FATLOAD_ADLER
@@ -37,7 +38,7 @@
 #include <zlib.h>
 #endif 
 
-#if (CONFIG_COMMANDS & CFG_CMD_FAT)
+#if defined(CONFIG_CMD_FAT)
 
 #undef	DEBUG
 
@@ -72,42 +73,6 @@ U_BOOT_CMD(
 	"address length \n"
 );
 
-
-
-block_dev_desc_t *get_dev (char* ifname, int dev)
-{
-#if (CONFIG_COMMANDS & CFG_CMD_IDE)
-	if (strncmp(ifname,"ide",3)==0) {
-		extern block_dev_desc_t * ide_get_dev(int dev);
-		return(ide_get_dev(dev));
-	}
-#endif
-#if (CONFIG_COMMANDS & CFG_CMD_SCSI)
-	if (strncmp(ifname,"scsi",4)==0) {
-		extern block_dev_desc_t * scsi_get_dev(int dev);
-		return(scsi_get_dev(dev));
-	}
-#endif
-#if ((CONFIG_COMMANDS & CFG_CMD_USB) && defined(CONFIG_USB_STORAGE))
-	if (strncmp(ifname,"usb",3)==0) {
-		extern block_dev_desc_t * usb_stor_get_dev(int dev);
-		return(usb_stor_get_dev(dev));
-	}
-#endif
-#if defined(CONFIG_MMC)
-	if (strncmp(ifname,"mmc",3)==0) {
-		extern block_dev_desc_t *  mmc_get_dev(int dev);
-		return(mmc_get_dev(dev));
-	}
-#endif
-#if defined(CONFIG_SYSTEMACE)
-	if (strcmp(ifname,"ace")==0) {
-		extern block_dev_desc_t *  systemace_get_dev(int dev);
-		return(systemace_get_dev(dev));
-	}
-#endif
-	return NULL;
-}
 
 
 int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
@@ -419,4 +384,4 @@ void hexdump (int cnt, unsigned char *data)
 }
 #endif	/* NOT_IMPLEMENTED_YET */
 
-#endif	/* CFG_CMD_FAT */
+#endif

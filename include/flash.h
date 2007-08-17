@@ -43,9 +43,15 @@ typedef struct {
 	ulong	write_tout;		/* maximum write timeout		*/
 	ulong	buffer_write_tout;	/* maximum buffer write timeout		*/
 	ushort	vendor;			/* the primary vendor id		*/
-	ushort	cmd_reset;		/* Vendor specific reset command	*/
+	ushort	cmd_reset;		/* vendor specific reset command	*/
 	ushort	interface;		/* used for x8/x16 adjustments		*/
 	ushort	legacy_unlock;		/* support Intel legacy (un)locking	*/
+	uchar	manufacturer_id;	/* manufacturer id			*/
+	ushort	device_id;		/* device id				*/
+	ushort	device_id2;		/* extended device id			*/
+	ushort	ext_addr;		/* extended query table address		*/
+	ushort	cfi_version;		/* cfi version				*/
+	ushort	cfi_offset;		/* offset for cfi query 		*/
 #endif
 } flash_info_t;
 
@@ -113,6 +119,11 @@ extern void flash_read_factory_serial(flash_info_t * info, void * buffer, int of
  */
 #define FLAG_PROTECT_SET	0x01
 #define FLAG_PROTECT_CLEAR	0x02
+#define	FLAG_PROTECT_INVALID	0x03
+/*-----------------------------------------------------------------------
+ * Set Environment according to label:
+ */
+#define	FLAG_SETENV		0x80
 
 /*-----------------------------------------------------------------------
  * Device IDs
@@ -209,6 +220,9 @@ extern void flash_read_factory_serial(flash_info_t * info, void * buffer, int of
 #define AMD_ID_GL064M_3 0x22012201	/* 3rd ID word for S29GL064M-R6 */
 #define AMD_ID_GL064MT_2 0x22102210	/* 2nd ID word for S29GL064M-R3 (top boot sector) */
 #define AMD_ID_GL064MT_3 0x22012201	/* 3rd ID word for S29GL064M-R3 (top boot sector) */
+#define AMD_ID_GL128N_2	0x22212221	/* 2nd ID word for S29GL128N */
+#define AMD_ID_GL128N_3	0x22012201	/* 3rd ID word for S29GL128N */
+
 
 #define AMD_ID_LV320B_2 0x221A221A	/* 2d ID word for AM29LV320MB at 0x38 */
 #define AMD_ID_LV320B_3 0x22002200	/* 3d ID word for AM29LV320MB at 0x3c */
@@ -243,6 +257,8 @@ extern void flash_read_factory_serial(flash_info_t * info, void * buffer, int of
 #define STM_ID_x800AB	0x005B005B	/* M29W800AB ID (8M = 512K x 16 )	*/
 #define STM_ID_29W320DT 0x22CA22CA	/* M29W320DT ID (32 M, top boot sector) */
 #define STM_ID_29W320DB 0x22CB22CB	/* M29W320DB ID (32 M, bottom boot sect)	*/
+#define STM_ID_29W320ET 0x22562256	/* M29W320ET ID (32 M, top boot sector) */
+#define STM_ID_29W320EB 0x22572257	/* M29W320EB ID (32 M, bottom boot sect)*/
 #define STM_ID_29W040B	0x00E300E3	/* M29W040B ID (4M = 512K x 8)	*/
 #define FLASH_PSD4256GV 0x00E9		/* PSD4256 Flash and CPLD combination	*/
 
@@ -295,6 +311,7 @@ extern void flash_read_factory_serial(flash_info_t * info, void * buffer, int of
 
 #define TOSH_ID_FVT160	0xC2		/* TC58FVT160 ID (16 M, top )		*/
 #define TOSH_ID_FVB160	0x43		/* TC58FVT160 ID (16 M, bottom )	*/
+#define PHILIPS_LPC2292 0x0401FF13  /* LPC2292 internal FLASH			*/
 
 /*-----------------------------------------------------------------------
  * Internal FLASH identification codes
@@ -417,6 +434,7 @@ extern void flash_read_factory_serial(flash_info_t * info, void * buffer, int of
 #define FLASH_FUJLV650	0x00D0		/* Fujitsu MBM 29LV650UE/651UE		*/
 #define FLASH_MT28S4M16LC 0x00E1	/* Micron MT28S4M16LC			*/
 #define FLASH_S29GL064M 0x00F0		/* Spansion S29GL064M-R6		*/
+#define FLASH_S29GL128N 0x00F1		/* Spansion S29GL128N			*/
 
 #define FLASH_UNKNOWN	0xFFFF		/* unknown flash type			*/
 
@@ -435,6 +453,7 @@ extern void flash_read_factory_serial(flash_info_t * info, void * buffer, int of
 #define FLASH_MAN_MT	0x00400000
 #define FLASH_MAN_SHARP 0x00500000
 #define FLASH_MAN_ATM	0x00600000
+#define FLASH_MAN_CFI	0x01000000
 
 
 #define FLASH_TYPEMASK	0x0000FFFF	/* extract FLASH type	information	*/

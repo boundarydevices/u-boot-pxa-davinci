@@ -169,10 +169,11 @@
 #define LITTLEENDIAN		1  /* Needed by usb_ohci.c */
 #define CFG_DEVICE_DEREGISTER	1  /* Needed by usb_kbd */
 #define CONFIG_DOS_PARTITION	1
+/*
 #define CONFIG_USB_OHCI		1
 #define CONFIG_USB_KEYBOARD	1
 #define CONFIG_USB_STORAGE	1
-
+*/
 /*
  * select serial console configuration
  */
@@ -185,68 +186,15 @@
 #define CONFIG_SUPPORT_VFAT
 #define CONFIG_LCDPANEL	/* Dynamic LCD Panel Support */
 
-#define SKIP_COMMANDS ( CFG_CMD_BDI \
-	| CFG_CMD_BOOTD \
-	| CFG_CMD_LOADS \
-	| CFG_CMD_LOADB \
-	| CFG_CMD_ITEST \
-	| CFG_CMD_FPGA \
-	| CFG_CMD_DIAG \
-	| CFG_CMD_DATE \
-	| CFG_CMD_BOOTP \
-	| CFG_CMD_NFS \
-	)
-//						| CFG_CMD_ECHO
-//                      | CFG_CMD_FLASH
-//                      | CFG_CMD_DHCP
-//                      | CFG_CMD_NET
-//                      | CFG_CMD_MEMORY 
-//                      | CFG_CMD_ENV 
-
-
-#define CONFIG_COMMANDS	( (CONFIG_CMD_DFL \
-	| CFG_CMD_MMC \
-	| CFG_CMD_FAT \
-	| CFG_CMD_FLASH \
-	| CFG_CMD_DHCP \
-	| CFG_CMD_ENV \
-	| CFG_CMD_EXT2 \
-	| CFG_CMD_USB \
-	| CFG_CMD_NOT \
-	| CFG_CMD_MISC \
-	| CFG_CMD_BMP) & ~(SKIP_COMMANDS) )
-
-#define CMD_XMODEM 1
+#include "bdCommands.h"
 #define CMD_I2CTEST 1
-
-/* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
-#include <cmd_confdefs.h>
-
-#if 0
-#ifdef CMD_I2CTEST
-#if (PLATFORM_TYPE==NEONB)
-#define CONFIG_BOOTDELAY	0
-#define CONFIG_BOOTCOMMAND	\
-"if i2ctest ; then " \
-	"lecho \"i2ctest succeeded\" ; " \
-	"while not mmcdet ; do cls ; lecho \"insert SD card\" ; sleep 1 ; done ; " \
-	"lecho \"SD card Detected\" ; " \
-	"while mmcwp ; do cls ; lecho \"remove write protect\" ; sleep 1 ; done ; " \
-	"lecho \"not write protected\" ; " \
-	"mmcinit ; " \
-	"if fatload mmc 0 A0030000 bnk.nb0 ; then g A0030000 ; else lecho \"file bnk.nb0 not found\" ; fi ; " \
-"else lecho \"i2ctest failed\" ; fi ; "
-
-#endif
-#endif
-#endif
 
 #ifndef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTDELAY	3
-#define CONFIG_BOOTCOMMAND	"while not mmcdet ; do cls ; lecho \"insert SD card\" ; sleep 1 ; done ; cls ;" \
-                                "if mmcwp ; then lecho \"write protected\" ; else lecho \"not write protected\" ; fi ; " \
-                                "mmcinit; " \
-                                "if fatload mmc 0 a0000000 init.scr ; then autoscr a0000000 ; fi"
+#define CONFIG_BOOTCOMMAND	"while not mmcdet ; do cls ; lecho \"insert SD card\" ; sleep 1 ; done ; cls ;"  \
+                           "if mmcwp ; then lecho \"write protected\" ; else lecho \"not write protected\" ; fi ; " \
+                           "mmcinit; " \
+                           "if fatload mmc 0 a0000000 init.scr ; then autoscr a0000000 ; fi"
 #endif
 
 #define CONFIG_BOOTARGS		"console=ttyS0,115200 DEBUG=1 ENV=/etc/bashrc init=/linuxrc rw mtdparts=phys:1024k(armboot),256k(params),-(rootfs1) root=/dev/mtdblock3 rootfstype=cramfs"
@@ -263,7 +211,7 @@
 #define LCD_BPP			LCD_COLOR8
 
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CONFIG_KGDB_BAUDRATE	230400		/* speed to run kgdb serial port */
 #define CONFIG_KGDB_SER_INDEX	2		/* which serial port to use */
 #endif
@@ -358,7 +306,7 @@
 #define CFG_ENV_ADDR		   ((CFG_FLASH_BASE)+0x100000)	/* Addr of Environment Sector	*/
 #define CFG_ENV_OFFSET     ((CFG_ENV_ADDR)-(CFG_FLASH_BASE))
 #define CFG_ENV_SIZE		   PHYS_FLASH_SECT_SIZE	/* Total Size of Environment Sector	*/
-
+ 
 /*
  * GPIO settings
  */

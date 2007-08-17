@@ -32,28 +32,26 @@
 #include <environment.h>
 #include <asm/byteorder.h>
 
-#ifdef CONFIG_OF_FLAT_TREE
+#if defined(CONFIG_OF_LIBFDT)
+#include <fdt.h>
+#include <libfdt.h>
+#include <fdt_support.h>
+#endif
+#if defined(CONFIG_OF_FLAT_TREE)
 #include <ft_build.h>
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
- /*cmd_boot.c*/
- extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
+/*cmd_boot.c*/
+extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 
-#if (CONFIG_COMMANDS & CFG_CMD_DATE) || defined(CONFIG_TIMESTAMP)
+#if defined(CONFIG_TIMESTAMP) || defined(CONFIG_CMD_DATE)
 #include <rtc.h>
 #endif
 
 #ifdef CFG_HUSH_PARSER
 #include <hush.h>
-#endif
-
-#ifdef CONFIG_SHOW_BOOT_PROGRESS
-# include <status_led.h>
-# define SHOW_BOOT_PROGRESS(arg)	show_boot_progress(arg)
-#else
-# define SHOW_BOOT_PROGRESS(arg)
 #endif
 
 #ifdef CFG_INIT_RAM_LOCK
@@ -84,11 +82,11 @@ static void *zalloc(void *, unsigned, unsigned);
 static void zfree(void *, void *, unsigned);
 #endif 
 
-#if (CONFIG_COMMANDS & CFG_CMD_IMI)
+#if defined(CONFIG_CMD_IMI)
 static int image_info (unsigned long addr);
 #endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_IMLS)
+#if defined(CONFIG_CMD_IMLS)
 #include <flash.h>
 extern flash_info_t flash_info[]; /* info for FLASH chips */
 static int do_imls (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
@@ -128,12 +126,12 @@ static void fixup_silent_linux (void);
 #endif
 static boot_os_Fcn do_bootm_netbsd;
 static boot_os_Fcn do_bootm_rtems;
-#if (CONFIG_COMMANDS & CFG_CMD_ELF)
+#if defined(CONFIG_CMD_ELF)
 static boot_os_Fcn do_bootm_vxworks;
 static boot_os_Fcn do_bootm_qnxelf;
 int do_bootvx ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[] );
 int do_bootelf (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[] );
-#endif /* CFG_CMD_ELF */
+#endif
 #if defined(CONFIG_ARTOS) && defined(CONFIG_PPC)
 static boot_os_Fcn do_bootm_artos;
 #endif
@@ -171,7 +169,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		addr = simple_strtoul(argv[1], NULL, 16);
 	}
 
-	SHOW_BOOT_PROGRESS (1);
+	show_boot_progress (1);
 	printf ("## Booting image at %08lx ...\n", addr);
 
 	/* Copy header so we can blank CRC field for re-calculation */
@@ -195,11 +193,11 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 #endif	/* __I386__ */
 	    {
 		puts ("Bad Magic Number\n");
-		SHOW_BOOT_PROGRESS (-1);
+		show_boot_progress (-1);
 		return 1;
 	    }
 	}
-	SHOW_BOOT_PROGRESS (2);
+	show_boot_progress (2);
 
 	data = (ulong)&header;
 	len  = sizeof(image_header_t);
@@ -209,10 +207,10 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	if (crc32 (0, (uchar *)data, len) != checksum) {
 		puts ("Bad Header Checksum\n");
-		SHOW_BOOT_PROGRESS (-2);
+		show_boot_progress (-2);
 		return 1;
 	}
-	SHOW_BOOT_PROGRESS (3);
+	show_boot_progress (3);
 
 #ifdef CONFIG_HAS_DATAFLASH
 	if (addr_dataflash(addr)){
@@ -233,42 +231,44 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		puts ("   Verifying Checksum ... ");
 		if (crc32 (0, (uchar *)data, len) != ntohl(hdr->ih_dcrc)) {
 			printf ("Bad Data CRC\n");
-			SHOW_BOOT_PROGRESS (-3);
+			show_boot_progress (-3);
 			return 1;
 		}
 		puts ("OK\n");
 	}
-	SHOW_BOOT_PROGRESS (4);
+	show_boot_progress (4);
 
 	len_ptr = (ulong *)data;
 
-#if defined(__PPC__)
-	if (hdr->ih_arch != IH_CPU_PPC)
-#elif defined(__ARM__)
+#if defined(__ARM__)
 	if (hdr->ih_arch != IH_CPU_ARM)
+#elif defined(__avr32__)
+	if (hdr->ih_arch != IH_CPU_AVR32)
+#elif defined(__bfin__)
+	if (hdr->ih_arch != IH_CPU_BLACKFIN)
 #elif defined(__I386__)
 	if (hdr->ih_arch != IH_CPU_I386)
-#elif defined(__mips__)
-	if (hdr->ih_arch != IH_CPU_MIPS)
-#elif defined(__nios__)
-	if (hdr->ih_arch != IH_CPU_NIOS)
 #elif defined(__M68K__)
 	if (hdr->ih_arch != IH_CPU_M68K)
 #elif defined(__microblaze__)
 	if (hdr->ih_arch != IH_CPU_MICROBLAZE)
+#elif defined(__mips__)
+	if (hdr->ih_arch != IH_CPU_MIPS)
+#elif defined(__nios__)
+	if (hdr->ih_arch != IH_CPU_NIOS)
 #elif defined(__nios2__)
 	if (hdr->ih_arch != IH_CPU_NIOS2)
-#elif defined(__blackfin__)
-	if (hdr->ih_arch != IH_CPU_BLACKFIN)
+#elif defined(__PPC__)
+	if (hdr->ih_arch != IH_CPU_PPC)
 #else
 # error Unknown CPU type
 #endif
 	{
 		printf ("Unsupported Architecture 0x%x\n", hdr->ih_arch);
-		SHOW_BOOT_PROGRESS (-4);
+		show_boot_progress (-4);
 		return 1;
 	}
-	SHOW_BOOT_PROGRESS (5);
+	show_boot_progress (5);
 
 	switch (hdr->ih_type) {
 	case IH_TYPE_STANDALONE:
@@ -290,10 +290,10 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			data += 4;
 		break;
 	default: printf ("Wrong Image Type for %s command\n", cmdtp->name);
-		SHOW_BOOT_PROGRESS (-5);
+		show_boot_progress (-5);
 		return 1;
 	}
-	SHOW_BOOT_PROGRESS (6);
+	show_boot_progress (6);
 
 	/*
 	 * We have reached the point of no return: we are going to
@@ -345,7 +345,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		if (gunzip ((void *)ntohl(hdr->ih_load), unc_len,
 			    (uchar *)data, &len) != 0) {
 			puts ("GUNZIP ERROR - must RESET board to recover\n");
-			SHOW_BOOT_PROGRESS (-6);
+			show_boot_progress (-6);
 			do_reset (cmdtp, flag, argc, argv);
 		}
 #else
@@ -366,8 +366,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 						CFG_MALLOC_LEN < (4096 * 1024), 0);
 		if (i != BZ_OK) {
 			printf ("BUNZIP2 ERROR %d - must RESET board to recover\n", i);
-			SHOW_BOOT_PROGRESS (-6);
-			udelay(100000);
+			show_boot_progress (-6);
 			do_reset (cmdtp, flag, argc, argv);
 		}
 		break;
@@ -376,11 +375,11 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		if (iflag)
 			enable_interrupts();
 		printf ("Unimplemented compression type %d\n", hdr->ih_comp);
-		SHOW_BOOT_PROGRESS (-7);
+		show_boot_progress (-7);
 		return 1;
 	}
 	puts ("OK\n");
-	SHOW_BOOT_PROGRESS (7);
+	show_boot_progress (7);
 
 	switch (hdr->ih_type) {
 	case IH_TYPE_STANDALONE:
@@ -407,10 +406,10 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		if (iflag)
 			enable_interrupts();
 		printf ("Can't boot image type %d\n", hdr->ih_type);
-		SHOW_BOOT_PROGRESS (-8);
+		show_boot_progress (-8);
 		return 1;
 	}
-	SHOW_BOOT_PROGRESS (8);
+	show_boot_progress (8);
 
 	switch (hdr->ih_os) {
 	default:			/* handled by (original) Linux case */
@@ -438,7 +437,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			     addr, len_ptr, verify);
 	    break;
 
-#if (CONFIG_COMMANDS & CFG_CMD_ELF)
+#if defined(CONFIG_CMD_ELF)
 	case IH_OS_VXWORKS:
 	    do_bootm_vxworks (cmdtp, flag, argc, argv,
 			      addr, len_ptr, verify);
@@ -447,7 +446,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	    do_bootm_qnxelf (cmdtp, flag, argc, argv,
 			      addr, len_ptr, verify);
 	    break;
-#endif /* CFG_CMD_ELF */
+#endif
 #ifdef CONFIG_ARTOS
 	case IH_OS_ARTOS:
 	    do_bootm_artos  (cmdtp, flag, argc, argv,
@@ -456,7 +455,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 #endif
 	}
 
-	SHOW_BOOT_PROGRESS (-9);
+	show_boot_progress (-9);
 #ifdef DEBUG
 	puts ("\n## Control returned to monitor - resetting...\n");
 	do_reset (cmdtp, flag, argc, argv);
@@ -470,6 +469,13 @@ U_BOOT_CMD(
  	"[addr [arg ...]]\n    - boot application image stored in memory\n"
  	"\tpassing arguments 'arg ...'; when booting a Linux kernel,\n"
  	"\t'arg' can be the address of an initrd image\n"
+#if defined(CONFIG_OF_FLAT_TREE) || defined(CONFIG_OF_LIBFDT)
+	"\tWhen booting a Linux kernel which requires a flat device-tree\n"
+	"\ta third argument is required which is the address of the of the\n"
+	"\tdevice-tree blob. To boot that kernel without an initrd image,\n"
+	"\tuse a '-' for the second argument. If you do not pass a third\n"
+	"\ta bd_info struct will be passed instead\n"
+#endif
 );
 
 #ifdef CONFIG_SILENT_CONSOLE
@@ -505,13 +511,8 @@ fixup_silent_linux ()
 }
 #endif /* CONFIG_SILENT_CONSOLE */
 
-#ifdef CONFIG_OF_FLAT_TREE
-extern const unsigned char oftree_dtb[];
-extern const unsigned int oftree_dtb_len;
-#endif
-
 #ifdef CONFIG_PPC
-static void
+static void  __attribute__((noinline))
 do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 		int	argc, char *argv[],
 		ulong	addr,
@@ -530,8 +531,9 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 	bd_t	*kbd;
 	void	(*kernel)(bd_t *, ulong, ulong, ulong, ulong);
 	image_header_t *hdr = &header;
-#ifdef CONFIG_OF_FLAT_TREE
-	char	*of_flat_tree;
+#if defined(CONFIG_OF_FLAT_TREE) || defined(CONFIG_OF_LIBFDT)
+	char	*of_flat_tree = NULL;
+	ulong	of_data = 0;
 #endif
 
 	if ((s = getenv ("initrd_high")) != NULL) {
@@ -621,8 +623,18 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 	/*
 	 * Check if there is an initrd image
 	 */
+
+#if defined(CONFIG_OF_FLAT_TREE) || defined(CONFIG_OF_LIBFDT)
+	/* Look for a '-' which indicates to ignore the ramdisk argument */
+	if (argc >= 3 && strcmp(argv[2], "-") ==  0) {
+			debug ("Skipping initrd\n");
+			len = data = 0;
+		}
+	else
+#endif
 	if (argc >= 3) {
-		SHOW_BOOT_PROGRESS (9);
+		debug ("Not skipping initrd\n");
+		show_boot_progress (9);
 
 		addr = simple_strtoul(argv[2], NULL, 16);
 
@@ -633,7 +645,7 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 
 		if (ntohl(hdr->ih_magic)  != IH_MAGIC) {
 			puts ("Bad Magic Number\n");
-			SHOW_BOOT_PROGRESS (-10);
+			show_boot_progress (-10);
 			do_reset (cmdtp, flag, argc, argv);
 		}
 
@@ -645,11 +657,11 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 
 		if (crc32 (0, (uchar *)data, len) != checksum) {
 			puts ("Bad Header Checksum\n");
-			SHOW_BOOT_PROGRESS (-11);
+			show_boot_progress (-11);
 			do_reset (cmdtp, flag, argc, argv);
 		}
 
-		SHOW_BOOT_PROGRESS (10);
+		show_boot_progress (10);
 
 		print_image_hdr (hdr);
 
@@ -682,19 +694,19 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 
 			if (csum != ntohl(hdr->ih_dcrc)) {
 				puts ("Bad Data CRC\n");
-				SHOW_BOOT_PROGRESS (-12);
+				show_boot_progress (-12);
 				do_reset (cmdtp, flag, argc, argv);
 			}
 			puts ("OK\n");
 		}
 
-		SHOW_BOOT_PROGRESS (11);
+		show_boot_progress (11);
 
 		if ((hdr->ih_os   != IH_OS_LINUX)	||
 		    (hdr->ih_arch != IH_CPU_PPC)	||
 		    (hdr->ih_type != IH_TYPE_RAMDISK)	) {
 			puts ("No Linux PPC Ramdisk Image\n");
-			SHOW_BOOT_PROGRESS (-13);
+			show_boot_progress (-13);
 			do_reset (cmdtp, flag, argc, argv);
 		}
 
@@ -705,7 +717,7 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 		u_long tail    = ntohl(len_ptr[0]) % 4;
 		int i;
 
-		SHOW_BOOT_PROGRESS (13);
+		show_boot_progress (13);
 
 		/* skip kernel length and terminator */
 		data = (ulong)(&len_ptr[2]);
@@ -724,11 +736,130 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 		/*
 		 * no initrd image
 		 */
-		SHOW_BOOT_PROGRESS (14);
+		show_boot_progress (14);
 
 		len = data = 0;
 	}
 
+#if defined(CONFIG_OF_FLAT_TREE) || defined(CONFIG_OF_LIBFDT)
+	if(argc > 3) {
+		of_flat_tree = (char *) simple_strtoul(argv[3], NULL, 16);
+		hdr = (image_header_t *)of_flat_tree;
+#if defined(CONFIG_OF_FLAT_TREE)
+		if (*((ulong *)(of_flat_tree + sizeof(image_header_t))) != OF_DT_HEADER) {
+#else
+		if (fdt_check_header(of_flat_tree + sizeof(image_header_t)) != 0) {
+#endif
+#ifndef CFG_NO_FLASH
+			if (addr2info((ulong)of_flat_tree) != NULL)
+				of_data = (ulong)of_flat_tree;
+#endif
+		} else if (ntohl(hdr->ih_magic) == IH_MAGIC) {
+			printf("## Flat Device Tree at %08lX\n", hdr);
+			print_image_hdr(hdr);
+
+			if ((ntohl(hdr->ih_load) <  ((unsigned long)hdr + ntohl(hdr->ih_size) + sizeof(hdr))) &&
+			   ((ntohl(hdr->ih_load) + ntohl(hdr->ih_size)) > (unsigned long)hdr)) {
+				puts ("ERROR: fdt overwritten - "
+					"must RESET the board to recover.\n");
+				do_reset (cmdtp, flag, argc, argv);
+			}
+
+			puts ("   Verifying Checksum ... ");
+			memmove (&header, (char *)hdr, sizeof(image_header_t));
+			checksum = ntohl(header.ih_hcrc);
+			header.ih_hcrc = 0;
+
+			if(checksum != crc32(0, (uchar *)&header, sizeof(image_header_t))) {
+				puts ("ERROR: fdt header checksum invalid - "
+					"must RESET the board to recover.\n");
+				do_reset (cmdtp, flag, argc, argv);
+			}
+
+			checksum = ntohl(hdr->ih_dcrc);
+			addr = (ulong)((uchar *)(hdr) + sizeof(image_header_t));
+
+			if(checksum != crc32(0, (uchar *)addr, ntohl(hdr->ih_size))) {
+				puts ("ERROR: fdt checksum invalid - "
+					"must RESET the board to recover.\n");
+				do_reset (cmdtp, flag, argc, argv);
+			}
+			puts ("OK\n");
+
+			if (ntohl(hdr->ih_type) != IH_TYPE_FLATDT) {
+				puts ("ERROR: uImage is not a fdt - "
+					"must RESET the board to recover.\n");
+				do_reset (cmdtp, flag, argc, argv);
+			}
+			if (ntohl(hdr->ih_comp) != IH_COMP_NONE) {
+				puts ("ERROR: uImage is compressed - "
+					"must RESET the board to recover.\n");
+				do_reset (cmdtp, flag, argc, argv);
+			}
+#if defined(CONFIG_OF_FLAT_TREE)
+			if (*((ulong *)(of_flat_tree + sizeof(image_header_t))) != OF_DT_HEADER) {
+#else
+			if (fdt_check_header(of_flat_tree + sizeof(image_header_t)) != 0) {
+#endif
+				puts ("ERROR: uImage data is not a fdt - "
+					"must RESET the board to recover.\n");
+				do_reset (cmdtp, flag, argc, argv);
+			}
+
+			memmove((void *)ntohl(hdr->ih_load),
+		       		(void *)(of_flat_tree + sizeof(image_header_t)),
+				ntohl(hdr->ih_size));
+			of_flat_tree = (char *)ntohl(hdr->ih_load);
+		} else {
+			puts ("Did not find a flat Flat Device Tree.\n"
+				"Must RESET the board to recover.\n");
+			do_reset (cmdtp, flag, argc, argv);
+		}
+		printf ("   Booting using the fdt at 0x%x\n",
+				of_flat_tree);
+	} else if ((hdr->ih_type==IH_TYPE_MULTI) && (len_ptr[1]) && (len_ptr[2])) {
+		u_long tail    = ntohl(len_ptr[0]) % 4;
+		int i;
+
+		/* skip kernel length, initrd length, and terminator */
+		of_data = (ulong)(&len_ptr[3]);
+		/* skip any additional image length fields */
+		for (i=2; len_ptr[i]; ++i)
+			of_data += 4;
+		/* add kernel length, and align */
+		of_data += ntohl(len_ptr[0]);
+		if (tail) {
+			of_data += 4 - tail;
+		}
+
+		/* add initrd length, and align */
+		tail = ntohl(len_ptr[1]) % 4;
+		of_data += ntohl(len_ptr[1]);
+		if (tail) {
+			of_data += 4 - tail;
+		}
+
+#if defined(CONFIG_OF_FLAT_TREE)
+		if (*((ulong *)(of_flat_tree + sizeof(image_header_t))) != OF_DT_HEADER) {
+#else
+		if (fdt_check_header(of_flat_tree + sizeof(image_header_t)) != 0) {
+#endif
+			puts ("ERROR: image is not a fdt - "
+				"must RESET the board to recover.\n");
+			do_reset (cmdtp, flag, argc, argv);
+		}
+
+#if defined(CONFIG_OF_FLAT_TREE)
+		if (((struct boot_param_header *)of_data)->totalsize != ntohl(len_ptr[2])) {
+#else
+		if (be32_to_cpu(fdt_totalsize(of_data)) !=  ntohl(len_ptr[2])) {
+#endif
+			puts ("ERROR: fdt size != image size - "
+				"must RESET the board to recover.\n");
+			do_reset (cmdtp, flag, argc, argv);
+		}
+	}
+#endif
 	if (!data) {
 		debug ("No initrd\n");
 	}
@@ -765,7 +896,7 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 				initrd_start = nsp;
 		}
 
-		SHOW_BOOT_PROGRESS (12);
+		show_boot_progress (12);
 
 		debug ("## initrd at 0x%08lX ... 0x%08lX (len=%ld=0x%lX)\n",
 			data, data + len - 1, len, len);
@@ -798,28 +929,126 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 		initrd_end = 0;
 	}
 
-#ifdef CONFIG_OF_FLAT_TREE
-	if (initrd_start == 0)
-		of_flat_tree = (char *)(((ulong)kbd - OF_FLAT_TREE_MAX_SIZE -
-					sizeof(bd_t)) & ~0xF);
-	else
-		of_flat_tree = (char *)((initrd_start - OF_FLAT_TREE_MAX_SIZE -
-					sizeof(bd_t)) & ~0xF);
+#if defined(CONFIG_OF_LIBFDT)
+
+#ifdef CFG_BOOTMAPSZ
+	/*
+	 * The blob must be within CFG_BOOTMAPSZ,
+	 * so we flag it to be copied if it is not.
+	 */
+	if (of_flat_tree >= (char *)CFG_BOOTMAPSZ)
+		of_data = (ulong)of_flat_tree;
 #endif
 
+	/* move of_flat_tree if needed */
+	if (of_data) {
+		int err;
+		ulong of_start, of_len;
+
+		of_len = be32_to_cpu(fdt_totalsize(of_data));
+
+		/* position on a 4K boundary before the kbd */
+		of_start  = (ulong)kbd - of_len;
+		of_start &= ~(4096 - 1);	/* align on page */
+		debug ("## device tree at 0x%08lX ... 0x%08lX (len=%ld=0x%lX)\n",
+			of_data, of_data + of_len - 1, of_len, of_len);
+
+		of_flat_tree = (char *)of_start;
+		printf ("   Loading Device Tree to %08lx, end %08lx ... ",
+			of_start, of_start + of_len - 1);
+		err = fdt_open_into((void *)of_data, (void *)of_start, of_len);
+		if (err != 0) {
+			puts ("ERROR: fdt move failed - "
+				"must RESET the board to recover.\n");
+			do_reset (cmdtp, flag, argc, argv);
+		}
+	}
+	/*
+	 * Add the chosen node if it doesn't exist, add the env and bd_t
+	 * if the user wants it (the logic is in the subroutines).
+	 */
+	if (fdt_chosen(of_flat_tree, initrd_start, initrd_end, 0) < 0) {
+		puts ("ERROR: /chosen node create failed - "
+			"must RESET the board to recover.\n");
+		do_reset (cmdtp, flag, argc, argv);
+	}
+#ifdef CONFIG_OF_HAS_UBOOT_ENV
+	if (fdt_env(of_flat_tree) < 0) {
+		puts ("ERROR: /u-boot-env node create failed - "
+			"must RESET the board to recover.\n");
+		do_reset (cmdtp, flag, argc, argv);
+	}
+#endif
+#ifdef CONFIG_OF_HAS_BD_T
+	if (fdt_bd_t(of_flat_tree) < 0) {
+		puts ("ERROR: /bd_t node create failed - "
+			"must RESET the board to recover.\n");
+		do_reset (cmdtp, flag, argc, argv);
+	}
+#endif
+#ifdef CONFIG_OF_BOARD_SETUP
+	/* Call the board-specific fixup routine */
+	ft_board_setup(of_flat_tree, gd->bd);
+#endif
+#endif /* CONFIG_OF_LIBFDT */
+#if defined(CONFIG_OF_FLAT_TREE)
+#ifdef CFG_BOOTMAPSZ
+	/*
+	 * The blob must be within CFG_BOOTMAPSZ,
+	 * so we flag it to be copied if it is not.
+	 */
+	if (of_flat_tree >= (char *)CFG_BOOTMAPSZ)
+		of_data = (ulong)of_flat_tree;
+#endif
+
+	/* move of_flat_tree if needed */
+	if (of_data) {
+		ulong of_start, of_len;
+		of_len = ((struct boot_param_header *)of_data)->totalsize;
+
+		/* provide extra 8k pad */
+		of_start  = (ulong)kbd - of_len - 8192;
+		of_start &= ~(4096 - 1);	/* align on page */
+		debug ("## device tree at 0x%08lX ... 0x%08lX (len=%ld=0x%lX)\n",
+			of_data, of_data + of_len - 1, of_len, of_len);
+
+		of_flat_tree = (char *)of_start;
+		printf ("   Loading Device Tree to %08lx, end %08lx ... ",
+			of_start, of_start + of_len - 1);
+		memmove ((void *)of_start, (void *)of_data, of_len);
+	}
+	/*
+	 * Create the /chosen node and modify the blob with board specific
+	 * values as needed.
+	 */
+	ft_setup(of_flat_tree, kbd, initrd_start, initrd_end);
+	/* ft_dump_blob(of_flat_tree); */
+#endif
 	debug ("## Transferring control to Linux (at address %08lx) ...\n",
 		(ulong)kernel);
 
-	SHOW_BOOT_PROGRESS (15);
-
-#ifndef CONFIG_OF_FLAT_TREE
+	show_boot_progress (15);
 
 #if defined(CFG_INIT_RAM_LOCK) && !defined(CONFIG_E500)
 	unlock_ram_in_cache();
 #endif
 
+#if defined(CONFIG_OF_FLAT_TREE) || defined(CONFIG_OF_LIBFDT)
+	if (of_flat_tree) {	/* device tree; boot new style */
+		/*
+		 * Linux Kernel Parameters (passing device tree):
+		 *   r3: pointer to the fdt, followed by the board info data
+		 *   r4: physical pointer to the kernel itself
+		 *   r5: NULL
+		 *   r6: NULL
+		 *   r7: NULL
+		 */
+		(*kernel) ((bd_t *)of_flat_tree, (ulong)kernel, 0, 0, 0);
+		/* does not return */
+	}
+#endif
 	/*
-	 * Linux Kernel Parameters:
+	 * Linux Kernel Parameters (passing board info data):
 	 *   r3: ptr to board info data
 	 *   r4: initrd_start or 0 if no initrd
 	 *   r5: initrd_end - unused if r4 is 0
@@ -827,29 +1056,7 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 	 *   r7: End   of command line string
 	 */
 	(*kernel) (kbd, initrd_start, initrd_end, cmd_start, cmd_end);
-
-#else
-	ft_setup(of_flat_tree, OF_FLAT_TREE_MAX_SIZE, kbd, initrd_start, initrd_end);
-	/* ft_dump_blob(of_flat_tree); */
-
-#if defined(CFG_INIT_RAM_LOCK) && !defined(CONFIG_E500)
-	unlock_ram_in_cache();
-#endif
-	/*
-	 * Linux Kernel Parameters:
-	 *   r3: ptr to OF flat tree, followed by the board info data
-	 *   r4: physical pointer to the kernel itself
-	 *   r5: NULL
-	 *   r6: NULL
-	 *   r7: NULL
-	 */
-	if (getenv("disable_of") != NULL)
-		(*kernel) ((bd_t *)of_flat_tree, initrd_start, initrd_end,
-			cmd_start, cmd_end);
-	else
-		(*kernel) ((bd_t *)of_flat_tree, (ulong)kernel, 0, 0, 0);
-
-#endif
+	/* does not return */
 }
 #endif /* CONFIG_PPC */
 
@@ -919,7 +1126,7 @@ do_bootm_netbsd (cmd_tbl_t *cmdtp, int flag,
 	printf ("## Transferring control to NetBSD stage-2 loader (at address %08lx) ...\n",
 		(ulong)loader);
 
-	SHOW_BOOT_PROGRESS (15);
+	show_boot_progress (15);
 
 	/*
 	 * NetBSD Stage-2 Loader Parameters:
@@ -1023,7 +1230,7 @@ do_bootm_artos (cmd_tbl_t *cmdtp, int flag,
 #endif
 
 
-#if (CONFIG_COMMANDS & CFG_CMD_BOOTD)
+#if defined(CONFIG_CMD_BOOTD)
 int do_bootd (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	int rcode = 0;
@@ -1051,7 +1258,7 @@ U_BOOT_CMD(
 
 #endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_IMI)
+#if defined(CONFIG_CMD_IMI)
 int do_iminfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	int	arg;
@@ -1119,9 +1326,9 @@ U_BOOT_CMD(
 	"      image contents (magic number, header and payload checksums)\n"
 );
 
-#endif	/* CFG_CMD_IMI */
+#endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_IMLS)
+#if defined(CONFIG_CMD_IMLS)
 /*-----------------------------------------------------------------------
  * List all images found in flash.
  */
@@ -1177,23 +1384,23 @@ U_BOOT_CMD(
 	"    - Prints information about all images found at sector\n"
 	"      boundaries in flash.\n"
 );
-#endif	/* CFG_CMD_IMLS */
+#endif
 
 void
 print_image_hdr (image_header_t *hdr)
 {
-#if (CONFIG_COMMANDS & CFG_CMD_DATE) || defined(CONFIG_TIMESTAMP)
+#if defined(CONFIG_TIMESTAMP) || defined(CONFIG_CMD_DATE)
 	time_t timestamp = (time_t)ntohl(hdr->ih_time);
 	struct rtc_time tm;
 #endif
 
 	printf ("   Image Name:   %.*s\n", IH_NMLEN, hdr->ih_name);
-#if (CONFIG_COMMANDS & CFG_CMD_DATE) || defined(CONFIG_TIMESTAMP)
+#if defined(CONFIG_TIMESTAMP) || defined(CONFIG_CMD_DATE)
 	to_tm (timestamp, &tm);
 	printf ("   Created:      %4d-%02d-%02d  %2d:%02d:%02d UTC\n",
 		tm.tm_year, tm.tm_mon, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec);
-#endif	/* CFG_CMD_DATE, CONFIG_TIMESTAMP */
+#endif
 	puts ("   Image Type:   "); print_type(hdr);
 	printf ("\n   Data Size:    %d Bytes = ", ntohl(hdr->ih_size));
 	print_size (ntohl(hdr->ih_size), "\n");
@@ -1241,19 +1448,21 @@ print_type (image_header_t *hdr)
 	case IH_CPU_INVALID:	arch = "Invalid CPU";		break;
 	case IH_CPU_ALPHA:	arch = "Alpha";			break;
 	case IH_CPU_ARM:	arch = "ARM";			break;
+	case IH_CPU_AVR32:	arch = "AVR32";			break;
+	case IH_CPU_BLACKFIN:	arch = "Blackfin";		break;
 	case IH_CPU_I386:	arch = "Intel x86";		break;
 	case IH_CPU_IA64:	arch = "IA64";			break;
-	case IH_CPU_MIPS:	arch = "MIPS";			break;
+	case IH_CPU_M68K:	arch = "M68K"; 			break;
+	case IH_CPU_MICROBLAZE:	arch = "Microblaze"; 		break;
 	case IH_CPU_MIPS64:	arch = "MIPS 64 Bit";		break;
+	case IH_CPU_MIPS:	arch = "MIPS";			break;
+	case IH_CPU_NIOS2:	arch = "Nios-II";		break;
+	case IH_CPU_NIOS:	arch = "Nios";			break;
 	case IH_CPU_PPC:	arch = "PowerPC";		break;
 	case IH_CPU_S390:	arch = "IBM S390";		break;
 	case IH_CPU_SH:		arch = "SuperH";		break;
-	case IH_CPU_SPARC:	arch = "SPARC";			break;
 	case IH_CPU_SPARC64:	arch = "SPARC 64 Bit";		break;
-	case IH_CPU_M68K:	arch = "M68K"; 			break;
-	case IH_CPU_MICROBLAZE:	arch = "Microblaze"; 		break;
-	case IH_CPU_NIOS:	arch = "Nios";			break;
-	case IH_CPU_NIOS2:	arch = "Nios-II";		break;
+	case IH_CPU_SPARC:	arch = "SPARC";			break;
 	default:		arch = "Unknown Architecture";	break;
 	}
 
@@ -1265,6 +1474,7 @@ print_type (image_header_t *hdr)
 	case IH_TYPE_MULTI:	type = "Multi-File Image";	break;
 	case IH_TYPE_FIRMWARE:	type = "Firmware";		break;
 	case IH_TYPE_SCRIPT:	type = "Script";		break;
+	case IH_TYPE_FLATDT:	type = "Flat Device Tree";	break;
 	default:		type = "Unknown Image";		break;
 	}
 
@@ -1383,7 +1593,7 @@ do_bootm_rtems (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 	printf ("## Transferring control to RTEMS (at address %08lx) ...\n",
 		(ulong)entry_point);
 
-	SHOW_BOOT_PROGRESS (15);
+	show_boot_progress (15);
 
 	/*
 	 * RTEMS Parameters:
@@ -1393,7 +1603,7 @@ do_bootm_rtems (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 	(*entry_point ) ( gd->bd );
 }
 
-#if (CONFIG_COMMANDS & CFG_CMD_ELF)
+#if defined(CONFIG_CMD_ELF)
 static void
 do_bootm_vxworks (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 		  ulong addr, ulong *len_ptr, int verify)
@@ -1419,7 +1629,7 @@ do_bootm_qnxelf (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 	local_args[1] = str;	/* and provide it via the arguments */
 	do_bootelf(cmdtp, 0, 2, local_args);
 }
-#endif /* CFG_CMD_ELF */
+#endif
 
 #ifdef CONFIG_LYNXKDI
 static void

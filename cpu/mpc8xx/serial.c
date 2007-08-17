@@ -227,8 +227,16 @@ static int smc_init (void)
 	sp->smc_smcm = 0;
 	sp->smc_smce = 0xff;
 
-#ifdef CFG_SPC1920_SMC1_CLK4 /* clock source is PLD */
-	*((volatile uchar *) CFG_SPC1920_PLD_BASE+6) = 0xff;
+#ifdef CFG_SPC1920_SMC1_CLK4
+	/* clock source is PLD */
+
+	/* set freq to 19200 Baud */
+	*((volatile uchar *) CFG_SPC1920_PLD_BASE+6) = 0x3;
+	/* configure clk4 as input */
+	im->im_ioport.iop_pdpar |= 0x800;
+	im->im_ioport.iop_pddir &= ~0x800;
+
+	cp->cp_simode = ((cp->cp_simode & ~0xf000) | 0x7000);
 #else
 	/* Set up the baud rate generator */
 	smc_setbrg ();
@@ -658,7 +666,7 @@ void enable_putc(void)
 }
 #endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 
 void
 kgdb_serial_init(void)
@@ -715,6 +723,6 @@ kgdb_interruptible (int yes)
 {
 	return;
 }
-#endif	/* CFG_CMD_KGDB	*/
+#endif
 
 #endif	/* CONFIG_8xx_CONS_NONE */

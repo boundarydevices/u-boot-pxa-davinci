@@ -25,7 +25,7 @@
 #include <config.h>
 #include <command.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_NOT)
+#ifdef CONFIG_CMD_NOT
 
 int do_not (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
@@ -52,4 +52,4 @@ U_BOOT_CMD(
 	NULL
 );
 
-#endif /* CONFIG_COMMANDS & CFG_CMD_NOT */
+#endif /* CONFIG_CMD_NOT */

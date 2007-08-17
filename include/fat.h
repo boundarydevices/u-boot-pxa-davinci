@@ -175,7 +175,11 @@ typedef struct dir_slot {
 	__u8    name11_12[4];	/* Last 2 characters in name */
 } dir_slot;
 
-/* Private filesystem parameters */
+/* Private filesystem parameters
+ *
+ * Note: FAT buffer has to be 32 bit aligned
+ * (see FAT32 accesses)
+ */
 typedef struct {
 	__u8	fatbuf[FATBUFSIZE]; /* Current FAT buffer */
 	int	fatsize;	/* Size of FAT in bits */

@@ -55,7 +55,8 @@
 #include <asm/processor.h>
 
 
-#if (CONFIG_COMMANDS & CFG_CMD_USB)
+#if defined(CONFIG_CMD_USB)
+#include <part.h>
 #include <usb.h>
 
 #ifdef CONFIG_USB_STORAGE
@@ -168,13 +169,13 @@ static struct us_data usb_stor[USB_MAX_STOR_DEV];
 
 int usb_stor_get_info(struct usb_device *dev, struct us_data *us, block_dev_desc_t *dev_desc);
 int usb_storage_probe(struct usb_device *dev, unsigned int ifnum,struct us_data *ss);
-unsigned long usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned long *buffer);
+unsigned long usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, void *buffer);
 struct usb_device * usb_get_dev_index(int index);
 void uhci_show_temp_int_td(void);
 
 block_dev_desc_t *usb_stor_get_dev(int index)
 {
-	return &usb_dev_desc[index];
+	return (index < USB_MAX_STOR_DEV) ? &usb_dev_desc[index] : NULL;
 }
 
 
@@ -916,9 +917,31 @@ static int usb_read_10(ccb *srb,struct us_data *ss, unsigned long start, unsigne
 }
 
 
+#ifdef CONFIG_USB_BIN_FIXUP
+/*
+ * Some USB storage devices queried for SCSI identification data respond with
+ * binary strings, which if output to the console freeze the terminal. The
+ * workaround is to modify the vendor and product strings read from such
+ * device with proper values (as reported by 'usb info').
+ *
+ * Vendor and product length limits are taken from the definition of
+ * block_dev_desc_t in include/part.h.
+ */
+static void usb_bin_fixup(struct usb_device_descriptor descriptor,
+				unsigned char vendor[],
+				unsigned char product[]) {
+	const unsigned char max_vendor_len = 40;
+	const unsigned char max_product_len = 20;
+	if (descriptor.idVendor == 0x0424 && descriptor.idProduct == 0x223a) {
+		strncpy ((char *)vendor, "SMSC", max_vendor_len);
+		strncpy ((char *)product, "Flash Media Cntrller", max_product_len);
+	}
+}
+#endif /* CONFIG_USB_BIN_FIXUP */
+
 #define USB_MAX_READ_BLK 20
 
-unsigned long usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, unsigned long *buffer)
+unsigned long usb_stor_read(int device, unsigned long blknr, unsigned long blkcnt, void *buffer)
 {
 	unsigned long start,blks, buf_addr;
 	unsigned short smallblks;
@@ -1171,6 +1194,9 @@ int usb_stor_get_info(struct usb_device *dev,struct us_data *ss,block_dev_desc_t
 	dev_desc->vendor[8] = 0;
 	dev_desc->product[16] = 0;
 	dev_desc->revision[4] = 0;
+#ifdef CONFIG_USB_BIN_FIXUP
+	usb_bin_fixup(dev->descriptor, dev_desc->vendor, dev_desc->product);
+#endif /* CONFIG_USB_BIN_FIXUP */
 	USB_STOR_PRINTF("ISO Vers %X, Response Data %X\n",usb_stor_buf[2],usb_stor_buf[3]);
 	if(usb_test_unit_ready(pccb,ss)) {
 		printf("Device NOT ready\n   Request Sense returned %02X %02X %02X\n",pccb->sense_buf[2],pccb->sense_buf[12],pccb->sense_buf[13]);
@@ -1223,4 +1249,4 @@ int usb_stor_get_info(struct usb_device *dev,struct us_data *ss,block_dev_desc_t
 }
 
 #endif /* CONFIG_USB_STORAGE */
-#endif /* CFG_CMD_USB */
+#endif

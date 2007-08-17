@@ -23,7 +23,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 #endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_ELF)
+#if defined(CONFIG_CMD_ELF)
 
 #ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -79,7 +79,7 @@ int do_bootelf (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
  * be either an ELF image or a raw binary.  Will attempt to setup the
  * bootline and other parameters correctly.
  * ====================================================================== */
-int do_bootvx ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+int do_bootvx (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	unsigned long addr;		/* Address of image            */
 	unsigned long bootaddr;		/* Address to put the bootline */
@@ -96,14 +96,12 @@ int do_bootvx ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	 * If we don't know where the image is then we're done.
 	 */
 
-	if ((tmp = getenv ("loadaddr")) != NULL) {
-		addr = simple_strtoul (tmp, NULL, 16);
-	} else {
-		puts ("No load address provided\n");
-		return 1;
-	}
+	if (argc < 2)
+		addr = load_addr;
+	else
+		addr = simple_strtoul (argv[1], NULL, 16);
 
-#if (CONFIG_COMMANDS & CFG_CMD_NET)
+#if defined(CONFIG_CMD_NET)
 	/* Check to see if we need to tftp the image ourselves before starting */
 
 	if ((argc == 2) && (strcmp (argv[1], "tftp") == 0)) {
@@ -326,4 +324,4 @@ U_BOOT_CMD(
 	" [address] - load address of vxWorks ELF image.\n"
 );
 
-#endif	/* CFG_CMD_ELF */
+#endif

@@ -1,8 +1,8 @@
 # U-boot - Makefile
 #
-# Copyright (c) 2005 blackfin.uclinux.org
+# Copyright (c) 2005-2007 Analog Devices Inc.
 #
-# (C) Copyright 2000-2004
+# (C) Copyright 2000-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 #
 # See file CREDITS for list of people who contributed to this
@@ -20,27 +20,33 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-# MA 02111-1307 USA
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+# MA 02110-1301 USA
 #
 
 include $(TOPDIR)/config.mk
 
-LIB	= lib$(CPU).a
+LIB	= $(obj)lib$(CPU).a
 
-START	= start.o start1.o interrupt.o cache.o cplbhdlr.o cplbmgr.o flush.o
-OBJS	= cpu.o traps.o ints.o serial.o interrupts.o
+START	= start.o start1.o interrupt.o cache.o flush.o init_sdram.o
+COBJS	= cpu.o traps.o ints.o serial.o interrupts.o video.o
 
-all:	.depend $(START) $(LIB)
+EXTRA = init_sdram_bootrom_initblock.o
+
+SRCS	:= $(START:.o=.S) $(SOBJS:.o=.S) $(COBJS:.o=.c)
+OBJS	:= $(addprefix $(obj),$(COBJS) $(SOBJS))
+START	:= $(addprefix $(obj),$(START))
+
+all:	$(obj).depend $(START) $(LIB) $(obj).depend $(EXTRA)
 
 $(LIB):	$(OBJS)
-	$(AR) crv $@ $(OBJS)
+	$(AR) $(ARFLAGS) $@ $(OBJS)
 
 #########################################################################
 
-.depend:	Makefile $(START:.o=.S) $(OBJS:.o=.c)
-		$(CC) -M $(CFLAGS) $(START:.o=.S) $(OBJS:.o=.c) > $@
+# defines $(obj).depend target
+include $(SRCTREE)/rules.mk
 
-sinclude .depend
+sinclude $(obj).depend
 
 #########################################################################

@@ -30,7 +30,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#if (CONFIG_COMMANDS & CFG_CMD_BDI)
+#if defined(CONFIG_CMD_BDI)
 static void print_num(const char *, ulong);
 
 #ifndef CONFIG_ARM	/* PowerPC and other */
@@ -62,11 +62,13 @@ int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 #if defined(CONFIG_405GP) || defined(CONFIG_405CR) || \
     defined(CONFIG_405EP) || defined(CONFIG_XILINX_ML300) || \
     defined(CONFIG_440EP) || defined(CONFIG_440GR) || \
-	defined(CONFIG_440SP)
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX) ||	\
+    defined(CONFIG_440SP) || defined(CONFIG_440SPE)
 	print_str ("procfreq",	    strmhz(buf, bd->bi_procfreq));
 	print_str ("plb_busfreq",   strmhz(buf, bd->bi_plb_busfreq));
 #if defined(CONFIG_405GP) || defined(CONFIG_405EP) || defined(CONFIG_XILINX_ML300) || \
-    defined(CONFIG_440EP) || defined(CONFIG_440GR) || defined(CONFIG_440SPE)
+    defined(CONFIG_440EP) || defined(CONFIG_440GR) || defined(CONFIG_440SPE) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 	print_str ("pci_busfreq",   strmhz(buf, bd->bi_pci_busfreq));
 #endif
 #else	/* ! CONFIG_405GP, CONFIG_405CR, CONFIG_405EP, CONFIG_XILINX_ML300, CONFIG_440EP CONFIG_440GR */
@@ -165,7 +167,7 @@ int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	print_num ("sram size",		(ulong)bd->bi_sramsize);
 #endif
 
-#if defined(CFG_CMD_NET)
+#if defined(CONFIG_CMD_NET)
 	puts ("ethaddr     =");
 	for (i=0; i<6; ++i) {
 		printf ("%c%02X", i ? ':' : ' ', bd->bi_enetaddr[i]);
@@ -176,6 +178,32 @@ int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	printf ("\nbaudrate    = %ld bps\n", bd->bi_baudrate);
 
+	return 0;
+}
+#elif defined(CONFIG_MICROBLAZE) /* ! PPC, which leaves Microblaze */
+
+int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	int i;
+	bd_t *bd = gd->bd;
+	print_num ("mem start      ",	(ulong)bd->bi_memstart);
+	print_num ("mem size       ",	(ulong)bd->bi_memsize);
+	print_num ("flash start    ",	(ulong)bd->bi_flashstart);
+	print_num ("flash size     ",	(ulong)bd->bi_flashsize);
+	print_num ("flash offset   ",	(ulong)bd->bi_flashoffset);
+#if defined(CFG_SRAM_BASE)
+	print_num ("sram start     ",	(ulong)bd->bi_sramstart);
+	print_num ("sram size      ",	(ulong)bd->bi_sramsize);
+#endif
+#if defined(CONFIG_CMD_NET)
+	puts ("ethaddr     =");
+	for (i=0; i<6; ++i) {
+		printf ("%c%02X", i ? ':' : ' ', bd->bi_enetaddr[i]);
+	}
+	puts ("\nip_addr     = ");
+	print_IPaddr (bd->bi_ip_addr);
+#endif
+	printf ("\nbaudrate    = %d bps\n", (ulong)bd->bi_baudrate);
 	return 0;
 }
 
@@ -257,4 +285,4 @@ U_BOOT_CMD(
 	"bdinfo  - print Board Info structure\n",
 	NULL
 );
-#endif	/* CFG_CMD_BDI */
+#endif

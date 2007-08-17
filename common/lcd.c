@@ -134,12 +134,12 @@ static int lcd_getbgcolor (void);
 static void lcd_setfgcolor (int color);
 static void lcd_setbgcolor (int color);
 
-
 char lcd_is_enabled = 0;
 
 extern vidinfo_t panel_info;
 
 /************************************************************************/
+
 /*----------------------------------------------------------------------*/
 
 static void console_scrollup (void)
@@ -611,8 +611,6 @@ void bitmap_plot (int x, int y)
 #endif /* CONFIG_LCD_LOGO */
 
 /*----------------------------------------------------------------------*/
-#if (CONFIG_COMMANDS & CFG_CMD_BMP) || defined(CONFIG_SPLASH_SCREEN)
-
 #if defined(CONFIG_MPC823)
 //each entry is in ARGB format, alpha high byte, blue low byte
 void lcd_SetPalette(ulong* palette,int colorCnt)
@@ -636,18 +634,23 @@ void lcd_SetPalette(ulong* palette,int colorCnt)
 #endif
 
 void lcd_SetPalette(unsigned long* palette,unsigned colors);
+
 /*
  * Display the BMP file located at address bmp_image.
  * Only uncompressed.
  */
 int lcd_display_bitmap(ulong bmp_image, int x, int y)
 {
+#if !defined(CONFIG_MCC200)
+	ushort *cmap;
+#endif
 	ushort i, j;
 	uchar *fb;
 	bmp_image_t *bmp=(bmp_image_t *)bmp_image;
 	uchar *bmap;
 	ushort padded_line;
 	unsigned long width, height;
+	unsigned long pwidth = panel_info.vl_col;
 	unsigned colors,bpix;
 	unsigned long compression;
 	int     maxLum = 0 ;
@@ -684,6 +687,8 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	debug ("Display-bmp: %d x %d  with %d colors\n",
 		(int)width, (int)height, (int)colors);
 
+#if !defined(CONFIG_MCC200)
+	/* MCC200 LCD doesn't need CMAP, supports 1bpp b&w only */
 	if (bpix==8) {
 		unsigned long palette[256];
 		unsigned long* cmap = palette;
@@ -708,6 +713,26 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		lcd_color_fg = fgCol ;
 		lcd_color_bg = bgCol ;
 	}
+#endif
+
+	/*
+	 *  BMP format for Monochrome assumes that the state of a
+	 * pixel is described on a per Bit basis, not per Byte.
+	 *  So, in case of Monochrome BMP we should align widths
+	 * on a byte boundary and convert them from Bit to Byte
+	 * units.
+	 *  Probably, PXA250 and MPC823 process 1bpp BMP images in
+	 * their own ways, so make the converting to be MCC200
+	 * specific.
+	 */
+#if defined(CONFIG_MCC200)
+	if (bpix==1)
+	{
+		width = ((width + 7) & ~7) >> 3;
+		x     = ((x + 7) & ~7) >> 3;
+		pwidth= ((pwidth + 7) & ~7) >> 3;
+	}
+#endif
 
 	padded_line = (width+3)&~0x3;
 	if ((x + width)>panel_info.vl_col)
@@ -727,6 +752,10 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 			*fb++=255-*bmap++;
 #else
 			*fb++=*bmap++;
+#if defined(CONFIG_PXA250)
+			*(fb++)=*(bmap++);
+#elif defined(CONFIG_MPC823) || defined(CONFIG_MCC200)
+			*(fb++)=255-*(bmap++);
 #endif
 		bmap += (padded_line-width);
 		fb   -= (width + panel_info.vl_lcd_line_length);
@@ -734,7 +763,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
 	return (0);
 }
-#endif /* (CONFIG_COMMANDS & CFG_CMD_BMP) || CONFIG_SPLASH_SCREEN */
+#endif
 
 
 static void *lcd_logo (void)

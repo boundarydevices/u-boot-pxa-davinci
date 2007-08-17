@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2005-2006
+ * (C) Copyright 2005-2007
  * Stefan Roese, DENX Software Engineering, sr@denx.de.
  *
  * (C) Copyright 2006
@@ -32,9 +32,9 @@
 #include <asm/processor.h>
 #include "sdram.h"
 
-
 #ifdef CONFIG_SDRAM_BANK0
 
+#ifndef CONFIG_440
 
 #ifndef CFG_SDRAM_TABLE
 sdram_conf_t mb0cf[] = {
@@ -49,9 +49,6 @@ sdram_conf_t mb0cf[] = CFG_SDRAM_TABLE;
 #endif
 
 #define N_MB0CF (sizeof(mb0cf) / sizeof(mb0cf[0]))
-
-
-#ifndef CONFIG_440
 
 #ifdef CFG_SDRAM_CASL
 static ulong ns2clks(ulong ns)
@@ -190,14 +187,14 @@ void sdram_init(void)
 		/*
 		 * Disable memory controller.
 		 */
-		mtsdram0(mem_mcopt1, 0x00000000);
+		mtsdram(mem_mcopt1, 0x00000000);
 
 		/*
 		 * Set MB0CF for bank 0.
 		 */
-		mtsdram0(mem_mb0cf, mb0cf[i].reg);
-		mtsdram0(mem_sdtr1, sdtr1);
-		mtsdram0(mem_rtr, compute_rtr(speed, mb0cf[i].rows, 64));
+		mtsdram(mem_mb0cf, mb0cf[i].reg);
+		mtsdram(mem_sdtr1, sdtr1);
+		mtsdram(mem_rtr, compute_rtr(speed, mb0cf[i].rows, 64));
 
 		udelay(200);
 
@@ -206,20 +203,60 @@ void sdram_init(void)
 		 * Set DC_EN to '1' and BRD_PRF to '01' for 16 byte PLB Burst
 		 * read/prefetch.
 		 */
-		mtsdram0(mem_mcopt1, 0x80800000);
+		mtsdram(mem_mcopt1, 0x80800000);
 
 		udelay(10000);
 
 		if (get_ram_size(0, mb0cf[i].size) == mb0cf[i].size) {
 			/*
-			 * OK, size detected -> all done
+			 * OK, size detected.  Enable second bank if
+			 * defined (assumes same type as bank 0)
 			 */
+#ifdef CONFIG_SDRAM_BANK1
+			u32 b1cr = mb0cf[i].size | mb0cf[i].reg;
+
+			mtsdram(mem_mcopt1, 0x00000000);
+			mtsdram(mem_mb1cf, b1cr); /* SDRAM0_B1CR */
+			mtsdram(mem_mcopt1, 0x80800000);
+			udelay(10000);
+
+			/*
+			 * Check if 2nd bank is really available.
+			 * If the size not equal to the size of the first
+			 * bank, then disable the 2nd bank completely.
+			 */
+			if (get_ram_size((long *)mb0cf[i].size, mb0cf[i].size) !=
+			    mb0cf[i].size) {
+				mtsdram(mem_mb1cf, 0);
+				mtsdram(mem_mcopt1, 0);
+			}
+#endif
 			return;
 		}
 	}
 }
 
 #else /* CONFIG_440 */
+
+/*
+ * Define some default values. Those can be overwritten in the
+ * board config file.
+ */
+
+#ifndef CFG_SDRAM_TABLE
+sdram_conf_t mb0cf[] = {
+	{(256 << 20), 13, 0x000C4001},	/* 256MB mode 3, 13x10(4)	*/
+	{(64 << 20),  12, 0x00082001}	/* 64MB mode 2, 12x9(4)		*/
+};
+#else
+sdram_conf_t mb0cf[] = CFG_SDRAM_TABLE;
+#endif
+
+#ifndef CFG_SDRAM0_TR0
+#define	CFG_SDRAM0_TR0		0x41094012
+#endif
+
+#define N_MB0CF (sizeof(mb0cf) / sizeof(mb0cf[0]))
 
 #define NUM_TRIES 64
 #define NUM_READS 10
@@ -295,7 +332,6 @@ static void sdram_tr1_set(int ram_address, int* tr1_value)
 	*tr1_value = (first_good + last_bad) / 2;
 }
 
-
 #ifdef CONFIG_SDRAM_ECC
 static void ecc_init(ulong start, ulong size)
 {
@@ -351,6 +387,15 @@ long int initdram(int board_type)
 	int i;
 	int tr1_bank1;
 
+#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || \
+    defined(CONFIG_440GR) || defined(CONFIG_440SP)
+	/*
+	 * Soft-reset SDRAM controller.
+	 */
+	mtsdr(sdr_srst, SDR0_SRST_DMC);
+	mtsdr(sdr_srst, 0x00000000);
+#endif
+
 	for (i=0; i<N_MB0CF; i++) {
 		/*
 		 * Disable memory controller.
@@ -370,9 +415,9 @@ long int initdram(int board_type)
 		 * Following for CAS Latency = 2.5 @ 133 MHz PLB
 		 */
 		mtsdram(mem_b0cr, mb0cf[i].reg);
-		mtsdram(mem_tr0, 0x41094012);
+		mtsdram(mem_tr0, CFG_SDRAM0_TR0);
 		mtsdram(mem_tr1, 0x80800800);	/* SS=T2 SL=STAGE 3 CD=1 CT=0x00*/
-		mtsdram(mem_rtr, 0x7e000000);	/* Interval 15.20µs @ 133MHz PLB*/
+		mtsdram(mem_rtr, 0x04100000);	/* Interval 7.8µs @ 133MHz PLB	*/
 		mtsdram(mem_cfg1, 0x00000000);	/* Self-refresh exit, disable PM*/
 		udelay(400);			/* Delay 200 usecs (min)	*/
 

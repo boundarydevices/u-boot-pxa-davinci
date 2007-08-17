@@ -41,14 +41,22 @@
 DECLARE_GLOBAL_DATA_PTR;
 #endif
 
+#if defined(CONFIG_BOARD_RESET)
+void board_reset(void);
+#endif
 
 #if defined(CONFIG_440)
 #define FREQ_EBC		(sys_info.freqEPB)
+#elif defined(CONFIG_405EZ)
+#define FREQ_EBC		((CONFIG_SYS_CLK_FREQ * sys_info.pllFbkDiv) / \
+				 sys_info.pllExtBusDiv)
 #else
 #define FREQ_EBC		(sys_info.freqPLB / sys_info.pllExtBusDiv)
 #endif
 
-#if defined(CONFIG_405GP) || defined(CONFIG_440EP) || defined(CONFIG_440GR)
+#if defined(CONFIG_405GP) || \
+    defined(CONFIG_440EP) || defined(CONFIG_440GR) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 
 #define PCI_ASYNC
 
@@ -58,7 +66,8 @@ int pci_async_enabled(void)
 	return (mfdcr(strap) & PSR_PCI_ASYNC_EN);
 #endif
 
-#if defined(CONFIG_440EP) || defined(CONFIG_440GR)
+#if defined(CONFIG_440EP) || defined(CONFIG_440GR) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 	unsigned long val;
 
 	mfsdr(sdr_sdstp1, val);
@@ -82,19 +91,26 @@ int pci_arbiter_enabled(void)
 	return (mfdcr(cpc0_strp1) & CPC0_STRP1_PAE_MASK);
 #endif
 
-#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || \
-     defined(CONFIG_440GR) || defined(CONFIG_440SP) || \
-     defined(CONFIG_440SPE)
+#if defined(CONFIG_440GX) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)
 	unsigned long val;
 
-	mfsdr(sdr_sdstp1, val);
-	return (val & SDR0_SDSTP1_PAE_MASK);
+	mfsdr(sdr_xcr, val);
+	return (val & 0x80000000);
+#endif
+#if defined(CONFIG_440EP) || defined(CONFIG_440GR) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
+	unsigned long val;
+
+	mfsdr(sdr_pci0, val);
+	return (val & 0x80000000);
 #endif
 }
 #endif
 
-#if defined(CONFIG_405EP) || defined(CONFIG_440EP) || defined(CONFIG_440GR) ||  \
-     defined(CONFIG_440GX) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)
+#if defined(CONFIG_405EP) || defined(CONFIG_440GX) || \
+    defined(CONFIG_440EP) || defined(CONFIG_440GR) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX) || \
+    defined(CONFIG_440SP) || defined(CONFIG_440SPE)
 
 #define I2C_BOOTROM
 
@@ -102,11 +118,7 @@ int i2c_bootrom_enabled(void)
 {
 #if defined(CONFIG_405EP)
 	return (mfdcr(cpc0_boot) & CPC0_BOOT_SEP);
-#endif
-
-#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || \
-     defined(CONFIG_440GR) || defined(CONFIG_440SP) || \
-	defined(CONFIG_440SPE)
+#else
 	unsigned long val;
 
 	mfsdr(sdr_sdcs, val);
@@ -114,6 +126,96 @@ int i2c_bootrom_enabled(void)
 #endif
 }
 #endif
+
+#if defined(CONFIG_440GX)
+#define SDR0_PINSTP_SHIFT	29
+static char *bootstrap_str[] = {
+	"EBC (16 bits)",
+	"EBC (8 bits)",
+	"EBC (32 bits)",
+	"EBC (8 bits)",
+	"PCI",
+	"I2C (Addr 0x54)",
+	"Reserved",
+	"I2C (Addr 0x50)",
+};
+static char bootstrap_char[] = { 'A', 'B', 'C', 'B', 'D', 'E', 'x', 'F' };
+#endif
+
+#if defined(CONFIG_440SP) || defined(CONFIG_440SPE)
+#define SDR0_PINSTP_SHIFT	30
+static char *bootstrap_str[] = {
+	"EBC (8 bits)",
+	"PCI",
+	"I2C (Addr 0x54)",
+	"I2C (Addr 0x50)",
+};
+static char bootstrap_char[] = { 'A', 'B', 'C', 'D'};
+#endif
+
+#if defined(CONFIG_440EP) || defined(CONFIG_440GR)
+#define SDR0_PINSTP_SHIFT	29
+static char *bootstrap_str[] = {
+	"EBC (8 bits)",
+	"PCI",
+	"NAND (8 bits)",
+	"EBC (16 bits)",
+	"EBC (16 bits)",
+	"I2C (Addr 0x54)",
+	"PCI",
+	"I2C (Addr 0x52)",
+};
+static char bootstrap_char[] = { 'A', 'B', 'C', 'D', 'E', 'G', 'F', 'H' };
+#endif
+
+#if defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
+#define SDR0_PINSTP_SHIFT	29
+static char *bootstrap_str[] = {
+	"EBC (8 bits)",
+	"EBC (16 bits)",
+	"EBC (16 bits)",
+	"NAND (8 bits)",
+	"PCI",
+	"I2C (Addr 0x54)",
+	"PCI",
+	"I2C (Addr 0x52)",
+};
+static char bootstrap_char[] = { 'A', 'B', 'C', 'D', 'E', 'G', 'F', 'H' };
+#endif
+
+#if defined(CONFIG_405EZ)
+#define SDR0_PINSTP_SHIFT	28
+static char *bootstrap_str[] = {
+	"EBC (8 bits)",
+	"SPI (fast)",
+	"NAND (512 page, 4 addr cycle)",
+	"I2C (Addr 0x50)",
+	"EBC (32 bits)",
+	"I2C (Addr 0x50)",
+	"NAND (2K page, 5 addr cycle)",
+	"I2C (Addr 0x50)",
+	"EBC (16 bits)",
+	"Reserved",
+	"NAND (2K page, 4 addr cycle)",
+	"I2C (Addr 0x50)",
+	"NAND (512 page, 3 addr cycle)",
+	"I2C (Addr 0x50)",
+	"SPI (slow)",
+	"I2C (Addr 0x50)",
+};
+static char bootstrap_char[] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', \
+				 'I', 'x', 'K', 'L', 'M', 'N', 'O', 'P' };
+#endif
+
+#if defined(SDR0_PINSTP_SHIFT)
+static int bootstrap_option(void)
+{
+	unsigned long val;
+
+	mfsdr(SDR_PINSTP, val);
+	return ((val & 0xf0000000) >> SDR0_PINSTP_SHIFT);
+}
+#endif /* SDR0_PINSTP_SHIFT */
 
 
 #if defined(CONFIG_440)
@@ -129,6 +231,7 @@ int checkcpu (void)
 	char buf[32];
 
 #if !defined(CONFIG_IOP480)
+	char addstr[64] = "";
 	sys_info_t sys_info;
 
 	puts ("CPU:   ");
@@ -137,7 +240,8 @@ int checkcpu (void)
 
 	puts("AMCC PowerPC 4");
 
-#if defined(CONFIG_405GP) || defined(CONFIG_405CR) || defined(CONFIG_405EP)
+#if defined(CONFIG_405GP) || defined(CONFIG_405CR) || \
+    defined(CONFIG_405EP) || defined(CONFIG_405EZ)
 	puts("05");
 #endif
 #if defined(CONFIG_440)
@@ -183,6 +287,10 @@ int checkcpu (void)
 
 	case PVR_405EP_RB:
 		puts("EP Rev. B");
+		break;
+
+	case PVR_405EZ_RA:
+		puts("EZ Rev. A");
 		break;
 
 #if defined(CONFIG_440)
@@ -244,20 +352,68 @@ int checkcpu (void)
 #endif /* CONFIG_440GR */
 #endif /* CONFIG_440 */
 
-	case PVR_440SP_RA:
-		puts("SP Rev. A");
+#ifdef CONFIG_440EPX
+	case PVR_440EPX1_RA: /* 440EPx rev A and 440GRx rev A have same PVR */
+		puts("EPx Rev. A");
+		strcpy(addstr, "Security/Kasumi support");
 		break;
 
-	case PVR_440SP_RB:
-		puts("SP Rev. B");
+	case PVR_440EPX2_RA: /* 440EPx rev A and 440GRx rev A have same PVR */
+		puts("EPx Rev. A");
+		strcpy(addstr, "No Security/Kasumi support");
+		break;
+#endif /* CONFIG_440EPX */
+
+#ifdef CONFIG_440GRX
+	case PVR_440GRX1_RA: /* 440EPx rev A and 440GRx rev A have same PVR */
+		puts("GRx Rev. A");
+		strcpy(addstr, "Security/Kasumi support");
+		break;
+
+	case PVR_440GRX2_RA: /* 440EPx rev A and 440GRx rev A have same PVR */
+		puts("GRx Rev. A");
+		strcpy(addstr, "No Security/Kasumi support");
+		break;
+#endif /* CONFIG_440GRX */
+
+	case PVR_440SP_6_RAB:
+		puts("SP Rev. A/B");
+		strcpy(addstr, "RAID 6 support");
+		break;
+
+	case PVR_440SP_RAB:
+		puts("SP Rev. A/B");
+		strcpy(addstr, "No RAID 6 support");
+		break;
+
+	case PVR_440SP_6_RC:
+		puts("SP Rev. C");
+		strcpy(addstr, "RAID 6 support");
+		break;
+
+	case PVR_440SP_RC:
+		puts("SP Rev. C");
+		strcpy(addstr, "No RAID 6 support");
+		break;
+
+	case PVR_440SPe_6_RA:
+		puts("SPe Rev. A");
+		strcpy(addstr, "RAID 6 support");
 		break;
 
 	case PVR_440SPe_RA:
 		puts("SPe Rev. A");
+		strcpy(addstr, "No RAID 6 support");
+		break;
+
+	case PVR_440SPe_6_RB:
+		puts("SPe Rev. B");
+		strcpy(addstr, "RAID 6 support");
 		break;
 
 	case PVR_440SPe_RB:
 		puts("SPe Rev. B");
+		strcpy(addstr, "No RAID 6 support");
 		break;
 
 	default:
@@ -266,13 +422,20 @@ int checkcpu (void)
 	}
 
 	printf (" at %s MHz (PLB=%lu, OPB=%lu, EBC=%lu MHz)\n", strmhz(buf, clock),
-	       sys_info.freqPLB / 1000000,
-	       sys_info.freqPLB / sys_info.pllOpbDiv / 1000000,
-	       FREQ_EBC / 1000000);
+		sys_info.freqPLB / 1000000,
+		get_OPB_freq() / 1000000,
+		FREQ_EBC / 1000000);
+
+	if (addstr[0] != 0)
+		printf("       %s\n", addstr);
 
 #if defined(I2C_BOOTROM)
 	printf ("       I2C boot EEPROM %sabled\n", i2c_bootrom_enabled() ? "en" : "dis");
-#endif
+#endif	/* I2C_BOOTROM */
+#if defined(SDR0_PINSTP_SHIFT)
+	printf ("       Bootstrap Option %c - ", bootstrap_char[bootstrap_option()]);
+	printf ("Boot ROM Location %s\n", bootstrap_str[bootstrap_option()]);
+#endif	/* SDR0_PINSTP_SHIFT */
 
 #if defined(CONFIG_PCI)
 	printf ("       Internal PCI arbiter %sabled", pci_arbiter_enabled() ? "en" : "dis");
@@ -291,7 +454,7 @@ int checkcpu (void)
 	putc('\n');
 #endif
 
-#if defined(CONFIG_405EP)
+#if defined(CONFIG_405EP) || defined(CONFIG_405EZ)
 	printf ("       16 kB I-Cache 16 kB D-Cache");
 #elif defined(CONFIG_440)
 	printf ("       32 kB I-Cache 32 kB D-Cache");
@@ -320,7 +483,7 @@ int ppc440spe_revB() {
 	unsigned int pvr;
 
 	pvr = get_pvr();
-	if (pvr == PVR_440SPe_RB)
+	if ((pvr == PVR_440SPe_6_RB) || (pvr == PVR_440SPe_RB))
 		return 1;
 	else
 		return 0;
@@ -331,23 +494,19 @@ int ppc440spe_revB() {
 
 int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-#if defined(CONFIG_YOSEMITE) || defined(CONFIG_YELLOWSTONE)
-	/*give reset to BCSR*/
-	*(unsigned char*)(CFG_BCSR_BASE | 0x06) = 0x09;
-
+#if defined(CONFIG_BOARD_RESET)
+	board_reset();
 #else
-
+#if defined(CFG_4xx_RESET_TYPE)
+	mtspr(dbcr0, CFG_4xx_RESET_TYPE << 28);
+#else
 	/*
 	 * Initiate system reset in debug control register DBCR
 	 */
-	__asm__ __volatile__("lis   3, 0x3000" ::: "r3");
-#if defined(CONFIG_440)
-	__asm__ __volatile__("mtspr 0x134, 3");
-#else
-	__asm__ __volatile__("mtspr 0x3f2, 3");
-#endif
+	mtspr(dbcr0, 0x30000000);
+#endif /* defined(CFG_4xx_RESET_TYPE) */
+#endif /* defined(CONFIG_BOARD_RESET) */
 
-#endif/* defined(CONFIG_YOSEMITE) || defined(CONFIG_YELLOWSTONE)*/
 	return 1;
 }
 

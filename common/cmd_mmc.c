@@ -24,7 +24,7 @@
 #include <common.h>
 #include <command.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_MMC)
+#if defined(CONFIG_CMD_MMC)
 
 #include <mmc.h>
 
@@ -105,4 +105,4 @@ U_BOOT_CMD(
 	"mmccmd cmd# argh(hex) argl(hex) rsptype\n"
 );
 
-#endif	/* CFG_CMD_MMC */
+#endif

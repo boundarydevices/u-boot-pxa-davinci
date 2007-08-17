@@ -31,6 +31,10 @@
 #include <mpc5xxx.h>
 #include <asm/processor.h>
 
+#if defined(CONFIG_OF_FLAT_TREE)
+#include <ft_build.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 int checkcpu (void)
@@ -49,12 +53,16 @@ int checkcpu (void)
 #else
 	svr = get_svr();
 	pvr = get_pvr();
-	switch (SVR_VER (svr)) {
-	case SVR_MPC5200:
-		printf ("MPC5200");
+
+	switch (pvr) {
+	case PVR_5200:
+		printf("MPC5200");
+		break;
+	case PVR_5200B:
+		printf("MPC5200B");
 		break;
 	default:
-		printf ("MPC52??  (SVR %08x)", svr);
+		printf("Unknown MPC5xxx");
 		break;
 	}
 
@@ -102,3 +110,30 @@ unsigned long get_tbclk (void)
 }
 
 /* ------------------------------------------------------------------------- */
+
+#ifdef CONFIG_OF_FLAT_TREE
+void
+ft_cpu_setup(void *blob, bd_t *bd)
+{
+	u32 *p;
+	int len;
+
+	/* Core XLB bus frequency */
+	p = ft_get_prop(blob, "/cpus/" OF_CPU "/bus-frequency", &len);
+	if (p != NULL)
+		*p = cpu_to_be32(bd->bi_busfreq);
+
+	/* SOC peripherals use the IPB bus frequency */
+	p = ft_get_prop(blob, "/" OF_SOC "/bus-frequency", &len);
+	if (p != NULL)
+		*p = cpu_to_be32(bd->bi_ipbfreq);
+
+	p = ft_get_prop(blob, "/" OF_SOC "/ethernet@3000/mac-address", &len);
+	if (p != NULL)
+		memcpy(p, bd->bi_enetaddr, 6);
+
+	p = ft_get_prop(blob, "/" OF_SOC "/ethernet@3000/local-mac-address", &len);
+	if (p != NULL)
+		memcpy(p, bd->bi_enetaddr, 6);
+}
+#endif

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2000-2004
+ * (C) Copyright 2000-2007
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -38,7 +38,7 @@ typedef volatile unsigned char	vu_char;
 #include <linux/string.h>
 #include <asm/ptrace.h>
 #include <stdarg.h>
-#if defined(CONFIG_PCI) && defined(CONFIG_440)
+#if defined(CONFIG_PCI) && (defined(CONFIG_4xx) && !defined(CONFIG_AP1000))
 #include <pci.h>
 #endif
 #if defined(CONFIG_8xx)
@@ -63,10 +63,19 @@ typedef volatile unsigned char	vu_char;
 #endif
 #elif defined(CONFIG_5xx)
 #include <asm/5xx_immap.h>
+#define CONFIG_RELOC_FIXUP_WORKS
 #elif defined(CONFIG_MPC5xxx)
 #include <mpc5xxx.h>
+#define CONFIG_RELOC_FIXUP_WORKS
+#elif defined(CONFIG_MPC512X)
+#include <mpc512x.h>
+#include <asm/immap_512x.h>
+#define CONFIG_RELOC_FIXUP_WORKS
 #elif defined(CONFIG_MPC8220)
 #include <asm/immap_8220.h>
+#define CONFIG_RELOC_FIXUP_WORKS
+#elif defined(CONFIG_824X)
+#define CONFIG_RELOC_FIXUP_WORKS
 #elif defined(CONFIG_8260)
 #if   defined(CONFIG_MPC8247) \
    || defined(CONFIG_MPC8248) \
@@ -78,6 +87,11 @@ typedef volatile unsigned char	vu_char;
 #define CONFIG_MPC8260	1
 #endif
 #include <asm/immap_8260.h>
+#define CONFIG_RELOC_FIXUP_WORKS
+#endif
+#ifdef CONFIG_MPC86xx
+#include <mpc86xx.h>
+#include <asm/immap_86xx.h>
 #endif
 #ifdef CONFIG_MPC85xx
 #include <mpc85xx.h>
@@ -86,6 +100,7 @@ typedef volatile unsigned char	vu_char;
 #ifdef CONFIG_MPC83XX
 #include <mpc83xx.h>
 #include <asm/immap_83xx.h>
+#define CONFIG_RELOC_FIXUP_WORKS
 #endif
 #ifdef	CONFIG_4xx
 #include <ppc4xx.h>
@@ -108,6 +123,12 @@ typedef volatile unsigned char	vu_char;
 #define debug(fmt,args...)
 #define debugX(level,fmt,args...)
 #endif	/* DEBUG */
+
+#define BUG() do { \
+	printf("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __FUNCTION__); \
+	panic("BUG!"); \
+} while (0)
+#define BUG_ON(condition) do { if (unlikely((condition)!=0)) BUG(); } while(0)
 
 typedef void (interrupt_handler_t)(void *);
 
@@ -177,6 +198,7 @@ void	hang		(void) __attribute__ ((noreturn));
 long int initdram (int);
 int	display_options (void);
 void	print_size (ulong, const char *);
+int	print_buffer (ulong addr, void* data, uint width, uint count, uint linelen);
 
 /* common/main.c */
 void	main_loop	(void);
@@ -194,6 +216,9 @@ int	checkdram     (void);
 char *	strmhz(char *buf, long hz);
 int	last_stage_init(void);
 extern ulong monitor_flash_len;
+#ifdef CFG_ID_EEPROM
+int mac_read_from_eeprom(void);
+#endif
 
 /* common/flash.c */
 void flash_perror (int);
@@ -216,6 +241,9 @@ int	saveenv	     (void);
 void inline setenv   (char *, char *);
 #else
 void	setenv	     (char *, char *);
+#ifdef CONFIG_HAS_UID
+void	forceenv     (char *, char *);
+#endif
 #endif /* CONFIG_PPC */
 #ifdef CONFIG_ARM
 # include <asm/mach-types.h>
@@ -234,10 +262,11 @@ void	pci_init      (void);
 void	pci_init_board(void);
 void	pciinfo	      (int, int);
 
-#if defined(CONFIG_PCI) && defined(CONFIG_440)
-#   if defined(CFG_PCI_PRE_INIT)
+#if defined(CONFIG_PCI) && (defined(CONFIG_4xx) && !defined(CONFIG_AP1000))
     int	   pci_pre_init	       (struct pci_controller * );
-#   endif
+#endif
+
+#if defined(CONFIG_PCI) && defined(CONFIG_440)
 #   if defined(CFG_PCI_TARGET_INIT)
 	void	pci_target_init	     (struct pci_controller *);
 #   endif
@@ -257,7 +286,7 @@ int	misc_init_r   (void);
 void	jumptable_init(void);
 
 /* common/memsize.c */
-int	get_ram_size  (volatile long *, long);
+long	get_ram_size  (volatile long *, long);
 
 /* $(BOARD)/$(BOARD).c */
 void	reset_phy     (void);
@@ -307,7 +336,8 @@ void	board_ether_init (void);
 
 #if defined(CONFIG_RPXCLASSIC)	|| defined(CONFIG_MBX) || \
     defined(CONFIG_IAD210)	|| defined(CONFIG_XPEDITE1K) || \
-    defined(CONFIG_METROBOX)    || defined(CONFIG_KAREF)
+    defined(CONFIG_METROBOX)    || defined(CONFIG_KAREF) || \
+    defined(CONFIG_V38B)
 void	board_get_enetaddr (uchar *addr);
 #endif
 
@@ -370,6 +400,7 @@ void	trap_init     (ulong);
     defined (CONFIG_74xx)	|| \
     defined (CONFIG_MPC8220)	|| \
     defined (CONFIG_MPC85xx)	|| \
+    defined (CONFIG_MPC86xx)	|| \
     defined (CONFIG_MPC83XX)
 unsigned char	in8(unsigned int);
 void		out8(unsigned int, unsigned char);
@@ -385,6 +416,15 @@ void		ppcDcbf(unsigned long value);
 void		ppcDcbi(unsigned long value);
 void		ppcSync(void);
 void		ppcDcbz(unsigned long value);
+#endif
+#if defined (CONFIG_MICROBLAZE)
+unsigned short	in16(unsigned int);
+void		out16(unsigned int, unsigned short value);
+#endif
+
+#if defined (CONFIG_MPC83XX)
+void		ppcDWload(unsigned int *addr, unsigned int *ret);
+void		ppcDWstore(unsigned int *addr, unsigned int *value);
 #endif
 
 /* $(CPU)/cpu.c */
@@ -419,10 +459,11 @@ int	sdram_adjust_866 (void);
 int	adjust_sdram_tbs_8xx (void);
 #if defined(CONFIG_8260)
 int	prt_8260_clks (void);
-#elif defined(CONFIG_MPC83XX)
-int print_clock_conf(void);
 #elif defined(CONFIG_MPC5xxx)
 int	prt_mpc5xxx_clks (void);
+#endif
+#if defined(CONFIG_MPC512x)
+int	prt_mpc512xxx_clks (void);
 #endif
 #if defined(CONFIG_MPC8220)
 int	prt_mpc8220_clks (void);
@@ -458,6 +499,10 @@ ulong	get_bus_freq  (ulong);
 typedef MPC85xx_SYS_INFO sys_info_t;
 void	get_sys_info  ( sys_info_t * );
 #endif
+#if defined(CONFIG_MPC86xx)
+typedef MPC86xx_SYS_INFO sys_info_t;
+void   get_sys_info  ( sys_info_t * );
+#endif
 
 #if defined(CONFIG_4xx) || defined(CONFIG_IOP480)
 #  if defined(CONFIG_440)
@@ -477,13 +522,15 @@ void	get_sys_info  ( sys_info_t * );
 #if defined(CONFIG_8xx) || defined(CONFIG_8260)
 void	cpu_init_f    (volatile immap_t *immr);
 #endif
-#if defined(CONFIG_4xx) || defined(CONFIG_MPC85xx) || defined(CONFIG_MCF52x2)
+#if defined(CONFIG_4xx) || defined(CONFIG_MPC85xx) || defined(CONFIG_MCF52x2) ||defined(CONFIG_MPC86xx)
 void	cpu_init_f    (void);
 #endif
 
 int	cpu_init_r    (void);
 #if defined(CONFIG_8260)
 int	prt_8260_rsr  (void);
+#elif defined(CONFIG_MPC83XX)
+int	prt_83xx_rsr  (void);
 #endif
 
 /* $(CPU)/interrupts.c */
@@ -598,12 +645,16 @@ int	fgetc(int file);
 
 int	pcmcia_init (void);
 
-#ifdef CONFIG_SHOW_BOOT_PROGRESS
-void	show_boot_progress (int status);
+#ifdef CONFIG_STATUS_LED
+# include <status_led.h>
 #endif
+/*
+ * Board-specific Platform code can reimplement show_boot_progress () if needed
+ */
+void inline show_boot_progress (int val);
 
 #ifdef CONFIG_INIT_CRITICAL
-#error CONFIG_INIT_CRITICAL is depracted!
+#error CONFIG_INIT_CRITICAL is deprecated!
 #error Read section CONFIG_SKIP_LOWLEVEL_INIT in README.
 #endif
 

@@ -60,7 +60,7 @@ static block_dev_desc_t mmc_dev;
 
 block_dev_desc_t * mmc_get_dev(int dev)
 {
-	return ((block_dev_desc_t *)&mmc_dev);
+	return (dev == 0) ? &mmc_dev : NULL;
 }
 
 /*
@@ -578,7 +578,7 @@ mmc_write(uchar *src, ulong dst, int size)
 
 ulong
 /****************************************************/
-mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
+mmc_bread(int dev_num, ulong blknr, ulong blkcnt, void *dst)
 /****************************************************/
 {
 	debug( "read %lu blocks at block #%lu\n", blkcnt, blknr );

@@ -37,10 +37,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#if ((CONFIG_COMMANDS&(CFG_CMD_ENV|CFG_CMD_FLASH)) == (CFG_CMD_ENV|CFG_CMD_FLASH))
+#if defined(CONFIG_CMD_ENV) && defined(CONFIG_CMD_FLASH)
 #define CMD_SAVEENV
 #elif defined(CFG_ENV_ADDR_REDUND)
-#error Cannot use CFG_ENV_ADDR_REDUND without CFG_CMD_ENV & CFG_CMD_FLASH
+#error Cannot use CFG_ENV_ADDR_REDUND without CONFIG_CMD_ENV & CONFIG_CMD_FLASH
 #endif
 
 #if defined(CFG_ENV_SIZE_REDUND) && (CFG_ENV_SIZE_REDUND < CFG_ENV_SIZE)
@@ -84,10 +84,6 @@ static ulong end_addr_new = CFG_ENV_ADDR_REDUND + CFG_ENV_SECT_SIZE - 1;
 #define ACTIVE_FLAG   1
 #define OBSOLETE_FLAG 0
 #endif /* CFG_ENV_ADDR_REDUND */
-
-#ifdef CFG_ENV_IS_IN_FLASH
-static env_t *flash_addr_new = (env_t *)CFG_ENV_ADDR ;
-#endif
 
 extern uchar default_environment[];
 extern int default_environment_size;

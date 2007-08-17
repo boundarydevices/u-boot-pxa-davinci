@@ -29,6 +29,10 @@
 #include <pci.h>
 #include <asm/processor.h>
 
+#if defined(CONFIG_OF_FLAT_TREE)
+#include <ft_build.h>
+#endif
+
 #if defined(CONFIG_LITE5200B)
 #include "mt46v32m16.h"
 #else
@@ -38,6 +42,53 @@
 #include "mt48lc16m16a2-75.h"
 # endif
 #endif
+
+#ifdef CONFIG_LITE5200B_PM
+/* u-boot part of low-power mode implementation */
+#define SAVED_ADDR (*(void **)0x00000000)
+#define PSC2_4 0x02
+
+void lite5200b_wakeup(void)
+{
+	unsigned char wakeup_pin;
+	void (*linux_wakeup)(void);
+
+	/* check PSC2_4, if it's down "QT" is signaling we have a wakeup
+	 * from low power mode */
+	*(vu_char *)MPC5XXX_WU_GPIO_ENABLE = PSC2_4;
+	__asm__ volatile ("sync");
+
+	wakeup_pin = *(vu_char *)MPC5XXX_WU_GPIO_DATA_I;
+	if (wakeup_pin & PSC2_4)
+		return;
+
+	/* acknowledge to "QT"
+	 * by holding pin at 1 for 10 uS */
+	*(vu_char *)MPC5XXX_WU_GPIO_DIR = PSC2_4;
+	__asm__ volatile ("sync");
+	*(vu_char *)MPC5XXX_WU_GPIO_DATA_O = PSC2_4;
+	__asm__ volatile ("sync");
+	udelay(10);
+
+	/* put ram out of self-refresh */
+	*(vu_long *)MPC5XXX_SDRAM_CTRL |= 0x80000000;	/* mode_en */
+	__asm__ volatile ("sync");
+	*(vu_long *)MPC5XXX_SDRAM_CTRL |= 0x50000000;	/* cke ref_en */
+	__asm__ volatile ("sync");
+	*(vu_long *)MPC5XXX_SDRAM_CTRL &= ~0x80000000;	/* !mode_en */
+	__asm__ volatile ("sync");
+	udelay(10); /* wait a bit */
+
+	/* jump back to linux kernel code */
+	linux_wakeup = SAVED_ADDR;
+	printf("\n\nLooks like we just woke, transferring control to 0x%08lx\n",
+			linux_wakeup);
+	linux_wakeup();
+}
+#else
+#define lite5200b_wakeup()
+#endif
+
 #ifndef CFG_RAMBOOT
 static void sdram_start (int hi_addr)
 {
@@ -204,6 +255,8 @@ long int initdram (int board_type)
 		__asm__ volatile ("sync");
 	}
 
+	lite5200b_wakeup();
+
 	return dramsize + dramsize2;
 }
 
@@ -306,19 +359,17 @@ void pci_init_board(void)
 }
 #endif
 
-#if defined (CFG_CMD_IDE) && defined (CONFIG_IDE_RESET)
-
-#define GPIO_PSC1_4	0x01000000UL
+#if defined(CONFIG_CMD_IDE) && defined(CONFIG_IDE_RESET)
 
 void init_ide_reset (void)
 {
 	debug ("init_ide_reset\n");
 
-    	/* Configure PSC1_4 as GPIO output for ATA reset */
+	/* Configure PSC1_4 as GPIO output for ATA reset */
 	*(vu_long *) MPC5XXX_WU_GPIO_ENABLE |= GPIO_PSC1_4;
 	*(vu_long *) MPC5XXX_WU_GPIO_DIR    |= GPIO_PSC1_4;
 	/* Deassert reset */
-	*(vu_long *) MPC5XXX_WU_GPIO_DATA   |= GPIO_PSC1_4;
+	*(vu_long *) MPC5XXX_WU_GPIO_DATA_O   |= GPIO_PSC1_4;
 }
 
 void ide_set_reset (int idereset)
@@ -326,11 +377,19 @@ void ide_set_reset (int idereset)
 	debug ("ide_reset(%d)\n", idereset);
 
 	if (idereset) {
-		*(vu_long *) MPC5XXX_WU_GPIO_DATA &= ~GPIO_PSC1_4;
+		*(vu_long *) MPC5XXX_WU_GPIO_DATA_O &= ~GPIO_PSC1_4;
 		/* Make a delay. MPC5200 spec says 25 usec min */
 		udelay(500000);
 	} else {
-		*(vu_long *) MPC5XXX_WU_GPIO_DATA |=  GPIO_PSC1_4;
+		*(vu_long *) MPC5XXX_WU_GPIO_DATA_O |=  GPIO_PSC1_4;
 	}
 }
-#endif /* defined (CFG_CMD_IDE) && defined (CONFIG_IDE_RESET) */
+#endif
+
+#if defined(CONFIG_OF_FLAT_TREE) && defined(CONFIG_OF_BOARD_SETUP)
+void
+ft_board_setup(void *blob, bd_t *bd)
+{
+	ft_cpu_setup(blob, bd);
+}
+#endif

@@ -37,8 +37,9 @@
 #define CONFIG_440		1
 #define CONFIG_SYS_CLK_FREQ	33333333 /* external freq to pll	*/
 
-#define CONFIG_BOARD_EARLY_INIT_F 1     /* call board_early_init_f()	*/
+#define CONFIG_BOARD_EARLY_INIT_F 1	/* call board_early_init_f()	*/
 #define CONFIG_MISC_INIT_R	1	/* call misc_init_r()		*/
+#define CONFIG_ADD_RAM_INFO	1	/* Print additional info	*/
 
 /*-----------------------------------------------------------------------
  * Base addresses -- Note these are effective addresses where the
@@ -132,10 +133,9 @@
 /*-----------------------------------------------------------------------
  * DDR SDRAM
  *----------------------------------------------------------------------*/
-#undef  CONFIG_SPD_EEPROM		/* SPD EEPROM init doesn't support DDR2 */
-#define SPD_EEPROM_ADDRESS {0x52,0x53}	/* I2C SPD addresses */
-#define IIC0_DIMM0_ADDR         0x52
-#define IIC0_DIMM1_ADDR         0x53
+#define CONFIG_SPD_EEPROM	1	/* Use SPD EEPROM for setup	*/
+#define SPD_EEPROM_ADDRESS	{0x53, 0x52}	/* SPD i2c spd addresses*/
+#define CONFIG_DDR_ECC		1	/* with ECC support		*/
 
 /*-----------------------------------------------------------------------
  * I2C
@@ -178,6 +178,7 @@
 	"bootfile=/tftpboot/luan/uImage\0"				\
 	"kernel_addr=fc000000\0"					\
 	"ramdisk_addr=fc100000\0"					\
+	"initrd_high=30000000\0"					\
 	"load=tftp 100000 /tftpboot/luan/u-boot.bin\0"			\
 	"update=protect off fffc0000 ffffffff;era fffc0000 ffffffff;"	\
 		"cp.b 100000 fffc0000 40000;"			        \
@@ -205,45 +206,44 @@
 #define CONFIG_NETCONSOLE		/* include NetConsole support	*/
 #define CONFIG_NET_MULTI		/* needed for NetConsole	*/
 
-/* Partitions */
-#define CONFIG_MAC_PARTITION
-#define CONFIG_DOS_PARTITION
-#define CONFIG_ISO_PARTITION
-
 #ifdef DEBUG
 #define CONFIG_PANIC_HANG
 #else
 #define CONFIG_HW_WATCHDOG			/* watchdog */
 #endif
 
-#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL		|	\
-				CFG_CMD_ASKENV		|	\
-			        CFG_CMD_CACHE		|	\
-				CFG_CMD_DHCP		|	\
-				CFG_CMD_DIAG		|	\
-				CFG_CMD_ELF		|	\
-				CFG_CMD_EEPROM		|	\
-				CFG_CMD_I2C		|	\
-				CFG_CMD_IRQ		|	\
-				CFG_CMD_MII		|	\
-				CFG_CMD_NET		|	\
-				CFG_CMD_NFS		|	\
-				CFG_CMD_PCI		|	\
-				CFG_CMD_PING		|	\
-				CFG_CMD_REGINFO		|	\
-				CFG_CMD_SETGETDCR	|	\
-				CFG_CMD_SDRAM		|	\
-				0)
+/*
+ * BOOTP options
+ */
+#define CONFIG_BOOTP_BOOTFILESIZE
+#define CONFIG_BOOTP_BOOTPATH
+#define CONFIG_BOOTP_GATEWAY
+#define CONFIG_BOOTP_HOSTNAME
 
-/* this must be included AFTER the definition of CONFIG_COMMANDS */
-#include <cmd_confdefs.h>
+/*
+ * Command line configuration.
+ */
+#include <config_cmd_default.h>
+
+#define CONFIG_CMD_ASKENV
+#define CONFIG_CMD_DHCP
+#define CONFIG_CMD_EEPROM
+#define CONFIG_CMD_I2C
+#define CONFIG_CMD_IRQ
+#define CONFIG_CMD_MII
+#define CONFIG_CMD_NET
+#define CONFIG_CMD_NFS
+#define CONFIG_CMD_PCI
+#define CONFIG_CMD_PING
+#define CONFIG_CMD_REGINFO
+#define CONFIG_CMD_SDRAM
 
 /*
  * Miscellaneous configurable options
  */
 #define CFG_LONGHELP			/* undef to save memory		*/
 #define CFG_PROMPT	        "=> "	/* Monitor Command Prompt	*/
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CFG_CBSIZE	        1024	/* Console I/O Buffer Size	*/
 #else
 #define CFG_CBSIZE	        256	/* Console I/O Buffer Size	*/
@@ -271,7 +271,7 @@
  * PCI stuff
  *-----------------------------------------------------------------------
  */
-#if (CONFIG_COMMANDS & CFG_CMD_PCI)
+#if defined(CONFIG_CMD_PCI)
 
 /* General PCI */
 #define CONFIG_PCI			/* include pci support	        */
@@ -279,14 +279,13 @@
 #define CONFIG_PCI_SCAN_SHOW            /* show pci devices on startup  */
 
 /* Board-specific PCI */
-#define CFG_PCI_PRE_INIT                /* enable board pci_pre_init()  */
 #define CFG_PCI_TARGET_INIT
 #undef  CFG_PCI_MASTER_INIT
 
 #define CFG_PCI_SUBSYS_VENDORID 0x10e8	/* AMCC */
 #define CFG_PCI_SUBSYS_DEVICEID 0x4403	/* whatever */
 
-#endif /* CONFIG_COMMANDS & CFG_CMD_PCI */
+#endif
 
 /*
  * For booting Linux, the board info and command line data
@@ -300,7 +299,7 @@
  */
 #define CFG_DCACHE_SIZE		(32<<10) /* For AMCC 440 CPUs			*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/
 #endif
 
@@ -312,7 +311,7 @@
 #define BOOTFLAG_COLD	0x01		/* Normal Power-On: Boot from FLASH	*/
 #define BOOTFLAG_WARM	0x02		/* Software reboot			*/
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CONFIG_KGDB_BAUDRATE	230400	/* speed to run kgdb serial port */
 #define CONFIG_KGDB_SER_INDEX	2	/* which serial port to use */
 #endif

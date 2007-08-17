@@ -1,5 +1,5 @@
 /*
- * Copyright 2004 Freescale Semiconductor, Inc.
+ * Copyright (C) 2004-2006 Freescale Semiconductor, Inc.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -18,11 +18,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
- *
- * Change log:
- *
- * 20050101: Eran Liberty (liberty@freescale.com)
- *           Initial file creating (porting from 85XX & 8260)
  */
 
 #include <common.h>
@@ -30,6 +25,30 @@
 #include <ioports.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#ifdef CONFIG_QE
+extern qe_iop_conf_t qe_iop_conf_tab[];
+extern void qe_config_iopin(u8 port, u8 pin, int dir,
+			 int open_drain, int assign);
+extern void qe_init(uint qe_base);
+extern void qe_reset(void);
+
+static void config_qe_ioports(void)
+{
+	u8	port, pin;
+	int	dir, open_drain, assign;
+	int	i;
+
+	for (i = 0; qe_iop_conf_tab[i].assign != QE_IOP_TAB_END; i++) {
+		port		= qe_iop_conf_tab[i].port;
+		pin		= qe_iop_conf_tab[i].pin;
+		dir		= qe_iop_conf_tab[i].dir;
+		open_drain	= qe_iop_conf_tab[i].open_drain;
+		assign		= qe_iop_conf_tab[i].assign;
+		qe_config_iopin(port, pin, dir, open_drain, assign);
+	}
+}
+#endif
 
 /*
  * Breathe some life into the CPU...
@@ -45,6 +64,69 @@ void cpu_init_f (volatile immap_t * im)
 
 	/* Clear initial global data */
 	memset ((void *) gd, 0, sizeof (gd_t));
+
+	/* system performance tweaking */
+
+#ifdef CFG_ACR_PIPE_DEP
+	/* Arbiter pipeline depth */
+	im->arbiter.acr = (im->arbiter.acr & ~ACR_PIPE_DEP) |
+			  (CFG_ACR_PIPE_DEP << ACR_PIPE_DEP_SHIFT);
+#endif
+
+#ifdef CFG_SPCR_TSEC1EP
+	/* TSEC1 Emergency priority */
+	im->sysconf.spcr = (im->sysconf.spcr & ~SPCR_TSEC1EP) | (CFG_SPCR_TSEC1EP << SPCR_TSEC1EP_SHIFT);
+#endif
+
+#ifdef CFG_SPCR_TSEC2EP
+	/* TSEC2 Emergency priority */
+	im->sysconf.spcr = (im->sysconf.spcr & ~SPCR_TSEC2EP) | (CFG_SPCR_TSEC2EP << SPCR_TSEC2EP_SHIFT);
+#endif
+
+#ifdef CFG_SCCR_TSEC1CM
+	/* TSEC1 clock mode */
+	im->clk.sccr = (im->clk.sccr & ~SCCR_TSEC1CM) | (CFG_SCCR_TSEC1CM << SCCR_TSEC1CM_SHIFT);
+#endif
+
+#ifdef CFG_SCCR_TSEC2CM
+	/* TSEC2 & I2C1 clock mode */
+	im->clk.sccr = (im->clk.sccr & ~SCCR_TSEC2CM) | (CFG_SCCR_TSEC2CM << SCCR_TSEC2CM_SHIFT);
+#endif
+
+#ifdef CFG_SCCR_TSEC1ON
+	/* TSEC1 clock switch */
+	im->clk.sccr = (im->clk.sccr & ~SCCR_TSEC1ON) | (CFG_SCCR_TSEC1ON << SCCR_TSEC1ON_SHIFT);
+#endif
+
+#ifdef CFG_SCCR_TSEC2ON
+	/* TSEC2 clock switch */
+	im->clk.sccr = (im->clk.sccr & ~SCCR_TSEC2ON) | (CFG_SCCR_TSEC2ON << SCCR_TSEC2ON_SHIFT);
+#endif
+
+#ifdef CFG_SCCR_USBMPHCM
+	/* USB MPH clock mode */
+	im->clk.sccr = (im->clk.sccr & ~SCCR_USBMPHCM) | (CFG_SCCR_USBMPHCM << SCCR_USBMPHCM_SHIFT);
+#endif
+
+#ifdef CFG_SCCR_PCICM
+	/* PCI & DMA clock mode */
+	im->clk.sccr = (im->clk.sccr & ~SCCR_PCICM) | (CFG_SCCR_PCICM << SCCR_PCICM_SHIFT);
+#endif
+
+#ifdef CFG_SCCR_USBDRCM
+	/* USB DR clock mode */
+	im->clk.sccr = (im->clk.sccr & ~SCCR_USBDRCM) | (CFG_SCCR_USBDRCM << SCCR_USBDRCM_SHIFT);
+#endif
+
+#ifdef CFG_SCCR_ENCCM
+	/* Encryption clock mode */
+	im->clk.sccr = (im->clk.sccr & ~SCCR_ENCCM) | (CFG_SCCR_ENCCM << SCCR_PCICM_SHIFT);
+#endif
+
+#ifdef CFG_ACR_RPTCNT
+	/* Arbiter repeat count */
+	im->arbiter.acr = ((im->arbiter.acr & ~(ACR_RPTCNT)) | (CFG_ACR_RPTCNT << ACR_RPTCNT_SHIFT));
+#endif
 
 	/* RSR - Reset Status Register - clear all status (4.6.1.3) */
 	gd->reset_status = im->reset.rsr;
@@ -68,6 +150,15 @@ void cpu_init_f (volatile immap_t * im)
 #endif
 #ifdef CFG_SICRL
 	im->sysconf.sicrl = CFG_SICRL;
+#endif
+	/* DDR control driver register */
+#ifdef CFG_DDRCDR
+	im->sysconf.ddrcdr = CFG_DDRCDR;
+#endif
+
+#ifdef CONFIG_QE
+	/* Config QE ioports */
+	config_qe_ioports();
 #endif
 
 	/*
@@ -148,21 +239,57 @@ void cpu_init_f (volatile immap_t * im)
 	im->sysconf.lblaw[7].ar = CFG_LBLAWAR7_PRELIM;
 #endif
 #ifdef CFG_GPIO1_PRELIM
-	im->pgio[0].dir = CFG_GPIO1_DIR;
-	im->pgio[0].dat = CFG_GPIO1_DAT;
+	im->gpio[0].dir = CFG_GPIO1_DIR;
+	im->gpio[0].dat = CFG_GPIO1_DAT;
 #endif
 #ifdef CFG_GPIO2_PRELIM
-	im->pgio[1].dir = CFG_GPIO2_DIR;
-	im->pgio[1].dat = CFG_GPIO2_DAT;
+	im->gpio[1].dir = CFG_GPIO2_DIR;
+	im->gpio[1].dat = CFG_GPIO2_DAT;
 #endif
 }
 
-
-/*
- * Initialize higher level parts of CPU like time base and timers.
- */
-
 int cpu_init_r (void)
 {
+#ifdef CONFIG_QE
+	uint qe_base = CFG_IMMR + 0x00100000; /* QE immr base */
+	qe_init(qe_base);
+	qe_reset();
+#endif
+	return 0;
+}
+
+/*
+ * Figure out the cause of the reset
+ */
+int prt_83xx_rsr(void)
+{
+	static struct {
+		ulong mask;
+		char *desc;
+	} bits[] = {
+		{
+		RSR_SWSR, "Software Soft"}, {
+		RSR_SWHR, "Software Hard"}, {
+		RSR_JSRS, "JTAG Soft"}, {
+		RSR_CSHR, "Check Stop"}, {
+		RSR_SWRS, "Software Watchdog"}, {
+		RSR_BMRS, "Bus Monitor"}, {
+		RSR_SRS,  "External/Internal Soft"}, {
+		RSR_HRS,  "External/Internal Hard"}
+	};
+	static int n = sizeof bits / sizeof bits[0];
+	ulong rsr = gd->reset_status;
+	int i;
+	char *sep;
+
+	puts("Reset Status:");
+
+	sep = " ";
+	for (i = 0; i < n; i++)
+		if (rsr & bits[i].mask) {
+			printf("%s%s", sep, bits[i].desc);
+			sep = ", ";
+		}
+	puts("\n\n");
 	return 0;
 }

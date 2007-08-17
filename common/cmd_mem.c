@@ -29,18 +29,19 @@
 
 #include <common.h>
 #include <command.h>
-#if (CONFIG_COMMANDS & CFG_CMD_MMC)
+#if defined(CONFIG_CMD_MMC)
 #include <mmc.h>
 #endif
 #ifdef CONFIG_HAS_DATAFLASH
 #include <dataflash.h>
 #endif
 
-#if (CONFIG_COMMANDS & (CFG_CMD_MEMORY	| \
-			CFG_CMD_I2C	| \
-			CFG_CMD_ITEST	| \
-			CFG_CMD_PCI	| \
-			CMD_CMD_PORTIO	) )
+#if defined(CONFIG_CMD_MEMORY)		\
+    || defined(CONFIG_CMD_I2C)		\
+    || defined(CONFIG_CMD_ITEST)	\
+    || defined(CONFIG_CMD_PCI)		\
+    || defined(CONFIG_CMD_PORTIO)
+
 int cmd_get_data_size(char* arg, int default_size)
 {
 	/* Check for a size specification .b, .w or .l.
@@ -64,7 +65,7 @@ int cmd_get_data_size(char* arg, int default_size)
 }
 #endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_MEMORY)
+#if defined(CONFIG_CMD_MEMORY)
 
 #ifdef	CMD_MEM_DEBUG
 #define	PRINTF(fmt,args...)	printf (fmt ,##args)
@@ -92,8 +93,9 @@ static	ulong	base_address = 0;
 int do_mem_md ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	ulong	addr, length;
-	ulong	i, nbytes, linebytes;
-	u_char	*cp;
+#if defined(CONFIG_HAS_DATAFLASH)
+	ulong	nbytes, linebytes;
+#endif
 	int	size;
 	int rc = 0;
 
@@ -128,6 +130,7 @@ int do_mem_md ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			length = simple_strtoul(argv[2], NULL, 16);
 	}
 
+#if defined(CONFIG_HAS_DATAFLASH)
 	/* Print the lines.
 	 *
 	 * We buffer all read data, so we can make sure data is read only
@@ -136,64 +139,25 @@ int do_mem_md ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	nbytes = length * size;
 	do {
 		char	linebuf[DISP_LINE_LEN];
-		uint	*uip = (uint   *)linebuf;
-		ushort	*usp = (ushort *)linebuf;
-		u_char	*ucp = (u_char *)linebuf;
-#ifdef CONFIG_HAS_DATAFLASH
-		int rc;
-#endif
-		printf("%08lx:", addr);
+		void* p;
 		linebytes = (nbytes>DISP_LINE_LEN)?DISP_LINE_LEN:nbytes;
 
-#ifdef CONFIG_HAS_DATAFLASH
-		if ((rc = read_dataflash(addr, (linebytes/size)*size, linebuf)) == DATAFLASH_OK){
-			/* if outside dataflash */
-			/*if (rc != 1) {
-				dataflash_perror (rc);
-				return (1);
-			}*/
-			for (i=0; i<linebytes; i+= size) {
-				if (size == 4) {
-					printf(" %08x", *uip++);
-				} else if (size == 2) {
-					printf(" %04x", *usp++);
-				} else {
-					printf(" %02x", *ucp++);
-				}
-				addr += size;
-			}
+		rc = read_dataflash(addr, (linebytes/size)*size, linebuf);
+		p = (rc == DATAFLASH_OK) ? linebuf : (void*)addr;
+		print_buffer(addr, p, size, linebytes/size, DISP_LINE_LEN/size);
 
-		} else {	/* addr does not correspond to DataFlash */
-#endif
-		for (i=0; i<linebytes; i+= size) {
-			if (size == 4) {
-				printf(" %08x", (*uip++ = *((uint *)addr)));
-			} else if (size == 2) {
-				printf(" %04x", (*usp++ = *((ushort *)addr)));
-			} else {
-				printf(" %02x", (*ucp++ = *((u_char *)addr)));
-			}
-			addr += size;
-		}
-#ifdef CONFIG_HAS_DATAFLASH
-		}
-#endif
-		puts ("    ");
-		cp = (u_char *)linebuf;
-		for (i=0; i<linebytes; i++) {
-			if ((*cp < 0x20) || (*cp > 0x7e))
-				putc ('.');
-			else
-				printf("%c", *cp);
-			cp++;
-		}
-		putc ('\n');
 		nbytes -= linebytes;
+		addr += linebytes;
 		if (ctrlc()) {
 			rc = 1;
 			break;
 		}
 	} while (nbytes > 0);
+#else
+	/* Print the lines. */
+	print_buffer(addr, (void*)addr, size, length, DISP_LINE_LEN/size);
+	addr += size*length;
+#endif
 
 	dp_last_addr = addr;
 	dp_last_length = length;
@@ -440,7 +404,7 @@ int do_mem_cp ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	}
 #endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_MMC)
+#if defined(CONFIG_CMD_MMC)
 	if (mmc2info(dest)) {
 		int rc;
 
@@ -1186,7 +1150,7 @@ int do_mem_crc (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 #endif	/* CONFIG_CRC32_VERIFY */
 
 /**************************************************/
-#if (CONFIG_COMMANDS & CFG_CMD_MEMORY)
+#if defined(CONFIG_CMD_MEMORY)
 U_BOOT_CMD(
 	md,     3,     1,      do_mem_md,
 	"md      - memory display\n",
@@ -1289,4 +1253,4 @@ U_BOOT_CMD(
 #endif /* CONFIG_MX_CYCLIC */
 
 #endif
-#endif	/* CFG_CMD_MEMORY */
+#endif
