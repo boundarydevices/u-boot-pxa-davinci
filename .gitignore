@@ -56,3 +56,4 @@ select.mk
 *.srec
 *.bin
 u-boot
+*.zip
