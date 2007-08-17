@@ -8,3 +8,5 @@ gen_eth_addr
 img2srec
 crc32.c
 environment.c
+ubsha1
+sha1.c
