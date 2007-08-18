@@ -207,3 +207,15 @@ int dram_init(void)
 
 	return(0);
 }
+
+int get_rom_mac (char *v_rom_mac)
+{
+   return -1 ;
+}
+
+int set_rom_mac (char const *v_rom_mac)
+{
+   return -1 ;
+}
+
+
