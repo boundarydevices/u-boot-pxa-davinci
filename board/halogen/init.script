@@ -36,8 +36,8 @@ fi
 
 lecho 'No Linux, try CE'
 
-if fatload mmc 0 A0030000 nk*.nb0 ; then
-   g A0030000 ;
+if fatload mmc 0 A0010000 nk*.nb0 ; then
+   g A0010000 ;
 else
    echo "No WinCE image" ;
 fi

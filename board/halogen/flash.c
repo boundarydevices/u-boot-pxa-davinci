@@ -235,10 +235,16 @@ static ulong flash_get_size (volatile FPW *addr, flash_info_t *info)
 		info->size = info->sector_count*(SECTOR_SIZE_PER_CHIP*FLASH_CHIP_CNT);
 		break;				/* => 16 MB x 2  */
    case (FPW) INTEL_ID_28F320J3A:
-      info->flash_id += FLASH_28F320J3A;
-		info->sector_count = 32 ;
+		info->flash_id += FLASH_28F320J3A;
+		info->sector_count = 32;
 		info->size = info->sector_count*(SECTOR_SIZE_PER_CHIP*FLASH_CHIP_CNT);
 		break;				/* => 4 MB x 2 */
+   case (FPW) INTEL_ID_28F640J3A:
+		info->flash_id += FLASH_28F640J3A;
+		info->sector_count = 64;
+		info->size = info->sector_count*(SECTOR_SIZE_PER_CHIP*FLASH_CHIP_CNT);
+		break;				/* => 8 MB  */
+
 	default:
 		printf( "Unknown flash device %x,%x\n", manVal,devVal );
 		info->flash_id = FLASH_UNKNOWN;
