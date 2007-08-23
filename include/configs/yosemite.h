@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2005-2006
+ * (C) Copyright 2005-2007
  * Stefan Roese, DENX Software Engineering, sr@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -22,7 +22,7 @@
  */
 
 /************************************************************************
- * yosemite.h - configuration for YOSEMITE board
+ * yosemite.h - configuration for Yosemite & Yellowstone boards
  ***********************************************************************/
 #ifndef __CONFIG_H
 #define __CONFIG_H
@@ -30,13 +30,21 @@
 /*-----------------------------------------------------------------------
  * High Level Configuration Options
  *----------------------------------------------------------------------*/
-#define CONFIG_YOSEMITE		1	/* Board is Yosemite            */
-#define CONFIG_440EP		1	/* Specific PPC440EP support    */
-#define CONFIG_4xx		1	/* ... PPC4xx family	        */
+/* This config file is used for Yosemite (440EP) and Yellowstone (440GR)*/
+#ifndef CONFIG_YELLOWSTONE
+#define CONFIG_440EP		1	/* Specific PPC440EP support	*/
+#define CONFIG_HOSTNAME		yosemite
+#else
+#define CONFIG_440GR		1	/* Specific PPC440GR support	*/
+#define CONFIG_HOSTNAME		yellowstone
+#endif
+#define CONFIG_440		1	/* ... PPC440 family		*/
+#define CONFIG_4xx		1	/* ... PPC4xx family		*/
 #define CONFIG_SYS_CLK_FREQ	66666666    /* external freq to pll	*/
 
 #define CONFIG_BOARD_EARLY_INIT_F 1     /* Call board_early_init_f	*/
 #define CONFIG_MISC_INIT_R	1	/* call misc_init_r()		*/
+#define CONFIG_BOARD_RESET	1	/* call board_reset()		*/
 
 /*-----------------------------------------------------------------------
  * Base addresses -- Note these are effective addresses where the
@@ -65,6 +73,7 @@
 /*-----------------------------------------------------------------------
  * Initial RAM & stack pointer (placed in SDRAM)
  *----------------------------------------------------------------------*/
+#define CFG_INIT_RAM_DCACHE	1		/* d-cache as init ram	*/
 #define CFG_INIT_RAM_ADDR	0x70000000		/* DCache       */
 #define CFG_INIT_RAM_END	(8 << 10)
 #define CFG_GBL_DATA_SIZE	256			/* num bytes initial data*/
@@ -114,7 +123,7 @@
 #define CFG_FLASH_EMPTY_INFO		/* print 'E' for empty sector on flinfo */
 
 #ifdef CFG_ENV_IS_IN_FLASH
-#define CFG_ENV_SECT_SIZE	0x20000 	/* size of one complete sector	*/
+#define CFG_ENV_SECT_SIZE	0x20000	/* size of one complete sector		*/
 #define CFG_ENV_ADDR		(CFG_MONITOR_BASE-CFG_ENV_SECT_SIZE)
 #define	CFG_ENV_SIZE		0x2000	/* Total Size of Environment Sector	*/
 
@@ -157,9 +166,21 @@
 
 #undef	CONFIG_BOOTARGS
 
+/* Setup some board specific values for the default environment variables */
+#ifndef CONFIG_YELLOWSTONE
+#define CONFIG_HOSTNAME		yosemite
+#define CFG_BOOTFILE		"bootfile=/tftpboot/yosemite/uImage\0"
+#define CFG_ROOTPATH		"rootpath=/opt/eldk/ppc_4xxFP\0"
+#else
+#define CONFIG_HOSTNAME		yellowstone
+#define CFG_BOOTFILE		"bootfile=/tftpboot/yellowstone/uImage\0"
+#define CFG_ROOTPATH		"rootpath=/opt/eldk/ppc_4xx\0"
+#endif
+
 #define	CONFIG_EXTRA_ENV_SETTINGS					\
+	CFG_BOOTFILE							\
+	CFG_ROOTPATH							\
 	"netdev=eth0\0"							\
-	"hostname=yosemite\0"						\
 	"nfsargs=setenv bootargs root=/dev/nfs rw "			\
 		"nfsroot=${serverip}:${rootpath}\0"			\
 	"ramargs=setenv bootargs root=/dev/ram rw\0"			\
@@ -173,13 +194,12 @@
 		"bootm ${kernel_addr} ${ramdisk_addr}\0"		\
 	"net_nfs=tftp 200000 ${bootfile};run nfsargs addip addtty;"     \
 	        "bootm\0"						\
-	"rootpath=/opt/eldk/ppc_4xx\0"					\
-	"bootfile=/tftpboot/yosemite/uImage\0"				\
+	"bootfile=/tftpboot/${hostname}/uImage\0"			\
 	"kernel_addr=fc000000\0"					\
 	"ramdisk_addr=fc180000\0"					\
-	"load=tftp 100000 /tftpboot/yosemite/u-boot.bin\0"		\
+	"load=tftp 200000 /tftpboot/${hostname}/u-boot.bin\0"		\
 	"update=protect off fff80000 ffffffff;era fff80000 ffffffff;"	\
-		"cp.b 100000 fff80000 80000;"			        \
+		"cp.b 200000 fff80000 80000;"			        \
 		"setenv filesize;saveenv\0"				\
 	"upd=run load;run update\0"					\
 	""
@@ -213,12 +233,21 @@
 
 #ifdef CONFIG_440EP
 /* USB */
-#define CONFIG_USB_OHCI
+#define CONFIG_USB_OHCI_NEW
 #define CONFIG_USB_STORAGE
+#define CFG_OHCI_BE_CONTROLLER
 
-/*Comment this out to enable USB 1.1 device*/
+#undef CFG_USB_OHCI_BOARD_INIT
+#define CFG_USB_OHCI_CPU_INIT	1
+#define CFG_USB_OHCI_REGS_BASE	(CFG_PERIPHERAL_BASE | 0x1000)
+#define CFG_USB_OHCI_SLOT_NAME	"ppc440"
+#define CFG_USB_OHCI_MAX_ROOT_PORTS	15
+
+/* Comment this out to enable USB 1.1 device */
 #define USB_2_0_DEVICE
-#endif /*CONFIG_440EP*/
+
+#define CONFIG_SUPPORT_VFAT
+#endif /* CONFIG_440EP */
 
 #ifdef DEBUG
 #define CONFIG_PANIC_HANG
@@ -226,36 +255,49 @@
 #define CONFIG_HW_WATCHDOG			/* watchdog */
 #endif
 
-#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL	| \
-				CFG_CMD_ASKENV	| \
-				CFG_CMD_DHCP	| \
-				CFG_CMD_DIAG	| \
-				CFG_CMD_ELF	| \
-				CFG_CMD_EEPROM	| \
-				CFG_CMD_I2C	| \
-				CFG_CMD_IRQ	| \
-				CFG_CMD_MII	| \
-				CFG_CMD_NET	| \
-				CFG_CMD_NFS	| \
-				CFG_CMD_PCI	| \
-				CFG_CMD_PING	| \
-				CFG_CMD_REGINFO	| \
-				CFG_CMD_SDRAM	| \
-				CFG_CMD_FAT	| \
-				CFG_CMD_EXT2	| \
-				CFG_CMD_USB	)
 
-#define CONFIG_SUPPORT_VFAT
+/*
+ * BOOTP options
+ */
+#define CONFIG_BOOTP_BOOTFILESIZE
+#define CONFIG_BOOTP_BOOTPATH
+#define CONFIG_BOOTP_GATEWAY
+#define CONFIG_BOOTP_HOSTNAME
 
-/* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
-#include <cmd_confdefs.h>
+
+/*
+ * Command line configuration.
+ */
+#include <config_cmd_default.h>
+
+#define CONFIG_CMD_ASKENV
+#define CONFIG_CMD_DHCP
+#define CONFIG_CMD_DIAG
+#define CONFIG_CMD_ELF
+#define CONFIG_CMD_EEPROM
+#define CONFIG_CMD_I2C
+#define CONFIG_CMD_IRQ
+#define CONFIG_CMD_MII
+#define CONFIG_CMD_NET
+#define CONFIG_CMD_NFS
+#define CONFIG_CMD_PCI
+#define CONFIG_CMD_PING
+#define CONFIG_CMD_REGINFO
+#define CONFIG_CMD_SDRAM
+
+#ifdef CONFIG_440EP
+    #define CONFIG_CMD_USB
+    #define CONFIG_CMD_FAT
+    #define CONFIG_CMD_EXT2
+#endif
+
 
 /*
  * Miscellaneous configurable options
  */
 #define CFG_LONGHELP			/* undef to save memory		*/
 #define CFG_PROMPT	        "=> "	/* Monitor Command Prompt	*/
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CFG_CBSIZE	        1024	/* Console I/O Buffer Size	*/
 #else
 #define CFG_CBSIZE	        256	/* Console I/O Buffer Size	*/
@@ -290,7 +332,6 @@
 #define CFG_PCI_TARGBASE        0x80000000 /* PCIaddr mapped to CFG_PCI_MEMBASE*/
 
 /* Board-specific PCI */
-#define CFG_PCI_PRE_INIT                /* enable board pci_pre_init()  */
 #define CFG_PCI_TARGET_INIT
 #define CFG_PCI_MASTER_INIT
 
@@ -305,11 +346,25 @@
 #define CFG_BOOTMAPSZ		(8 << 20)	/* Initial Memory map for Linux */
 
 /*-----------------------------------------------------------------------
+ * External Bus Controller (EBC) Setup
+ *----------------------------------------------------------------------*/
+#define CFG_FLASH		CFG_FLASH_BASE
+#define CFG_CPLD		0x80000000
+
+/* Memory Bank 0 (NOR-FLASH) initialization					*/
+#define CFG_EBC_PB0AP		0x03017300
+#define CFG_EBC_PB0CR		(CFG_FLASH | 0xda000)
+
+/* Memory Bank 2 (CPLD) initialization						*/
+#define CFG_EBC_PB2AP		0x04814500
+#define CFG_EBC_PB2CR		(CFG_CPLD | 0x18000)
+
+/*-----------------------------------------------------------------------
  * Cache Configuration
  */
 #define CFG_DCACHE_SIZE		(32<<10) /* For AMCC 440 CPUs			*/
 #define CFG_CACHELINE_SIZE	32	/* ...			*/
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/
 #endif
 
@@ -321,7 +376,7 @@
 #define BOOTFLAG_COLD	0x01		/* Normal Power-On: Boot from FLASH	*/
 #define BOOTFLAG_WARM	0x02		/* Software reboot			*/
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CONFIG_KGDB_BAUDRATE	230400	/* speed to run kgdb serial port */
 #define CONFIG_KGDB_SER_INDEX	2	/* which serial port to use */
 #endif

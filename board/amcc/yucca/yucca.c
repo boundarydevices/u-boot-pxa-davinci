@@ -32,6 +32,10 @@
 #include <asm-ppc/io.h>
 
 #include "yucca.h"
+#include "../cpu/ppc4xx/440spe_pcie.h"
+
+#undef PCIE_ENDPOINT
+/* #define PCIE_ENDPOINT 1 */
 
 void fpga_init (void);
 
@@ -40,8 +44,6 @@ int compare_to_true(char *str );
 char *remove_l_w_space(char *in_str );
 char *remove_t_w_space(char *in_str );
 int get_console_port(void);
-unsigned long ppcMfcpr(unsigned long cpr_reg);
-unsigned long ppcMfsdr(unsigned long sdr_reg);
 
 int ppc440spe_init_pcie_rootport(int port);
 void ppc440spe_setup_pcie(struct pci_controller *hose, int port);
@@ -217,7 +219,7 @@ int board_early_init_f (void)
 	 |
 	 +-------------------------------------------------------------------*/
 	/* Read Pin Strap Register in PPC440SP */
-	sdr0_pinstp = ppcMfsdr(SDR0_PINSTP);
+	mfsdr(SDR0_PINSTP, sdr0_pinstp);
 	bootstrap_settings = sdr0_pinstp & SDR0_PINSTP_BOOTSTRAP_MASK;
 
 	switch (bootstrap_settings) {
@@ -242,7 +244,7 @@ int board_early_init_f (void)
 			 * Boot Settings in IIC EEprom address 0x50 or 0x54
 			 * Read Serial Device Strap Register1 in PPC440SPe
 			 */
-			sdr0_sdstp1 = ppcMfsdr(SDR0_SDSTP1);
+			mfsdr(SDR0_SDSTP1, sdr0_sdstp1);
 			boot_selection = sdr0_sdstp1 & SDR0_SDSTP1_ERPN_MASK;
 			ebc_data_width = sdr0_sdstp1 & SDR0_SDSTP1_EBCW_MASK;
 
@@ -560,258 +562,38 @@ int checkboard (void)
 	return 0;
 }
 
-static long int yucca_probe_for_dimms(void)
+/*
+ * Override the default functions in cpu/ppc4xx/44x_spd_ddr2.c with
+ * board specific values.
+ */
+static int ppc440spe_rev_a(void)
 {
-	long int 	dimm_installed[MAXDIMMS];
-	long int	dimm_num, probe_result;
-	long int	dimms_found = 0;
-	uchar		dimm_addr = IIC0_DIMM0_ADDR;
-
-	for (dimm_num = 0; dimm_num < MAXDIMMS; dimm_num++) {
-		/* check if there is a chip at the dimm address	*/
-		switch (dimm_num) {
-			case 0:
-				dimm_addr = IIC0_DIMM0_ADDR;
-				break;
-			case 1:
-				dimm_addr = IIC0_DIMM1_ADDR;
-				break;
-		}
-		probe_result = i2c_probe(dimm_addr);
-
-		if (probe_result == 0) {
-			dimm_installed[dimm_num] = TRUE;
-			dimms_found++;
-			debug("DIMM slot %d: DDR2 SDRAM detected\n",dimm_num);
-		} else {
-			dimm_installed[dimm_num] = FALSE;
-			debug("DIMM slot %d: Not populated or cannot sucessfully probe the DIMM\n", dimm_num);
-		}
-	}
-
-	if (dimms_found == 0) {
-		printf("ERROR - No memory installed.  Install a DDR-SDRAM DIMM.\n\n");
-		hang();
-	}
-
-	if (dimm_installed[0] != TRUE) {
-		printf("\nERROR - DIMM slot 0 must be populated before DIMM slot 1.\n");
-		printf("        Unsupported configuration. Move DIMM module from DIMM slot 1 to slot 0.\n\n");
-		hang();
-	}
-
-	return dimms_found;
+	if ((get_pvr() == PVR_440SPe_6_RA) || (get_pvr() == PVR_440SPe_RA))
+		return 1;
+	else
+		return 0;
 }
 
-/*************************************************************************
- * init SDRAM controller with fixed value
- * the initialization values are for 2x MICRON DDR2
- * PN: MT18HTF6472DY-53EB2
- * 512MB, DDR2, 533, CL4, ECC, REG
- ************************************************************************/
-static long int fixed_sdram(void)
-{
-	long int yucca_dimms = 0;
+u32 ddr_wrdtr(u32 default_val) {
+	/*
+	 * Yucca boards with 440SPe rev. A need a slightly different setup
+	 * for the MCIF0_WRDTR register.
+	 */
+	if (ppc440spe_rev_a())
+		return (SDRAM_WRDTR_LLWP_1_CYC | SDRAM_WRDTR_WTR_270_DEG_ADV);
 
-	yucca_dimms = yucca_probe_for_dimms();
-
-	/* SDRAM0_MCOPT2 (0X21) Clear DCEN BIT	*/
-	mtdcr( 0x10, 0x00000021 );
-	mtdcr( 0x11, 0x84000000 );
-
-	/* SDRAM0_MCOPT1 (0X20) ECC OFF / 64 bits / 4 banks / DDR2	*/
-	mtdcr( 0x10, 0x00000020 );
-	mtdcr( 0x11, 0x2D122000 );
-
-	/* SET MCIF0_CODT   Die Termination On	*/
-	mtdcr( 0x10, 0x00000026 );
-	if (yucca_dimms == 2)
-		mtdcr( 0x11, 0x2A800021 );
-	else if (yucca_dimms == 1)
-		mtdcr( 0x11, 0x02800021 );
-
-	/* On-Die Termination for Bank 0	*/
-	mtdcr( 0x10, 0x00000022 );
-	if (yucca_dimms == 2)
-		mtdcr( 0x11, 0x18000000 );
-	else if (yucca_dimms == 1)
-		mtdcr( 0x11, 0x06000000 );
-
-	/*	On-Die Termination for Bank 1	*/
-	mtdcr( 0x10, 0x00000023 );
-	if (yucca_dimms == 2)
-		mtdcr( 0x11, 0x18000000 );
-	else if (yucca_dimms == 1)
-		mtdcr( 0x11, 0x01800000 );
-
-	/*	On-Die Termination for Bank 2	*/
-	mtdcr( 0x10, 0x00000024 );
-	if (yucca_dimms == 2)
-		mtdcr( 0x11, 0x01800000 );
-	else if (yucca_dimms == 1)
-		mtdcr( 0x11, 0x00000000 );
-
-	/*	On-Die Termination for Bank 3	*/
-	mtdcr( 0x10, 0x00000025 );
-	if (yucca_dimms == 2)
-		mtdcr( 0x11, 0x01800000 );
-	else if (yucca_dimms == 1)
-		mtdcr( 0x11, 0x00000000 );
-
-	/* Refresh Time register (0x30) Refresh every 7.8125uS	*/
-	mtdcr( 0x10, 0x00000030 );
-	mtdcr( 0x11, 0x08200000 );
-
-	/* SET MCIF0_MMODE  	 CL 4	*/
-	mtdcr( 0x10, 0x00000088 );
-	mtdcr( 0x11, 0x00000642 );
-
-	/* MCIF0_MEMODE	*/
-	mtdcr( 0x10, 0x00000089 );
-	mtdcr( 0x11, 0x00000004 );
-
-	/*SET MCIF0_MB0CF 	*/
-	mtdcr( 0x10, 0x00000040 );
-	mtdcr( 0x11, 0x00000201 );
-
-	/* SET MCIF0_MB1CF 	*/
-	mtdcr( 0x10, 0x00000044 );
-	mtdcr( 0x11, 0x00000201 );
-
-	/* SET MCIF0_MB2CF 	*/
-	mtdcr( 0x10, 0x00000048 );
-	if (yucca_dimms == 2)
-		mtdcr( 0x11, 0x00000201 );
-	else if (yucca_dimms == 1)
-		mtdcr( 0x11, 0x00000000 );
-
-	/* SET MCIF0_MB3CF 	*/
-	mtdcr( 0x10, 0x0000004c );
-	if (yucca_dimms == 2)
-		mtdcr( 0x11, 0x00000201 );
-	else if (yucca_dimms == 1)
-		mtdcr( 0x11, 0x00000000 );
-
-	/* SET MCIF0_INITPLR0  # NOP		*/
-	mtdcr( 0x10, 0x00000050 );
-	mtdcr( 0x11, 0xB5380000 );
-
-	/* SET MCIF0_INITPLR1  # PRE		*/
-	mtdcr( 0x10, 0x00000051 );
-	mtdcr( 0x11, 0x82100400 );
-
-	/* SET MCIF0_INITPLR2  # EMR2		*/
-	mtdcr( 0x10, 0x00000052 );
-	mtdcr( 0x11, 0x80820000 );
-
-	/* SET MCIF0_INITPLR3  # EMR3		*/
-	mtdcr( 0x10, 0x00000053 );
-	mtdcr( 0x11, 0x80830000 );
-
-	/* SET MCIF0_INITPLR4  # EMR DLL ENABLE	*/
-	mtdcr( 0x10, 0x00000054 );
-	mtdcr( 0x11, 0x80810000 );
-
-	/* SET MCIF0_INITPLR5  # MR DLL RESET	*/
-	mtdcr( 0x10, 0x00000055 );
-	mtdcr( 0x11, 0x80800542 );
-
-	/* SET MCIF0_INITPLR6  # PRE		*/
-	mtdcr( 0x10, 0x00000056 );
-	mtdcr( 0x11, 0x82100400 );
-
-	/* SET MCIF0_INITPLR7  # Refresh	*/
-	mtdcr( 0x10, 0x00000057 );
-	mtdcr( 0x11, 0x8A080000 );
-
-	/* SET MCIF0_INITPLR8  # Refresh	*/
-	mtdcr( 0x10, 0x00000058 );
-	mtdcr( 0x11, 0x8A080000 );
-
-	/* SET MCIF0_INITPLR9  # Refresh	*/
-	mtdcr( 0x10, 0x00000059 );
-	mtdcr( 0x11, 0x8A080000 );
-
-	/* SET MCIF0_INITPLR10 # Refresh	*/
-	mtdcr( 0x10, 0x0000005A );
-	mtdcr( 0x11, 0x8A080000 );
-
-	/* SET MCIF0_INITPLR11 # MR		*/
-	mtdcr( 0x10, 0x0000005B );
-	mtdcr( 0x11, 0x80800442 );
-
-	/* SET MCIF0_INITPLR12 # EMR OCD Default*/
-	mtdcr( 0x10, 0x0000005C );
-	mtdcr( 0x11, 0x80810380 );
-
-	/* SET MCIF0_INITPLR13 # EMR OCD Exit	*/
-	mtdcr( 0x10, 0x0000005D );
-	mtdcr( 0x11, 0x80810000 );
-
-	/* 0x80: Adv Addr clock by 180 deg	*/
-	mtdcr( 0x10, 0x00000080 );
-	mtdcr( 0x11, 0x80000000 );
-
-	/* 0x21: Exit self refresh, set DC_EN	*/
-	mtdcr( 0x10, 0x00000021 );
-	mtdcr( 0x11, 0x28000000 );
-
-	/* 0x81: Write DQS Adv 90 + Fractional DQS Delay	*/
-	mtdcr( 0x10, 0x00000081 );
-	mtdcr( 0x11, 0x80000800 );
-
-	/* MCIF0_SDTR1	*/
-	mtdcr( 0x10, 0x00000085 );
-	mtdcr( 0x11, 0x80201000 );
-
-	/* MCIF0_SDTR2	*/
-	mtdcr( 0x10, 0x00000086 );
-	mtdcr( 0x11, 0x42103242 );
-
-	/* MCIF0_SDTR3	*/
-	mtdcr( 0x10, 0x00000087 );
-	mtdcr( 0x11, 0x0C100D14 );
-
-	/* SET MQ0_B0BAS  base addr 00000000 / 256MB	*/
-	mtdcr( 0x40, 0x0000F800 );
-
-	/* SET MQ0_B1BAS  base addr 10000000 / 256MB	*/
-	mtdcr( 0x41, 0x0400F800 );
-
-	/* SET MQ0_B2BAS  base addr 20000000 / 256MB	*/
-	if (yucca_dimms == 2)
-		mtdcr( 0x42, 0x0800F800 );
-	else if (yucca_dimms == 1)
-		mtdcr( 0x42, 0x00000000 );
-
-	/* SET MQ0_B3BAS  base addr 30000000 / 256MB	*/
-	if (yucca_dimms == 2)
-		mtdcr( 0x43, 0x0C00F800 );
-	else if (yucca_dimms == 1)
-		mtdcr( 0x43, 0x00000000 );
-
-	/* SDRAM_RQDC	*/
-	mtdcr( 0x10, 0x00000070 );
-	mtdcr( 0x11, 0x8000003F );
-
-	/* SDRAM_RDCC	*/
-	mtdcr( 0x10, 0x00000078 );
-	mtdcr( 0x11, 0x80000000 );
-
-	/* SDRAM_RFDC	*/
-	mtdcr( 0x10, 0x00000074 );
-	mtdcr( 0x11, 0x00000220 );
-
-	return (yucca_dimms * 512) << 20;
+	return default_val;
 }
 
-long int initdram (int board_type)
-{
-	long dram_size = 0;
+u32 ddr_clktr(u32 default_val) {
+	/*
+	 * Yucca boards with 440SPe rev. A need a slightly different setup
+	 * for the MCIF0_CLKTR register.
+	 */
+	if (ppc440spe_rev_a())
+		return (SDRAM_CLKTR_CLKP_180_DEG_ADV);
 
-	dram_size = fixed_sdram();
-
-	return dram_size;
+	return default_val;
 }
 
 #if defined(CFG_DRAM_TEST)
@@ -856,7 +638,7 @@ int testdram (void)
  *	certain pre-initialization actions.
  *
  ************************************************************************/
-#if defined(CONFIG_PCI) && defined(CFG_PCI_PRE_INIT)
+#if defined(CONFIG_PCI)
 int pci_pre_init(struct pci_controller * hose )
 {
 	unsigned long strap;
@@ -873,7 +655,7 @@ int pci_pre_init(struct pci_controller * hose )
 
 	return 1;
 }
-#endif	/* defined(CONFIG_PCI) && defined(CFG_PCI_PRE_INIT) */
+#endif	/* defined(CONFIG_PCI) */
 
 /*************************************************************************
  *  pci_target_init
@@ -936,7 +718,6 @@ int is_pci_host(struct pci_controller *hose)
 	/* The yucca board is always configured as host. */
 	return 1;
 }
-
 
 int yucca_pcie_card_present(int port)
 {
@@ -1012,7 +793,56 @@ void yucca_setup_pcie_fpga_rootpoint(int port)
 
 	out_be16((u16 *)FPGA_REG1C, reset_off | in_be16((u16 *)FPGA_REG1C));
 }
+/*
+ * For the given slot, set endpoint mode, send power to the slot,
+ * turn on the green LED and turn off the yellow LED, enable the clock
+ * .In end point mode reset bit is  read only.
+ */
+void yucca_setup_pcie_fpga_endpoint(int port)
+{
+	u16 power, clock, green_led, yellow_led, reset_off, rootpoint, endpoint;
 
+	switch(port) {
+	case 0:
+		rootpoint   = FPGA_REG1C_PE0_ROOTPOINT;
+		endpoint    = 0;
+		power 	    = FPGA_REG1A_PE0_PWRON;
+		green_led   = FPGA_REG1A_PE0_GLED;
+		clock 	    = FPGA_REG1A_PE0_REFCLK_ENABLE;
+		yellow_led  = FPGA_REG1A_PE0_YLED;
+		reset_off   = FPGA_REG1C_PE0_PERST;
+		break;
+	case 1:
+		rootpoint   = 0;
+		endpoint    = FPGA_REG1C_PE1_ENDPOINT;
+		power 	    = FPGA_REG1A_PE1_PWRON;
+		green_led   = FPGA_REG1A_PE1_GLED;
+		clock 	    = FPGA_REG1A_PE1_REFCLK_ENABLE;
+		yellow_led  = FPGA_REG1A_PE1_YLED;
+		reset_off   = FPGA_REG1C_PE1_PERST;
+		break;
+	case 2:
+		rootpoint   = 0;
+		endpoint    = FPGA_REG1C_PE2_ENDPOINT;
+		power 	    = FPGA_REG1A_PE2_PWRON;
+		green_led   = FPGA_REG1A_PE2_GLED;
+		clock 	    = FPGA_REG1A_PE2_REFCLK_ENABLE;
+		yellow_led  = FPGA_REG1A_PE2_YLED;
+		reset_off   = FPGA_REG1C_PE2_PERST;
+		break;
+
+	default:
+		return;
+	}
+
+	out_be16((u16 *)FPGA_REG1A,
+		 ~(power | clock | green_led) &
+		 (yellow_led | in_be16((u16 *)FPGA_REG1A)));
+
+	out_be16((u16 *)FPGA_REG1C,
+		 ~(rootpoint | reset_off) &
+		 (endpoint | in_be16((u16 *)FPGA_REG1C)));
+}
 
 static struct pci_controller pcie_hose[3] = {{0},{0},{0}};
 
@@ -1031,9 +861,13 @@ void pcie_setup_hoses(void)
 		if (!yucca_pcie_card_present(i))
 			continue;
 
+#ifdef PCIE_ENDPOINT
+ 		yucca_setup_pcie_fpga_endpoint(i);
+ 		if (ppc440spe_init_pcie_endport(i)) {
+#else
 		yucca_setup_pcie_fpga_rootpoint(i);
-
 		if (ppc440spe_init_pcie_rootport(i)) {
+#endif
 			printf("PCIE%d: initialization failed\n", i);
 			continue;
 		}
@@ -1053,8 +887,19 @@ void pcie_setup_hoses(void)
 		hose->region_count = 1;
 		pci_register_hose(hose);
 
-		ppc440spe_setup_pcie(hose, i);
+#ifdef PCIE_ENDPOINT
+		ppc440spe_setup_pcie_endpoint(hose, i);
+		/*
+		 * Reson for no scanning is endpoint can not generate
+		 * upstream configuration accesses.
+		 */
+#else
+		ppc440spe_setup_pcie_rootpoint(hose, i);
+		/*
+		 * Config access can only go down stream
+		 */
 		hose->last_busno = pci_hose_scan(hose);
+#endif
 	}
 }
 #endif	/* defined(CONFIG_PCI) */
@@ -1182,43 +1027,4 @@ int onboard_pci_arbiter_selected(int core_pci)
 	else
 #endif
 	return (BOARD_OPTION_NOT_SELECTED);
-}
-
-/*---------------------------------------------------------------------------+
- | ppcMfcpr.
- +---------------------------------------------------------------------------*/
-unsigned long ppcMfcpr(unsigned long cpr_reg)
-{
-	unsigned long msr;
-	unsigned long cpr_cfgaddr_temp;
-	unsigned long cpr_value;
-
-	msr = (mfmsr () & ~(MSR_EE));
-	cpr_cfgaddr_temp =  mfdcr(CPR0_CFGADDR);
-	mtdcr(CPR0_CFGADDR, cpr_reg);
-	cpr_value =  mfdcr(CPR0_CFGDATA);
-	mtdcr(CPR0_CFGADDR, cpr_cfgaddr_temp);
-	mtmsr(msr);
-
-	return (cpr_value);
-}
-
-/*----------------------------------------------------------------------------+
-| Indirect Access of the System DCR's (SDR)
-| ppcMfsdr
-+----------------------------------------------------------------------------*/
-unsigned long ppcMfsdr(unsigned long sdr_reg)
-{
-	unsigned long msr;
-	unsigned long sdr_cfgaddr_temp;
-	unsigned long sdr_value;
-
-	msr = (mfmsr () & ~(MSR_EE));
-	sdr_cfgaddr_temp =  mfdcr(SDR0_CFGADDR);
-	mtdcr(SDR0_CFGADDR, sdr_reg);
-	sdr_value =  mfdcr(SDR0_CFGDATA);
-	mtdcr(SDR0_CFGADDR, sdr_cfgaddr_temp);
-	mtmsr(msr);
-
-	return (sdr_value);
 }

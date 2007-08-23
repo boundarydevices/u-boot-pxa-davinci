@@ -294,15 +294,15 @@ long int initdram (int board_type)
 	 */
 	size8 = try_init (memctl, CFG_PSDMR_8COL, CFG_OR2_8COL,
 			  (uchar *) CFG_SDRAM_BASE);
-	
+
 	size9 = try_init (memctl, CFG_PSDMR_9COL, CFG_OR2_9COL,
 			  (uchar *) CFG_SDRAM_BASE);
-	
+
 	size10 = try_init (memctl, CFG_PSDMR_10COL, CFG_OR2_10COL,
 			  (uchar *) CFG_SDRAM_BASE);
-	
+
 	psize = max(size8,max(size9,size10));
-	
+
 	if (psize == size8) {
 		psize = try_init (memctl, CFG_PSDMR_8COL, CFG_OR2_8COL,
 				  (uchar *) CFG_SDRAM_BASE);
@@ -321,7 +321,7 @@ long int initdram (int board_type)
 	return (psize);
 }
 
-#if (CONFIG_COMMANDS & CFG_CMD_DOC)
+#if defined(CONFIG_CMD_DOC)
 extern void doc_probe (ulong physadr);
 void doc_init (void)
 {

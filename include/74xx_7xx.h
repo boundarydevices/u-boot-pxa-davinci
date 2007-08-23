@@ -34,6 +34,7 @@
  * Exception offsets (PowerPC standard)
  */
 #define EXC_OFF_SYS_RESET        0x0100      /* default system reset offset */
+#define _START_OFFSET		EXC_OFF_SYS_RESET
 
 /*----------------------------------------------------------------
  * l2cr values
@@ -111,6 +112,7 @@ typedef enum __cpu_t {
 	CPU_750CX, CPU_750FX, CPU_750GX,
 	CPU_7400,
 	CPU_7410,
+	CPU_7447A, CPU_7448,
 	CPU_7450, CPU_7455, CPU_7457,
 	CPU_UNKNOWN} cpu_t;
 

@@ -44,16 +44,32 @@
 #define CFG_FLASH_SIZE		0x00400000
 #define CFG_RESET_ADDRESS	0xfff00100
 #define CFG_MONITOR_LEN		(256 << 10)	/* Reserve 256 kB for Monitor */
-#define CFG_MONITOR_BASE        (CFG_SDRAM_BASE + CFG_SDRAM_SIZE - (1024 * 1024))
+#define CFG_MONITOR_BASE	(CFG_SDRAM_BASE + CFG_SDRAM_SIZE - (1024 * 1024))
 #define CFG_MALLOC_LEN		(256 << 10)	/* Reserve 256 kB for malloc */
+#define CFG_MALLOC_BASE		(CFG_MONITOR_BASE - (1024 * 1024))
 
 #define CONFIG_BAUDRATE		115200
 #define CFG_BAUDRATE_TABLE	{ 115200 }
 
-#define CONFIG_COMMANDS		(CONFIG__CMD_DFL)
+/* System Register (GPIO) */
+#define MICROBLAZE_SYSREG_BASE_ADDR 0xFFFFA000
+#define MICROBLAZE_SYSREG_RECONFIGURE (1 << 0)
 
-/* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
-#include <cmd_confdefs.h>
+
+/*
+ * BOOTP options
+ */
+#define CONFIG_BOOTP_BOOTFILESIZE
+#define CONFIG_BOOTP_BOOTPATH
+#define CONFIG_BOOTP_GATEWAY
+#define CONFIG_BOOTP_HOSTNAME
+
+
+/*
+ * Command line configuration.
+ */
+#include <config_cmd_default.h>
+
 
 #define CFG_UART1_BASE		(0xFFFF2000)
 #define CONFIG_SERIAL_BASE	CFG_UART1_BASE

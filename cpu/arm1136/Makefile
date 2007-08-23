@@ -1,4 +1,7 @@
 #
+# (C) Copyright 2000-2006
+# Wolfgang Denk, DENX Software Engineering, wd@denx.de.
+#
 # See file CREDITS for list of people who contributed to this
 # project.
 #
@@ -20,8 +23,6 @@
 
 include $(TOPDIR)/config.mk
 
-CPU_TYPE=xscale
-
 ifeq ($(SOFTWARE_TYPE),WINCE)
 STACKS_VALID = -DCONFIG_STACKS_VALID
 else
@@ -34,7 +35,7 @@ endif
 endif
 ARM_ELF_GCC     ?= $(CROSS_COMPILE)gcc
 
-LIB	= lib$(CPU).a
+LIB	= $(obj)lib$(CPU).a
 
 ifeq ($(INCLUDE_MINIDEBUG),y)
 START	= minidebug.o ministart.o
@@ -42,21 +43,26 @@ else
 START	= start.o ministart.o
 endif
 OBJS	= interrupts.o cpu.o mmc.o iomux.o 
+COBJS	= interrupts.o cpu.o
 
 SOBJS =  xmodemReceive.o
+SRCS	:= $(START:.o=.S) $(SOBJS:.o=.S) $(COBJS:.o=.c)
+OBJS	:= $(addprefix $(obj),$(COBJS) $(SOBJS))
+START	:= $(addprefix $(obj),$(START))
 
-all:	.depend $(START) $(LIB) $(SOBJS)
+all:	$(obj).depend $(START) $(LIB) $(SOBJS)
 
 $(LIB):	$(OBJS) $(SOBJS)
 	$(AR) crv $@ $^
 
-.depend: Makefile $(START:.o=.S) $(OBJS:.o=.c) $(SOBJS:.o=.S)
-	$(CC) -M $(CFLAGS) $(filter-out Makefile,$^) > $@
+# defines $(obj).depend target
+include $(SRCTREE)/rules.mk
 
-sinclude .depend
+sinclude $(obj).depend
 
 minidebug.o : minidebug.S Makefile
 	echo $(START)
 	$(ARM_ELF_GCC) -c $(D_GNUC) -DDISPLAY_TYPE=$(DISPLAY_TYPE) -DPLATFORM_TYPE=$(PLATFORM_TYPE) -DPLATFORM_REV=$(PLATFORM_REV) -DSOFTWARE_TYPE=$(SOFTWARE_TYPE) $(STACKS_VALID) -DCPU_CLOCK=$(CPU_CLOCK) \
 		$(SOFT_FLOAT) -I$(TOPDIR)/include -mtune=$(CPU_TYPE) -mcpu=$(CPU_TYPE) -o $@ $<
 
+#########################################################################

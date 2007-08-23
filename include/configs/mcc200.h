@@ -37,13 +37,8 @@
 
 #define CONFIG_MISC_INIT_R
 
-#define BOOTFLAG_COLD		0x01	/* Normal Power-On: Boot from FLASH 	*/
-#define BOOTFLAG_WARM		0x02	/* Software reboot	     		*/
-
-#define CFG_CACHELINE_SIZE	32	/* For MPC5xxx CPUs 			*/
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
-#  define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value 	*/
-#endif
+#define BOOTFLAG_COLD		0x01	/* Normal Power-On: Boot from FLASH	*/
+#define BOOTFLAG_WARM		0x02	/* Software reboot			*/
 
 /*
  * Serial console configuration
@@ -51,16 +46,36 @@
  *  To select console on the one of 8 external UARTs,
  * define CONFIG_QUART_CONSOLE as 1, 2, 3, or 4 for the first Quad UART,
  * or as 5, 6, 7, or 8 for the second Quad UART.
+ * COM11, COM12, COM13, COM14 are located on the second Quad UART.
  *
  *  CONFIG_PSC_CONSOLE must be undefined in this case.
  */
-/* #define CONFIG_QUART_CONSOLE	1	*/ /* console is on UART1 of QUART1	*/
+#if !defined(CONFIG_PRS200)
+/* MCC200 configuration: */
+#ifdef CONFIG_CONSOLE_COM12
+#define CONFIG_QUART_CONSOLE	6	/* console is on UARTF of QUART2	*/
+#else
+#define CONFIG_QUART_CONSOLE	8	/* console is on UARTH of QUART2	*/
+#endif
+#else
+/* PRS200 configuration: */
+#undef CONFIG_QUART_CONSOLE
+#endif /* CONFIG_PRS200 */
 /*
  *  To select console on PSC1, define CONFIG_PSC_CONSOLE as 1
  * and undefine CONFIG_QUART_CONSOLE.
  */
-#define CONFIG_PSC_CONSOLE	1	/* console is on PSC1			*/
-#if defined(CONFIG_QUART_CONSOLE) && defined(CONFIG_PSC_CONSOLE)
+#if !defined(CONFIG_PRS200)
+/* MCC200 configuration: */
+#define CONFIG_SERIAL_MULTI	1
+#define CONFIG_PSC_CONSOLE	1	/* PSC1 may be COM */
+#define CONFIG_PSC_CONSOLE2	2	/* PSC2 is PSoC */
+#else
+/* PRS200 configuration: */
+#define CONFIG_PSC_CONSOLE	1	/* console is on PSC1		*/
+#endif
+#if defined(CONFIG_QUART_CONSOLE) && defined(CONFIG_PSC_CONSOLE) && \
+	!defined(CONFIG_SERIAL_MULTI)
 #error "Select only one console device!"
 #endif
 #define CONFIG_BAUDRATE		115200
@@ -72,25 +87,37 @@
 
 /* USB */
 #define CONFIG_USB_OHCI
-#define ADD_USB_CMD             CFG_CMD_USB | CFG_CMD_FAT
 #define CONFIG_USB_STORAGE
+/* automatic software updates (see board/mcc200/auto_update.c) */
+#define CONFIG_AUTO_UPDATE 1
+
 
 /*
- * Supported commands
+ * BOOTP options
  */
-#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL	| \
-				ADD_USB_CMD	| \
-				CFG_CMD_BEDBUG	| \
-				CFG_CMD_FAT	| \
-				CFG_CMD_I2C)
+#define CONFIG_BOOTP_BOOTFILESIZE
+#define CONFIG_BOOTP_BOOTPATH
+#define CONFIG_BOOTP_GATEWAY
+#define CONFIG_BOOTP_HOSTNAME
 
-/* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
-#include <cmd_confdefs.h>
+
+/*
+ * Command line configuration.
+ */
+#include <config_cmd_default.h>
+
+#define CONFIG_CMD_BEDBUG
+#define CONFIG_CMD_FAT
+#define CONFIG_CMD_I2C
+#define CONFIG_CMD_USB
+
+#undef	CONFIG_CMD_NET
+
 
 /*
  * Autobooting
  */
-#define CONFIG_BOOTDELAY	5	/* autoboot after 5 seconds */
+#define CONFIG_BOOTDELAY	1	/* autoboot after 1 second */
 
 #define CONFIG_PREBOOT	"echo;"	\
 	"echo Type \"run flash_nfs\" to mount root filesystem over NFS;" \
@@ -98,33 +125,57 @@
 
 #undef	CONFIG_BOOTARGS
 
-#define	CONFIG_EXTRA_ENV_SETTINGS					\
+#define XMK_STR(x)		#x
+#define MK_STR(x)		XMK_STR(x)
+
+#ifdef CONFIG_PRS200
+# define CFG__BOARDNAME		"prs200"
+# define CFG__LINUX_CONSOLE	"ttyS0"
+#else
+# define CFG__BOARDNAME		"mcc200"
+# define CFG__LINUX_CONSOLE	"ttyEU5"
+#endif
+
+/* Network */
+#define CONFIG_ETHADDR	00:17:17:ff:00:00
+#define CONFIG_IPADDR	10.76.9.29
+#define CONFIG_SERVERIP	10.76.9.1
+
+#include <version.h> /* For U-Boot version */
+
+#define CONFIG_EXTRA_ENV_SETTINGS					\
+	"ubootver=" U_BOOT_VERSION "\0"					\
 	"netdev=eth0\0"							\
-	"hostname=mcc200\0"						\
+	"hostname=" CFG__BOARDNAME "\0"					\
 	"nfsargs=setenv bootargs root=/dev/nfs rw "			\
 		"nfsroot=${serverip}:${rootpath}\0"			\
-	"ramargs=setenv bootargs root=/dev/ram rw\0"			\
+	"ramargs=setenv bootargs root=/dev/mtdblock2 "			\
+		"rootfstype=cramfs\0"					\
 	"addip=setenv bootargs ${bootargs} "				\
 		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}"	\
 		":${hostname}:${netdev}:off panic=1\0"			\
-	"flash_nfs=run nfsargs addip;"					\
+	"addcons=setenv bootargs ${bootargs} "				\
+		"console=${console},${baudrate} "		\
+		"ubootver=${ubootver} board=${board}\0"	\
+	"flash_nfs=run nfsargs addip addcons;"				\
 		"bootm ${kernel_addr}\0"				\
-	"flash_self=run ramargs addip;"					\
+	"flash_self=run ramargs addip addcons;"				\
 		"bootm ${kernel_addr} ${ramdisk_addr}\0"		\
-	"net_nfs=tftp 200000 ${bootfile};run nfsargs addip;bootm\0"	\
+	"net_nfs=tftp 200000 ${bootfile};"				\
+		"run nfsargs addip addcons;bootm\0"			\
+	"console=" CFG__LINUX_CONSOLE "\0"				\
 	"rootpath=/opt/eldk/ppc_6xx\0"					\
-	"bootfile=/tftpboot/mcc200/uImage\0"				\
-	"baudrate=115200\0"						\
-	"load=tftp 200000 /tftpboot/mcc200/u-boot.bin\0"		\
-	"update=protect off FFF00000 +${filesize};"			\
-		"era FFF00000 +${filesize};"				\
-		"cp.b 200000 FFF00000 ${filesize}\0"		        \
-	"serverip=192.168.1.1\0"					\
-	"ipaddr=192.168.133.144\0"					\
-	"netmask=255.255.0.0\0"						\
+	"bootfile=/tftpboot/" CFG__BOARDNAME "/uImage\0"		\
+	"load=tftp 200000 /tftpboot/" CFG__BOARDNAME "/u-boot.bin\0"	\
+	"text_base=" MK_STR(TEXT_BASE) "\0"				\
+	"kernel_addr=0xFC0C0000\0"					\
+	"update=protect off ${text_base} +${filesize};"			\
+		"era ${text_base} +${filesize};"			\
+		"cp.b 200000 ${text_base} ${filesize}\0"		\
 	"unlock=yes\0"							\
-	"ethaddr=00:02:44:7D:73:3B\0"					\
 	""
+#undef MK_STR
+#undef XMK_STR
 
 #define CONFIG_BOOTCOMMAND	"run flash_self"
 
@@ -134,13 +185,13 @@
 /*
  * IPB Bus clocking configuration.
  */
-#define CFG_IPBSPEED_133   		/* define for 133MHz speed */
+#define CFG_IPBCLK_EQUALS_XLBCLK		/* define for 133MHz speed */
 
 /*
  * I2C configuration
  */
 #define CONFIG_HARD_I2C		1	/* I2C with hardware support */
-#define CFG_I2C_MODULE		1	/* Select I2C module #1 or #2 */
+#define CFG_I2C_MODULE		2	/* Select I2C module #1 or #2 */
 
 #define CFG_I2C_SPEED		100000 /* 100 kHz */
 #define CFG_I2C_SLAVE		0x7F
@@ -150,9 +201,9 @@
  * TEXT base always at 0xFFF00000
  * ENV_ADDR always at  0xFFF40000
  * FLASH_BASE at 0xFC000000 for 64 MB (only 32MB are supported, not enough addr lines!!!)
- *               0xFE000000 for 32 MB
- *               0xFF000000 for 16 MB
- *               0xFF800000 for  8 MB
+ *		 0xFE000000 for 32 MB
+ *		 0xFF000000 for 16 MB
+ *		 0xFF800000 for  8 MB
  */
 #define CFG_FLASH_BASE		0xfc000000
 #define CFG_FLASH_SIZE		0x04000000
@@ -174,9 +225,9 @@
 #define CFG_FLASH_EMPTY_INFO		/* print 'E' for empty sector on flinfo */
 #define CFG_FLASH_QUIET_TEST	1	/* don't warn upon unknown flash	*/
 
-#define CFG_ENV_IS_IN_FLASH     1	/* use FLASH for environment vars	*/
+#define CFG_ENV_IS_IN_FLASH	1	/* use FLASH for environment vars	*/
 
-#define CFG_ENV_SECT_SIZE	0x40000 	/* size of one complete sector	*/
+#define CFG_ENV_SECT_SIZE	0x40000	/* size of one complete sector	*/
 #define CFG_ENV_ADDR		(CFG_MONITOR_BASE + CFG_MONITOR_LEN)
 #define	CFG_ENV_SIZE		0x2000	/* Total Size of Environment Sector	*/
 
@@ -206,7 +257,7 @@
 #define CFG_GBL_DATA_OFFSET	(CFG_INIT_RAM_END - CFG_GBL_DATA_SIZE)
 #define CFG_INIT_SP_OFFSET	CFG_GBL_DATA_OFFSET
 
-#define CFG_MONITOR_BASE    TEXT_BASE
+#define CFG_MONITOR_BASE	TEXT_BASE
 #if (CFG_MONITOR_BASE < CFG_FLASH_BASE)
 #   define CFG_RAMBOOT		1
 #endif
@@ -218,7 +269,7 @@
 /*
  * Ethernet configuration
  */
-#define CONFIG_MPC5xxx_FEC	1
+/*#define CONFIG_MPC5xxx_FEC	1*/
 /*
  * Define CONFIG_FEC_10MBIT to force FEC at 10Mb
  */
@@ -226,32 +277,56 @@
 #define CONFIG_PHY_ADDR		1
 
 /*
+ * LCD Splash Screen
+ */
+#if !defined(CONFIG_PRS200)
+#define CONFIG_LCD		1
+#define CONFIG_PROGRESSBAR 1
+#endif
+
+#if defined(CONFIG_LCD)
+#define CONFIG_SPLASH_SCREEN	1
+#define CFG_CONSOLE_IS_IN_ENV	1
+#define LCD_BPP			LCD_MONOCHROME
+#endif
+
+/*
  * GPIO configuration
  */
 /* 0x10000004 = 32MB SDRAM */
 /* 0x90000004 = 64MB SDRAM */
+#if defined(CONFIG_LCD)
+/* set PSC2 in UART mode */
+#define CFG_GPS_PORT_CONFIG	0x00000044
+#else
 #define CFG_GPS_PORT_CONFIG	0x00000004
+#endif
 
 /*
  * Miscellaneous configurable options
  */
-#define CFG_LONGHELP			/* undef to save memory	    */
-#define CFG_PROMPT		"=> "	/* Monitor Command Prompt   */
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
-#define CFG_CBSIZE		1024	/* Console I/O Buffer Size  */
+#define CFG_LONGHELP			/* undef to save memory		*/
+#define CFG_PROMPT		"=> "	/* Monitor Command Prompt	*/
+#if defined(CONFIG_CMD_KGDB)
+#define CFG_CBSIZE		1024	/* Console I/O Buffer Size	*/
 #else
-#define CFG_CBSIZE		256	/* Console I/O Buffer Size  */
+#define CFG_CBSIZE		256	/* Console I/O Buffer Size	*/
 #endif
-#define CFG_PBSIZE (CFG_CBSIZE+sizeof(CFG_PROMPT)+16)	/* Print Buffer Size */
+#define CFG_PBSIZE (CFG_CBSIZE+sizeof(CFG_PROMPT)+16)	/* Print Buffer Size	*/
 #define CFG_MAXARGS		16		/* max number of command args	*/
 #define CFG_BARGSIZE		CFG_CBSIZE	/* Boot Argument Buffer Size	*/
 
-#define CFG_MEMTEST_START	0x00100000	/* memtest works on */
+#define CFG_MEMTEST_START	0x00100000	/* memtest works on	*/
 #define CFG_MEMTEST_END		0x00f00000	/* 1 ... 15 MB in DRAM	*/
 
 #define CFG_LOAD_ADDR		0x100000	/* default load address */
 
 #define CFG_HZ			1000	/* decrementer freq: 1 ms ticks */
+
+#define CFG_CACHELINE_SIZE	32	/* For MPC5xxx CPUs			*/
+#if defined(CONFIG_CMD_KGDB)
+#  define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/
+#endif
 
 /*
  * Various low-level settings
@@ -274,6 +349,13 @@
 #define CFG_CS1_START		0x80010000
 #define CFG_CS1_SIZE		0x00001000
 #define CFG_CS1_CFG		0x1d300
+
+/* Leica - build revision resistors */
+/*
+#define CFG_CS3_START		0x80020000
+#define CFG_CS3_SIZE		0x00000004
+#define CFG_CS3_CFG		0x1d300
+*/
 
 /*
  *  Select one of quarts as a default
@@ -309,7 +391,7 @@
  * One of four SC16C554 UARTs is selected with
  * A3-A4 (DA5-DA6) lines.
  */
-#if (CONFIG_QUART_CONSOLE > 0) && (CONFIG_QUART_CONSOLE < 5)
+#if (CONFIG_QUART_CONSOLE > 0) && (CONFIG_QUART_CONSOLE < 5) && !defined(CONFIG_PRS200)
 #define CFG_NS16550_COM1	(CFG_CS2_START | (CONFIG_QUART_CONSOLE - 1)<<5)
 #elif (CONFIG_QUART_CONSOLE > 4) && (CONFIG_QUART_CONSOLE < 9)
 #define CFG_NS16550_COM1	(CFG_CS1_START | (CONFIG_QUART_CONSOLE - 5)<<5)
@@ -329,5 +411,9 @@
  */
 #define CONFIG_USB_CLOCK	0x0001BBBB
 #define CONFIG_USB_CONFIG	0x00005000
+
+#define CONFIG_AUTOBOOT_KEYED		/* use key strings to stop autoboot	*/
+#define CONFIG_AUTOBOOT_STOP_STR	"432"
+#define CONFIG_SILENT_CONSOLE	1
 
 #endif /* __CONFIG_H */

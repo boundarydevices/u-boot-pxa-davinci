@@ -7,7 +7,7 @@ neon_clock="400"
 neonb_clock="400"
 
 softwareChoices="LINUX WINCE"
-targets="halogen1 halogen2 argon bd2003 neon neonb"
+targets="neon neonb halogen1 halogen2 argon bd2003"
 
 for SOFTWARE in $softwareChoices ; do
 	for suff in $targets ; do 
@@ -20,10 +20,11 @@ for SOFTWARE in $softwareChoices ; do
 			fi
 		fi
 		eval clock=\$$suff"_clock"
-		echo -e "DA640X240\n$REV$SOFTWARE\ny\n$clock\n" | make $PLATFORM"_config" ;
-		make version
-		make u-boot.bin ;
+		echo -e "hitachi_hvga\n$REV$SOFTWARE\ny\n$clock\n" > $PLATFORM"_config.in" ; 
+                cat $PLATFORM"_config.in" | make $PLATFORM"_config" ;
+		make all ;
 		mv u-boot.bin u-boot-$suff-$SOFTWARE.bin2
+                rm -f $PLATFORM"_config.in"
 	done
 done
 

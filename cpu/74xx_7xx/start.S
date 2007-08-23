@@ -44,7 +44,8 @@
 
 #if !defined(CONFIG_DB64360) && \
     !defined(CONFIG_DB64460) && \
-    !defined(CONFIG_CPCI750)
+    !defined(CONFIG_CPCI750) && \
+    !defined(CONFIG_P3Mx)
 #include <galileo/gt64260R.h>
 #endif
 
@@ -124,7 +125,7 @@ _start_of_vectors:
 /* Alignment exception. */
 	. = 0x600
 Alignment:
-	EXCEPTION_PROLOG
+	EXCEPTION_PROLOG(SRR0, SRR1)
 	mfspr	r4,DAR
 	stw	r4,_DAR(r21)
 	mfspr	r5,DSISR
@@ -142,7 +143,7 @@ Alignment:
 /* Program check exception */
 	. = 0x700
 ProgramCheck:
-	EXCEPTION_PROLOG
+	EXCEPTION_PROLOG(SRR0, SRR1)
 	addi	r3,r1,STACK_FRAME_OVERHEAD
 	li	r20,MSR_KERNEL
 	rlwimi	r20,r23,0,16,16		/* copy EE bit from saved MSR */
@@ -270,7 +271,7 @@ in_flash:
 	 * gt-regs BAT can be reused after board_init_f calls
 	 * board_early_init_f (EVB only).
 	 */
-#if !defined(CONFIG_BAB7xx) && !defined(CONFIG_ELPPC)
+#if !defined(CONFIG_BAB7xx) && !defined(CONFIG_ELPPC) && !defined(CONFIG_P3Mx)
 	/* enable address translation */
 	bl	enable_addr_trans
 	sync
@@ -757,7 +758,8 @@ in_ram:
     defined(CONFIG_DB64360)	 || \
     defined(CONFIG_DB64460)      || \
     defined(CONFIG_CPCI750)	|| \
-    defined(CONFIG_PPMC7XX)
+    defined(CONFIG_PPMC7XX)     || \
+    defined(CONFIG_P3Mx)
 	mr	r4, r9		/* Use RAM copy of the global data */
 #endif
 	bl	after_reloc

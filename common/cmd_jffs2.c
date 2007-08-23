@@ -94,18 +94,18 @@
 #include <linux/list.h>
 #include <linux/ctype.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_JFFS2)
+#if defined(CONFIG_CMD_JFFS2)
 
 #include <cramfs/cramfs_fs.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_NAND)
+#if defined(CONFIG_CMD_NAND)
 #ifdef CFG_NAND_LEGACY
 #include <linux/mtd/nand_legacy.h>
 #else /* !CFG_NAND_LEGACY */
 #include <linux/mtd/nand.h>
 #include <nand.h>
 #endif /* !CFG_NAND_LEGACY */
-#endif /* (CONFIG_COMMANDS & CFG_CMD_NAND) */
+#endif
 /* enable/disable debugging messages */
 #define	DEBUG_JFFS
 #undef	DEBUG_JFFS
@@ -321,7 +321,7 @@ static void current_save(void)
  */
 static int part_validate_nor(struct mtdids *id, struct part_info *part)
 {
-#if (CONFIG_COMMANDS & CFG_CMD_FLASH)
+#if defined(CONFIG_CMD_FLASH)
 	/* info for FLASH chips */
 	extern flash_info_t flash_info[];
 	flash_info_t *flash;
@@ -370,7 +370,7 @@ static int part_validate_nor(struct mtdids *id, struct part_info *part)
  */
 static int part_validate_nand(struct mtdids *id, struct part_info *part)
 {
-#if defined(CONFIG_JFFS2_NAND) && (CONFIG_COMMANDS & CFG_CMD_NAND)
+#if defined(CONFIG_JFFS2_NAND) && defined(CONFIG_CMD_NAND)
 	/* info for NAND chips */
 	nand_info_t *nand;
 
@@ -719,7 +719,7 @@ static int part_parse(const char *const partdef, const char **ret, struct part_i
 static int device_validate(u8 type, u8 num, u32 *size)
 {
 	if (type == MTD_DEV_TYPE_NOR) {
-#if (CONFIG_COMMANDS & CFG_CMD_FLASH)
+#if defined(CONFIG_CMD_FLASH)
 		if (num < CFG_MAX_FLASH_BANKS) {
 			extern flash_info_t flash_info[];
 			*size = flash_info[num].size;
@@ -733,7 +733,7 @@ static int device_validate(u8 type, u8 num, u32 *size)
 		printf("support for FLASH devices not present\n");
 #endif
 	} else if (type == MTD_DEV_TYPE_NAND) {
-#if defined(CONFIG_JFFS2_NAND) && (CONFIG_COMMANDS & CFG_CMD_NAND)
+#if defined(CONFIG_JFFS2_NAND) && defined(CONFIG_CMD_NAND)
 		if (num < CFG_MAX_NAND_DEVICE) {
 #ifndef CFG_NAND_LEGACY
 			*size = nand_info[num].size;
@@ -1268,7 +1268,7 @@ static void list_partitions(void)
 		part_num = 0;
 		list_for_each(pentry, &dev->parts) {
 			part = list_entry(pentry, struct part_info, link);
-			printf(" %d: %-22s\t0x%08x\t0x%08x\t%d\n",
+			printf("%2d: %-20s0x%08x\t0x%08x\t%d\n",
 					part_num, part->name, part->size,
 					part->offset, part->mask_flags);
 
@@ -1300,7 +1300,7 @@ static void list_partitions(void)
  * Given partition identifier in form of <dev_type><dev_num>,<part_num> find
  * corresponding device and verify partition number.
  *
- * @param id string describing device and partition
+ * @param id string describing device and partition or partition name
  * @param dev pointer to the requested device (output)
  * @param part_num verified partition number (output)
  * @param part pointer to requested partition (output)
@@ -1309,10 +1309,22 @@ static void list_partitions(void)
 int find_dev_and_part(const char *id, struct mtd_device **dev,
 		u8 *part_num, struct part_info **part)
 {
+	struct list_head *dentry, *pentry;
 	u8 type, dnum, pnum;
 	const char *p;
 
 	DEBUGF("--- find_dev_and_part ---\nid = %s\n", id);
+
+	list_for_each(dentry, &devices) {
+		*part_num = 0;
+		*dev = list_entry(dentry, struct mtd_device, link);
+		list_for_each(pentry, &(*dev)->parts) {
+			*part = list_entry(pentry, struct part_info, link);
+			if (strcmp((*part)->name, id) == 0)
+				return 0;
+			(*part_num)++;
+		}
+	}
 
 	p = id;
 	*dev = NULL;
@@ -2180,4 +2192,4 @@ U_BOOT_CMD(
 
 /***************************************************/
 
-#endif /* CFG_CMD_JFFS2 */
+#endif

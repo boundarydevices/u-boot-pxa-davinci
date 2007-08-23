@@ -24,6 +24,7 @@
 #include <common.h>
 #include <command.h>
 #include <ide.h>
+#include <part.h>
 
 #undef	PART_DEBUG
 
@@ -33,9 +34,61 @@
 #define PRINTF(fmt,args...)
 #endif
 
-#if ((CONFIG_COMMANDS & CFG_CMD_IDE)	|| \
-     (CONFIG_COMMANDS & CFG_CMD_SCSI)	|| \
-     (CONFIG_COMMANDS & CFG_CMD_USB)	|| \
+#if (defined(CONFIG_CMD_IDE) || \
+     defined(CONFIG_CMD_SCSI) || \
+     defined(CONFIG_CMD_USB) || \
+     defined(CONFIG_MMC) || \
+     defined(CONFIG_SYSTEMACE) )
+
+struct block_drvr {
+	char *name;
+	block_dev_desc_t* (*get_dev)(int dev);
+};
+
+static const struct block_drvr block_drvr[] = {
+#if defined(CONFIG_CMD_IDE)
+	{ .name = "ide", .get_dev = ide_get_dev, },
+#endif
+#if defined(CONFIG_CMD_SCSI)
+	{ .name = "scsi", .get_dev = scsi_get_dev, },
+#endif
+#if defined(CONFIG_CMD_USB) && defined(CONFIG_USB_STORAGE)
+	{ .name = "usb", .get_dev = usb_stor_get_dev, },
+#endif
+#if defined(CONFIG_MMC)
+	{ .name = "mmc", .get_dev = mmc_get_dev, },
+#endif
+#if defined(CONFIG_SYSTEMACE)
+	{ .name = "ace", .get_dev = systemace_get_dev, },
+#endif
+	{ },
+};
+
+DECLARE_GLOBAL_DATA_PTR;
+
+block_dev_desc_t *get_dev(char* ifname, int dev)
+{
+	const struct block_drvr *drvr = block_drvr;
+	block_dev_desc_t* (*reloc_get_dev)(int dev);
+
+	while (drvr->name) {
+		reloc_get_dev = drvr->get_dev + gd->reloc_off;
+		if (strncmp(ifname, drvr->name, strlen(drvr->name)) == 0)
+			return reloc_get_dev(dev);
+		drvr++;
+	}
+	return NULL;
+}
+#else
+block_dev_desc_t *get_dev(char* ifname, int dev)
+{
+	return NULL;
+}
+#endif
+
+#if (defined(CONFIG_CMD_IDE) || \
+     defined(CONFIG_CMD_SCSI) || \
+     defined(CONFIG_CMD_USB) || \
      defined(CONFIG_MMC) || \
      defined(CONFIG_SYSTEMACE) )
 
@@ -121,11 +174,12 @@ void dev_print (block_dev_desc_t *dev_desc)
 		puts ("            Capacity: not available\n");
 	}
 }
-#endif	/* CFG_CMD_IDE || CFG_CMD_SCSI || CFG_CMD_USB || CONFIG_MMC */
+#endif
 
-#if ((CONFIG_COMMANDS & CFG_CMD_IDE)	|| \
-     (CONFIG_COMMANDS & CFG_CMD_SCSI)	|| \
-     (CONFIG_COMMANDS & CFG_CMD_USB)	|| \
+#if (defined(CONFIG_CMD_IDE) || \
+     defined(CONFIG_CMD_SCSI) || \
+     defined(CONFIG_CMD_USB) || \
+     defined(CONFIG_MMC)		|| \
      defined(CONFIG_SYSTEMACE)          )
 
 #if defined(CONFIG_MAC_PARTITION) || \
@@ -165,9 +219,10 @@ void init_part (block_dev_desc_t * dev_desc)
 }
 
 
-int get_partition_info (block_dev_desc_t *dev_desc, int part, disk_partition_t *info)
+int get_partition_info (block_dev_desc_t *dev_desc, int part
+					, disk_partition_t *info)
 {
-		switch (dev_desc->part_type) {
+	switch (dev_desc->part_type) {
 #ifdef CONFIG_MAC_PARTITION
 	case PART_TYPE_MAC:
 		if (get_partition_info_mac(dev_desc,part,info) == 0) {
@@ -271,7 +326,8 @@ void print_part (block_dev_desc_t * dev_desc)
 
 
 #else	/* neither MAC nor DOS nor ISO partition configured */
-# error neither CONFIG_MAC_PARTITION nor CONFIG_DOS_PARTITION nor CONFIG_ISO_PARTITION configured!
+# error neither CONFIG_MAC_PARTITION nor CONFIG_DOS_PARTITION
+# error nor CONFIG_ISO_PARTITION configured!
 #endif
 
-#endif	/* (CONFIG_COMMANDS & CFG_CMD_IDE) || CONFIG_COMMANDS & CFG_CMD_SCSI) */
+#endif

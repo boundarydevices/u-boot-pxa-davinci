@@ -37,19 +37,15 @@
 #define CONFIG_TQM5200		1	/* ... on TQM5200 module		*/
 #undef CONFIG_TQM5200_REV100		/*  define for revision 100 modules	*/
 
-#ifndef CONFIG_CAM5200			/* On a Cameron board or ...		*/
+/* On a Cameron or on a FO300 board or ...				*/
+#if !defined(CONFIG_CAM5200) && !defined(CONFIG_FO300)
 #define CONFIG_STK52XX		1	/* ... on a STK52XX board		*/
 #endif
 
 #define CFG_MPC5XXX_CLKIN	33000000 /* ... running at 33.000000MHz		*/
 
-#define BOOTFLAG_COLD		0x01	/* Normal Power-On: Boot from FLASH 	*/
+#define BOOTFLAG_COLD		0x01	/* Normal Power-On: Boot from FLASH	*/
 #define BOOTFLAG_WARM		0x02	/* Software reboot			*/
-
-#define CFG_CACHELINE_SIZE	32	/* For MPC5xxx CPUs			*/
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
-#  define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value	*/
-#endif
 
 /*
  * Serial console configuration
@@ -57,6 +53,20 @@
 #define CONFIG_PSC_CONSOLE	1	/* console is on PSC1			*/
 #define CONFIG_BAUDRATE		115200	/* ... at 115200 bps			*/
 #define CFG_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200, 230400 }
+
+#ifdef CONFIG_FO300
+#define CFG_DEVICE_NULLDEV		1	/* enable null device */
+#define CONFIG_SILENT_CONSOLE		1	/* enable silent startup */
+#define CONFIG_BOARD_EARLY_INIT_F	1	/* used to detect S1 switch position */
+#define CONFIG_USB_BIN_FIXUP		1	/* for a buggy USB device */
+#if 0
+#define FO300_SILENT_CONSOLE_WHEN_S1_CLOSED	1	/* silent console on PSC1 when S1 */
+							/* switch is closed */
+#endif
+
+#undef FO300_SILENT_CONSOLE_WHEN_S1_CLOSED		/* silent console on PSC1 when S1 */
+							/* switch is open */
+#endif	/* CONFIG_FO300 */
 
 #ifdef CONFIG_STK52XX
 #define CONFIG_PS2KBD			/* AT-PS/2 Keyboard		*/
@@ -90,12 +100,6 @@
 #define CONFIG_NS8382X		1
 #endif	/* CONFIG_STK52XX */
 
-#ifdef CONFIG_PCI
-#define ADD_PCI_CMD		CFG_CMD_PCI
-#else
-#define ADD_PCI_CMD		0
-#endif
-
 /*
  * Video console
  */
@@ -105,18 +109,19 @@
 #define CONFIG_VIDEO_SM501_32BPP
 #define CONFIG_CFB_CONSOLE
 #define CONFIG_VIDEO_LOGO
-#define CONFIG_VGA_AS_SINGLE_DEVICE
+
+#ifndef CONFIG_FO300
 #define CONFIG_CONSOLE_EXTRA_INFO
+#else
+#define CONFIG_VIDEO_BMP_LOGO
+#endif
+
+#define CONFIG_VGA_AS_SINGLE_DEVICE
 #define CONFIG_VIDEO_SW_CURSOR
 #define CONFIG_SPLASH_SCREEN
 #define CFG_CONSOLE_IS_IN_ENV
-#endif
+#endif /* #ifndef CONFIG_TQM5200S */
 
-#ifdef CONFIG_VIDEO
-#define ADD_BMP_CMD		CFG_CMD_BMP
-#else
-#define ADD_BMP_CMD		0
-#endif
 
 /* Partitions */
 #define CONFIG_MAC_PARTITION
@@ -124,12 +129,18 @@
 #define CONFIG_ISO_PARTITION
 
 /* USB */
-#ifdef CONFIG_STK52XX
-#define CONFIG_USB_OHCI
-#define ADD_USB_CMD		CFG_CMD_USB | CFG_CMD_FAT
+#if defined(CONFIG_STK52XX) || defined(CONFIG_FO300)
+#define CONFIG_USB_OHCI_NEW
 #define CONFIG_USB_STORAGE
-#else
-#define ADD_USB_CMD		0
+#define CONFIG_CMD_FAT
+#define CONFIG_CMD_USB
+
+#undef CFG_USB_OHCI_BOARD_INIT
+#define CFG_USB_OHCI_CPU_INIT
+#define CFG_USB_OHCI_REGS_BASE	MPC5XXX_USB
+#define CFG_USB_OHCI_SLOT_NAME	"mpc5200"
+#define CFG_USB_OHCI_MAX_ROOT_PORTS	15
+
 #endif
 
 #ifndef CONFIG_CAM5200
@@ -140,44 +151,61 @@
 #endif
 
 #ifdef CONFIG_POST
-#define CFG_CMD_POST_DIAG CFG_CMD_DIAG
 /* preserve space for the post_word at end of on-chip SRAM */
 #define MPC5XXX_SRAM_POST_SIZE MPC5XXX_SRAM_SIZE-4
-#else
-#define CFG_CMD_POST_DIAG 0
 #endif
 
-/* IDE */
-#if defined (CONFIG_MINIFAP) || defined (CONFIG_STK52XX)
-#define ADD_IDE_CMD		(CFG_CMD_IDE | CFG_CMD_FAT | CFG_CMD_EXT2)
-#else
-#define ADD_IDE_CMD		0
-#endif
 
 /*
- * Supported commands
+ * BOOTP options
  */
-#define CONFIG_COMMANDS	       (CONFIG_CMD_DFL	| \
-				ADD_BMP_CMD	| \
-				ADD_IDE_CMD	| \
-				ADD_PCI_CMD	| \
-				ADD_USB_CMD	| \
-				CFG_CMD_ASKENV	| \
-				CFG_CMD_DATE	| \
-				CFG_CMD_DHCP	| \
-				CFG_CMD_EEPROM	| \
-				CFG_CMD_I2C	| \
-				CFG_CMD_JFFS2	| \
-				CFG_CMD_MII	| \
-				CFG_CMD_NFS	| \
-				CFG_CMD_PING	| \
-				CFG_CMD_POST_DIAG | \
-				CFG_CMD_REGINFO | \
-				CFG_CMD_SNTP	| \
-				CFG_CMD_BSP)
+#define CONFIG_BOOTP_BOOTFILESIZE
+#define CONFIG_BOOTP_BOOTPATH
+#define CONFIG_BOOTP_GATEWAY
+#define CONFIG_BOOTP_HOSTNAME
 
-/* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
-#include <cmd_confdefs.h>
+
+/*
+ * Command line configuration.
+ */
+#include <config_cmd_default.h>
+
+#define CONFIG_CMD_ASKENV
+#define CONFIG_CMD_DATE
+#define CONFIG_CMD_DHCP
+#define CONFIG_CMD_EEPROM
+#define CONFIG_CMD_I2C
+#define CONFIG_CMD_JFFS2
+#define CONFIG_CMD_MII
+#define CONFIG_CMD_NFS
+#define CONFIG_CMD_PING
+#define CONFIG_CMD_REGINFO
+#define CONFIG_CMD_SNTP
+#define CONFIG_CMD_BSP
+
+#ifdef CONFIG_VIDEO
+    #define CONFIG_CMD_BMP
+#endif
+
+#ifdef CONFIG_PCI
+#define CONFIG_CMD_CMD_PCI
+#endif
+
+#if defined(CONFIG_MINIFAP) || defined(CONFIG_STK52XX) || defined(CONFIG_FO300)
+    #define CONFIG_CMD_IDE
+    #define CONFIG_CMD_FAT
+    #define CONFIG_CMD_EXT2
+#endif
+
+#if defined(CONFIG_STK52XX) || defined(CONFIG_FO300)
+    #define CONFIG_CFG_USB
+    #define CONFIG_CFG_FAT
+#endif
+
+#ifdef CONFIG_POST
+    #define CONFIG_CMD_DIAG
+#endif
+
 
 #define	CONFIG_TIMESTAMP		/* display image timestamps */
 
@@ -196,39 +224,38 @@
 
 #undef	CONFIG_BOOTARGS
 
-#ifdef CONFIG_STK52XX
-# if defined(CONFIG_TQM5200_B)
-#  if defined(CFG_LOWBOOT)
-#   define ENV_UPDT							\
-	"update=protect off FC000000 FC07FFFF;"				\
-		"erase FC000000 FC07FFFF;"				\
-		"cp.b 200000 FC000000 ${filesize};"			\
-		"protect on FC000000 FC07FFFF\0"
-#  else	/* highboot */
-#   define ENV_UPDT							\
-	"update=protect off FFF00000 FFF7FFFF;"				\
-		"erase FFF00000 FFF7FFFF;"				\
+#if defined(CONFIG_TQM5200_B) && !defined(CFG_LOWBOOT)
+# define ENV_UPDT							\
+	"update=protect off FFF00000 +${filesize};"			\
+		"erase FFF00000 +${filesize};"				\
 		"cp.b 200000 FFF00000 ${filesize};"			\
-		"protect on FFF00000 FFF7FFFF\0"
-#  endif /* CFG_LOWBOOT */
-# else	/* !CONFIG_TQM5200_B */
-#  define ENV_UPDT							\
-	"update=protect off FC000000 FC05FFFF;"				\
-		"erase FC000000 FC05FFFF;"				\
-		"cp.b 200000 FC000000 ${filesize};"			\
-		"protect on FC000000 FC05FFFF\0"
-# endif /* CONFIG_TQM5200_B */
-#elif defined (CONFIG_CAM5200)
+		"protect on FFF00000 +${filesize}\0"
+#else	/* default lowboot configuration */
 #   define ENV_UPDT							\
-	"update=protect off FC000000 FC03FFFF;"				\
-		"erase FC000000 FC03FFFF;"				\
+	"update=protect off FC000000 +${filesize};"			\
+		"erase FC000000 +${filesize};"				\
 		"cp.b 200000 FC000000 ${filesize};"			\
-		"protect on FC000000 FC03FFFF\0"
+		"protect on FC000000 +${filesize}\0"
+#endif
+
+#ifndef CONFIG_CAM5200
+#define CUSTOM_ENV_SETTINGS						\
+	"bootfile=/tftpboot/tqm5200/uImage\0"				\
+	"bootfile_fdt=/tftpboot/tqm5200/uImage_fdt\0"			\
+	"fdt_file=/tftpboot/tqm5200/tqm5200.dtb\0"			\
+	"u-boot=/tftpboot/tqm5200/u-boot.bin\0"
 #else
-# error "Unknown Carrier Board"
-#endif	/* CONFIG_STK52XX */
+#define CUSTOM_ENV_SETTINGS						\
+	"bootfile=cam5200/uImage\0"					\
+	"u-boot=cam5200/u-boot.bin\0"					\
+	"setup=tftp 200000 cam5200/setup.img; autoscr 200000\0"
+#endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS					\
+	"console=ttyS0\0"						\
+	"kernel_addr=200000\0"						\
+	"fdt_addr=400000\0"						\
+	"hostname=tqm5200\0"						\
 	"netdev=eth0\0"							\
 	"rootpath=/opt/eldk/ppc_6xx\0"					\
 	"ramargs=setenv bootargs root=/dev/ram rw\0"			\
@@ -238,15 +265,18 @@
 		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}"	\
 		":${hostname}:${netdev}:off panic=1\0"			\
 	"addcons=setenv bootargs ${bootargs} "				\
-		"console=ttyS0,${baudrate}\0"				\
+		"console=${console},${baudrate}\0"			\
 	"flash_self=run ramargs addip addcons;"				\
 		"bootm ${kernel_addr} ${ramdisk_addr}\0"		\
 	"flash_nfs=run nfsargs addip addcons;"				\
 		"bootm ${kernel_addr}\0"				\
-	"net_nfs=tftp 200000 ${bootfile};run nfsargs addip addcons;"	\
-		"bootm\0"						\
-	"bootfile=/tftpboot/tqm5200/uImage\0"				\
-	"u-boot=/tftpboot/tqm5200/u-boot.bin\0"				\
+	"net_nfs=tftp ${kernel_addr} ${bootfile};"			\
+		"run nfsargs addip addcons;bootm\0"			\
+	"net_nfs_fdt=tftp ${kernel_addr} ${bootfile_fdt};"		\
+		"tftp ${fdt_addr} ${fdt_file};setenv console ttyPSC0;"	\
+		"run nfsargs addip addcons;"				\
+		"bootm ${kernel_addr} - ${fdt_addr}\0"			\
+	CUSTOM_ENV_SETTINGS						\
 	"load=tftp 200000 ${u-boot}\0"					\
 	ENV_UPDT							\
 	""
@@ -256,17 +286,17 @@
 /*
  * IPB Bus clocking configuration.
  */
-#define CFG_IPBSPEED_133		/* define for 133MHz speed */
+#define CFG_IPBCLK_EQUALS_XLBCLK		/* define for 133MHz speed */
 
-#if defined(CFG_IPBSPEED_133)
+#if defined(CFG_IPBCLK_EQUALS_XLBCLK) && !defined(CONFIG_CAM5200)
 /*
  * PCI Bus clocking configuration
  *
  * Actually a PCI Clock of 66 MHz is only set (in cpu_init.c) if
- * CFG_IPBSPEED_133 is defined. This is because a PCI Clock of 66 MHz yet hasn't
- * been tested with a IPB Bus Clock of 66 MHz.
+ * CFG_IPBCLK_EQUALS_XLBCLK is defined. This is because a PCI Clock of
+ * 66 MHz yet hasn't been tested with a IPB Bus Clock of 66 MHz.
  */
-#define CFG_PCISPEED_66			/* define for 66MHz speed */
+#define CFG_PCICLK_EQUALS_IPBCLK_DIV2	/* define for 66MHz speed */
 #endif
 
 /*
@@ -322,13 +352,29 @@
  */
 #define CFG_FLASH_BASE		0xFC000000
 
+#if defined(CONFIG_CAM5200) && defined(CONFIG_CAM5200_NIOSFLASH)
+#define CFG_MAX_FLASH_BANKS	2	/* max num of flash banks
+					   (= chip selects) */
+#define CFG_FLASH_WORD_SIZE	unsigned int /* main flash device with */
+#define CFG_FLASH_ERASE_TOUT	120000	/* Timeout for Flash Erase (in ms) */
+#define CFG_FLASH_WRITE_TOUT	500	/* Timeout for Flash Write (in ms) */
+
+#define CFG_FLASH_ADDR0		0x555
+#define CFG_FLASH_ADDR1		0x2AA
+#define CFG_FLASH_2ND_16BIT_DEV	1	/* NIOS flash is a 16bit device */
+#define CFG_MAX_FLASH_SECT	128
+#else
 /* use CFI flash driver */
 #define CFG_FLASH_CFI		1	/* Flash is CFI conformant */
 #define CFG_FLASH_CFI_DRIVER	1	/* Use the common driver */
 #define CFG_FLASH_BANKS_LIST	{ CFG_BOOTCS_START }
+#define CFG_MAX_FLASH_BANKS	1	/* max num of flash banks
+					   (= chip selects) */
+#define CFG_MAX_FLASH_SECT	512	/* max num of sects on one chip */
+#endif
+
 #define CFG_FLASH_EMPTY_INFO
 #define CFG_FLASH_SIZE		0x04000000 /* 64 MByte */
-#define CFG_MAX_FLASH_SECT	512	/* max num of sects on one chip */
 #define CFG_FLASH_USE_BUFFER_WRITE	1
 
 #if defined (CONFIG_CAM5200)
@@ -338,9 +384,6 @@
 #else
 # define CFG_ENV_ADDR		(CFG_FLASH_BASE + 0x00060000)
 #endif
-
-#define CFG_MAX_FLASH_BANKS	1	/* max num of flash banks
-					   (= chip selects) */
 
 /* Dynamic MTD partition support */
 #define CONFIG_JFFS2_CMDLINE
@@ -374,8 +417,13 @@
 #elif defined (CONFIG_CAM5200)
 #   define MTDPARTS_DEFAULT	"mtdparts=TQM5200-0:768k(firmware),"	\
 						"1792k(kernel),"	\
-						"3584k(small-fs),"	\
+						"5632k(rootfs),"	\
+						"24m(home)"
+#elif defined (CONFIG_FO300)
+#   define MTDPARTS_DEFAULT	"mtdparts=TQM5200-0:640k(firmware),"	\
+						"1408k(kernel),"	\
 						"2m(initrd),"		\
+						"4m(small-fs),"		\
 						"8m(misc),"		\
 						"16m(big-fs)"
 #else
@@ -387,7 +435,7 @@
  */
 #define CFG_ENV_IS_IN_FLASH	1
 #define CFG_ENV_SIZE		0x4000	/* 16 k - keep small for fast booting */
-#if defined(CONFIG_TQM5200_B)
+#if defined(CONFIG_TQM5200_B) || defined (CONFIG_CAM5200)
 #define CFG_ENV_SECT_SIZE	0x40000
 #else
 #define CFG_ENV_SECT_SIZE	0x20000
@@ -445,28 +493,43 @@
 /*
  * GPIO configuration
  *
- * use pin gpio_wkup_6 as second SDRAM chip select (mem_cs1):
- *	Bit 0 (mask: 0x80000000): 1
+ * use CS1: Bit 0 (mask: 0x80000000):
+ *	   1 -> Pin gpio_wkup_6 as second SDRAM chip select (mem_cs1).
  * use ALT CAN position: Bits 2-3 (mask: 0x30000000):
- *	00 -> No Alternatives, CAN1/2 on PSC2 according to PSC2 setting.
- *	01 -> CAN1 on I2C1, CAN2 on Tmr0/1.
- *	      Use for REV200 STK52XX boards. Do not use with REV100 modules
- *	      (because, there I2C1 is used as I2C bus)
- * use PSC1 as UART: Bits 28-31 (mask: 0x00000007): 0100
- * use PSC2 as CAN: Bits 25:27 (mask: 0x00000030)
- *	000 -> All PSC2 pins are GIOPs
- *	001 -> CAN1/2 on PSC2 pins
- *	       Use for REV100 STK52xx boards
- * use PSC6:
- *   on STK52xx:
- *	use as UART. Pins PSC6_0 to PSC6_3 are used.
- *	Bits 9:11 (mask: 0x00700000):
- *	   101 -> PSC6 : Extended POST test is not available
- *   on MINI-FAP and TQM5200_IB:
- *	use PSC6_0 to PSC6_3 as GPIO: Bits 9:11 (mask: 0x00700000):
- *	   000 -> PSC6 could not be used as UART, CODEC or IrDA
- *   GPIO on PSC6_3 is used in post_hotkeys_pressed() to enable extended POST
- *   tests.
+ *	  00 -> No Alternatives, CAN1/2 on PSC2 according to PSC2 setting.
+ *		SPI on PSC3 according to PSC3 setting. Use for CAM5200.
+ *	  01 -> CAN1 on I2C1, CAN2 on Tmr0/1.
+ *		Use for REV200 STK52XX boards and FO300 boards. Do not use
+ *		with REV100 modules (because, there I2C1 is used as I2C bus).
+ * use ATA: Bits 6-7 (mask 0x03000000):
+ *	  00 -> No ATA chip selects, csb_4/5 used as normal chip selects.
+ *		Use for CAM5200 board.
+ *	  01 -> ATA cs0/1 on csb_4/5. Use for the remaining boards.
+ * use PSC6: Bits 9-11 (mask 0x00700000):
+ *	 000 -> use PSC6_0 to PSC6_3 as GPIO, PSC6 could not be used as
+ *		UART, CODEC or IrDA.
+ *		GPIO on PSC6_3 is used in post_hotkeys_pressed() to
+ *		enable extended POST tests.
+ *		Use for MINI-FAP and TQM5200_IB boards.
+ *	 101 -> use PSC6 as UART. Pins PSC6_0 to PSC6_3 are used.
+ *		Extended POST test is not available.
+ *		Use for STK52xx, FO300 and CAM5200 boards.
+ * use PCI_DIS: Bit 16 (mask 0x00008000):
+ *	   1 -> disable PCI controller (on CAM5200 board).
+ * use USB: Bits 18-19 (mask 0x00003000):
+ *	  10 -> two UARTs (on FO300 and CAM5200).
+ * use PSC3: Bits 20-23 (mask: 0x00000f00):
+ *	0000 -> All PSC3 pins are GPIOs.
+ *	1100 -> UART/SPI (on FO300 board).
+ *	0100 -> UART (on CAM5200 board).
+ * use PSC2: Bits 25:27 (mask: 0x00000030):
+ *	 000 -> All PSC2 pins are GPIOs.
+ *	 100 -> UART (on CAM5200 board).
+ *	 001 -> CAN1/2 on PSC2 pins.
+ *	        Use for REV100 STK52xx boards
+ *	 01x -> Use AC97 (on FO300 board).
+ * use PSC1: Bits 29-31 (mask: 0x00000007):
+ *	 100 -> UART (on all boards).
  */
 #if defined (CONFIG_MINIFAP)
 # define CFG_GPS_PORT_CONFIG	0x91000004
@@ -480,6 +543,10 @@
 #   define CFG_GPS_PORT_CONFIG	0x91500004
 #  endif
 # endif
+#elif defined (CONFIG_FO300)
+# define CFG_GPS_PORT_CONFIG	0x91502c24
+#elif defined (CONFIG_CAM5200)
+# define CFG_GPS_PORT_CONFIG	0x8050A444
 #else  /* TMQ5200 Inbetriebnahme-Board */
 # define CFG_GPS_PORT_CONFIG	0x81000004
 #endif
@@ -502,10 +569,16 @@
 #define CFG_LONGHELP			/* undef to save memory	    */
 #define CFG_PROMPT		"=> "	/* Monitor Command Prompt   */
 
+#define CONFIG_CMDLINE_EDITING	1	/* add command line history	*/
 #define	CFG_HUSH_PARSER		1	/* use "hush" command parser	*/
 #define	CFG_PROMPT_HUSH_PS2	"> "
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#define CFG_CACHELINE_SIZE	32	/* For MPC5xxx CPUs */
+#if defined(CONFIG_CMD_KGDB)
+#define CFG_CACHELINE_SHIFT	5	/* log base 2 of the above value */
+#endif
+
+#if defined(CONFIG_CMD_KGDB)
 #define CFG_CBSIZE		1024	/* Console I/O Buffer Size  */
 #else
 #define CFG_CBSIZE		256	/* Console I/O Buffer Size  */
@@ -525,8 +598,7 @@
 #define CFG_HZ			1000	/* decrementer freq: 1 ms ticks */
 
 /*
- * Enable loopw commando. This has only affect, if CFG_CMD_MEM is defined,
- * which is normally part of the default commands (CFV_CMD_DFL)
+ * Enable loopw command.
  */
 #define CONFIG_LOOPW
 
@@ -543,7 +615,7 @@
 
 #define CFG_BOOTCS_START	CFG_FLASH_BASE
 #define CFG_BOOTCS_SIZE		CFG_FLASH_SIZE
-#ifdef CFG_PCISPEED_66
+#ifdef CFG_PCICLK_EQUALS_IPBCLK_DIV2
 #define CFG_BOOTCS_CFG		0x0008DF30 /* for pci_clk  = 66 MHz */
 #else
 #define CFG_BOOTCS_CFG		0x0004DF30 /* for pci_clk = 33 MHz */
@@ -573,6 +645,16 @@
 
 #define CFG_CS_BURST		0x00000000
 #define CFG_CS_DEADCYCLE	0x33333311	/* 1 dead cycle for flash and SM501 */
+
+#if defined(CONFIG_CAM5200)
+#define CFG_CS4_START		0xB0000000
+#define CFG_CS4_SIZE		0x00010000
+#define CFG_CS4_CFG		0x01019C10
+
+#define CFG_CS5_START		0xD0000000
+#define CFG_CS5_SIZE		0x01208000
+#define CFG_CS5_CFG		0x1414BF10
+#endif
 
 #define CFG_RESET_ADDRESS	0xff000000
 
@@ -614,5 +696,19 @@
 
 /* Interval between registers						     */
 #define CFG_ATA_STRIDE		4
+
+/*-----------------------------------------------------------------------
+ * Open firmware flat tree support
+ *-----------------------------------------------------------------------
+ */
+#define CONFIG_OF_FLAT_TREE	1
+#define CONFIG_OF_BOARD_SETUP	1
+
+/* maximum size of the flat tree (8K) */
+#define OF_FLAT_TREE_MAX_SIZE	8192
+#define OF_CPU			"PowerPC,5200@0"
+#define OF_SOC			"soc5200@f0000000"
+#define OF_TBCLK		(bd->bi_busfreq / 4)
+#define OF_STDOUT_PATH		"/soc5200@f0000000/serial@2000"
 
 #endif /* __CONFIG_H */

@@ -27,10 +27,11 @@
 #include <common.h>
 #include <command.h>
 #include <rtc.h>
+#include <i2c.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#if (CONFIG_COMMANDS & CFG_CMD_DATE)
+#if defined(CONFIG_CMD_DATE)
 
 const char *weekdays[] = {
 	"Sun", "Mon", "Tues", "Wednes", "Thurs", "Fri", "Satur",
@@ -44,6 +45,11 @@ int do_date (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	struct rtc_time tm;
 	int rcode = 0;
+	int old_bus;
+
+	/* switch to correct I2C bus */
+	old_bus = I2C_GET_BUS();
+	I2C_SET_BUS(CFG_RTC_BUS_NUM);
 
 	switch (argc) {
 	case 2:			/* set date & time */
@@ -56,7 +62,7 @@ int do_date (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			/* insert new date & time */
 			if (mk_date (argv[1], &tm) != 0) {
 				puts ("## Bad date format\n");
-				return 1;
+				break;
 			}
 			/* and write to RTC */
 			rtc_set (&tm);
@@ -71,11 +77,15 @@ int do_date (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 				"unknown " : RELOC(weekdays[tm.tm_wday]),
 			tm.tm_hour, tm.tm_min, tm.tm_sec);
 
-		return 0;
+		break;
 	default:
 		printf ("Usage:\n%s\n", cmdtp->usage);
 		rcode = 1;
 	}
+
+	/* switch back to original I2C bus */
+	I2C_SET_BUS(old_bus);
+
 	return rcode;
 }
 
@@ -201,4 +211,4 @@ U_BOOT_CMD(
 	"  - with 'reset' argument: reset the RTC\n"
 );
 
-#endif	/* CFG_CMD_DATE */
+#endif

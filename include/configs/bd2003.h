@@ -89,6 +89,8 @@
 #define CONFIG_SMC91111_BASE 0x10000300
 #define CONFIG_SMC_USE_32_BIT
 
+#define CONFIG_DOS_PARTITION	1
+
 /*
  * select serial console configuration
  */
@@ -98,51 +100,31 @@
 //#define CONFIG_ENV_OVERWRITE
 
 #define CONFIG_BAUDRATE		115200
-
-#define SKIP_COMMANDS ( CFG_CMD_MISC \
-                      | CFG_CMD_BDI \
-                      | CFG_CMD_BOOTD \
-                      | CFG_CMD_LOADS \
-                      | CFG_CMD_LOADB \
-                      | CFG_CMD_ITEST \
-                      | CFG_CMD_FPGA \
-                      | CFG_CMD_ECHO \
-                      | CFG_CMD_DIAG \
-                      | CFG_CMD_DATE \
-                      | CFG_CMD_BOOTP \
-                      | CFG_CMD_NFS \
-                      )
-//                      | CFG_CMD_FLASH
-//                      | CFG_CMD_DHCP
-//                      | CFG_CMD_NET
-//                      | CFG_CMD_MEMORY 
-//                      | CFG_CMD_ENV 
+#define CONFIG_SUPPORT_VFAT
 #define CONFIG_LCDPANEL	/* Dynamic LCD Panel Support */
-                        
-#define CONFIG_COMMANDS		( (CONFIG_CMD_DFL \
-                             | CFG_CMD_MMC \
-                             | CFG_CMD_FAT \
-                             | CFG_CMD_FLASH \
-                             | CFG_CMD_DHCP \
-                             | CFG_CMD_ENV \
-                             | CFG_CMD_BMP) & ~(SKIP_COMMANDS) )
 
-/* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
-#include <cmd_confdefs.h>
+#include "bdCommands.h"
+
+#ifndef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTDELAY	3
 #define CONFIG_BOOTCOMMAND	"mmcinit; " \
                            "fatload mmc 0 a0000000 init.scr ; autoscr a0000000 ; "
+#endif
 #define CONFIG_BOOTARGS		"console=ttyS0,115200 DEBUG=1 ENV=/etc/bashrc init=/linuxrc rw mtdparts=phys:1024k(armboot),256k(params),-(rootfs1) root=/dev/mtdblock3 rootfstype=cramfs"
 #define CONFIG_CMDLINE_TAG
 
 #define CONFIG_GZIP
+
+#define	CONFIG_AUTOBOOT_KEYED		/* Enable password protection */
+#define	CONFIG_AUTOBOOT_PROMPT		"\nEnter password - autoboot in %d sec...\n"
+#define	CONFIG_AUTOBOOT_DELAY_STR	"\x1b\x1b\x1b"
 
 #include "lcdPanelChoice.h"
 
 #define LCD_BPP			LCD_COLOR8
 
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CONFIG_KGDB_BAUDRATE	230400		/* speed to run kgdb serial port */
 #define CONFIG_KGDB_SER_INDEX	2		/* which serial port to use */
 #endif
@@ -235,7 +217,7 @@
 #define CFG_ENV_ADDR		   ((CFG_FLASH_BASE)+0x100000)	/* Addr of Environment Sector	*/
 #define CFG_ENV_OFFSET     ((CFG_ENV_ADDR)-(CFG_FLASH_BASE))
 #define CFG_ENV_SIZE		   PHYS_FLASH_SECT_SIZE	/* Total Size of Environment Sector	*/
-
+ 
 /*
  * GPIO settings
  */

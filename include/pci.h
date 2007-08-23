@@ -270,6 +270,15 @@
 #define  PCI_AGP_COMMAND_RATE1	0x0001	/* Use 4x rate */
 #define PCI_AGP_SIZEOF		12
 
+/* PCI-X registers */
+
+#define  PCI_X_CMD_DPERR_E      0x0001  /* Data Parity Error Recovery Enable */
+#define  PCI_X_CMD_ERO          0x0002  /* Enable Relaxed Ordering */
+#define  PCI_X_CMD_MAX_READ     0x0000  /* Max Memory Read Byte Count */
+#define  PCI_X_CMD_MAX_SPLIT    0x0030  /* Max Outstanding Split Transactions */
+#define  PCI_X_CMD_VERSION(x)   (((x) >> 12) & 3) /* Version */
+
+
 /* Slot Identification */
 
 #define PCI_SID_ESR		2	/* Expansion Slot Register */
@@ -292,6 +301,12 @@
 
 #define PCI_MAX_PCI_DEVICES	32
 #define PCI_MAX_PCI_FUNCTIONS	8
+
+#define PCI_DCR		0x54    /* PCIe Device Control Register */
+#define PCI_DSR		0x56    /* PCIe Device Status Register */
+#define PCI_LSR		0x5e    /* PCIe Link Status Register */
+#define PCI_LTSSM	0x404   /* PCIe Link Training, Status State Machine */
+#define  PCI_LTSSM_L0	0x16    /* L0 state */
 
 /* Include the ID list */
 
@@ -492,4 +507,7 @@ extern int pci_hose_config_device(struct pci_controller *hose,
 extern void pci_mpc824x_init (struct pci_controller *hose);
 #endif
 
+#ifdef CONFIG_MPC85xx
+extern void pci_mpc85xx_init (struct pci_controller *hose);
+#endif
 #endif	/* _PCI_H */

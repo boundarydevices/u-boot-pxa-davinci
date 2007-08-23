@@ -29,6 +29,7 @@
 #include <s_record.h>
 #include <net.h>
 #include <ata.h>
+#include <part.h>
 
 #define CONFIG_FATLOAD_TICKS
 #define CONFIG_FATLOAD_ADLER
@@ -37,47 +38,41 @@
 #include <zlib.h>
 #endif 
 
-#if (CONFIG_COMMANDS & CFG_CMD_FAT)
+#if defined(CONFIG_CMD_FAT)
 
 #undef	DEBUG
 
 #include <fat.h>
 
-
-block_dev_desc_t *get_dev (char* ifname, int dev)
+int do_adler(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-#if (CONFIG_COMMANDS & CFG_CMD_IDE)
-	if (strncmp(ifname,"ide",3)==0) {
-		extern block_dev_desc_t * ide_get_dev(int dev);
-		return(ide_get_dev(dev));
+	char *ep;
+	unsigned long address ;
+	unsigned long count;
+        unsigned long result ;
+
+        if (argc < 3) {
+		printf ("usage: adler address length\n");
+		return 1;
 	}
-#endif
-#if (CONFIG_COMMANDS & CFG_CMD_SCSI)
-	if (strncmp(ifname,"scsi",4)==0) {
-		extern block_dev_desc_t * scsi_get_dev(int dev);
-		return(scsi_get_dev(dev));
-	}
-#endif
-#if ((CONFIG_COMMANDS & CFG_CMD_USB) && defined(CONFIG_USB_STORAGE))
-	if (strncmp(ifname,"usb",3)==0) {
-		extern block_dev_desc_t * usb_stor_get_dev(int dev);
-		return(usb_stor_get_dev(dev));
-	}
-#endif
-#if defined(CONFIG_MMC)
-	if (strncmp(ifname,"mmc",3)==0) {
-		extern block_dev_desc_t *  mmc_get_dev(int dev);
-		return(mmc_get_dev(dev));
-	}
-#endif
-#if defined(CONFIG_SYSTEMACE)
-	if (strcmp(ifname,"ace")==0) {
-		extern block_dev_desc_t *  systemace_get_dev(int dev);
-		return(systemace_get_dev(dev));
-	}
-#endif
-	return NULL;
+	address = simple_strtoul (argv[1], &ep, 16);
+        count = simple_strtoul (argv[2], &ep, 16);
+	if( 0 == count ){
+           printf( "Invalid address <%s>\n", argv[2] );
+        }
+
+        result = adler32(0, (Bytef *)address, count );
+        printf( "adler32 == 0x%08lx\n", result );
+
+        return 0 ;
 }
+
+U_BOOT_CMD(
+	adler,	3,	0,	do_adler,
+	"adler - perform adler (fast crc) on a memory range\n",
+	"address length \n"
+);
+
 
 
 int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
@@ -389,4 +384,4 @@ void hexdump (int cnt, unsigned char *data)
 }
 #endif	/* NOT_IMPLEMENTED_YET */
 
-#endif	/* CFG_CMD_FAT */
+#endif

@@ -116,24 +116,35 @@
 #define CFG_EEPROM_PAGE_WRITE_BITS	5
 #endif
 
-#define CONFIG_BOOTP_MASK	(CONFIG_BOOTP_DEFAULT | CONFIG_BOOTP_BOOTFILESIZE)
+/*
+ * BOOTP options
+ */
+#define CONFIG_BOOTP_SUBNETMASK
+#define CONFIG_BOOTP_GATEWAY
+#define CONFIG_BOOTP_HOSTNAME
+#define CONFIG_BOOTP_BOOTPATH
+#define CONFIG_BOOTP_BOOTFILESIZE
+
 
 #define CONFIG_MAC_PARTITION
 #define CONFIG_DOS_PARTITION
 
 #define	CONFIG_RTC_MPC8xx		/* use internal RTC of MPC8xx	*/
 
-#define CONFIG_COMMANDS	      ( CONFIG_CMD_DFL	| \
-				CFG_CMD_ASKENV	| \
-				CFG_CMD_DATE	| \
-				CFG_CMD_DHCP	| \
-				CFG_CMD_EEPROM	| \
-				CFG_CMD_IDE	| \
-				CFG_CMD_NFS	| \
-				CFG_CMD_SNTP	)
 
-/* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
-#include <cmd_confdefs.h>
+/*
+ * Command line configuration.
+ */
+#include <config_cmd_default.h>
+
+#define CONFIG_CMD_ASKENV
+#define CONFIG_CMD_DATE
+#define CONFIG_CMD_DHCP
+#define CONFIG_CMD_EEPROM
+#define CONFIG_CMD_IDE
+#define CONFIG_CMD_NFS
+#define CONFIG_CMD_SNTP
+
 
 /*
  * Miscellaneous configurable options
@@ -141,14 +152,13 @@
 #define	CFG_LONGHELP			/* undef to save memory		*/
 #define	CFG_PROMPT		"=> "	/* Monitor Command Prompt	*/
 
-#if 0
-#define	CFG_HUSH_PARSER		1	/* use "hush" command parser	*/
-#endif
+#define CONFIG_CMDLINE_EDITING	1	/* add command line history	*/
+#define CFG_HUSH_PARSER		1	/* Use the HUSH parser		*/
 #ifdef	CFG_HUSH_PARSER
 #define	CFG_PROMPT_HUSH_PS2	"> "
 #endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define	CFG_CBSIZE		1024	/* Console I/O Buffer Size	*/
 #else
 #define	CFG_CBSIZE		256	/* Console I/O Buffer Size	*/
@@ -232,7 +242,7 @@
  * Cache Configuration
  */
 #define CFG_CACHELINE_SIZE	16	/* For all MPC8xx CPUs			*/
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CFG_CACHELINE_SHIFT	4	/* log base 2 of the above value	*/
 #endif
 

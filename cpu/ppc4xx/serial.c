@@ -264,10 +264,13 @@ int serial_tstc ()
 #endif	/* CONFIG_IOP480 */
 
 /*****************************************************************************/
-#if defined(CONFIG_405GP) || defined(CONFIG_405CR) || defined(CONFIG_440) || defined(CONFIG_405EP)
+#if defined(CONFIG_405GP) || defined(CONFIG_405CR) || \
+    defined(CONFIG_405EP) || defined(CONFIG_405EZ) || \
+    defined(CONFIG_440)
 
 #if defined(CONFIG_440)
-#if defined(CONFIG_440EP) || defined(CONFIG_440GR)
+#if defined(CONFIG_440EP) || defined(CONFIG_440GR) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 #define UART0_BASE  CFG_PERIPHERAL_BASE + 0x00000300
 #define UART1_BASE  CFG_PERIPHERAL_BASE + 0x00000400
 #else
@@ -279,16 +282,35 @@ int serial_tstc ()
 #define UART2_BASE  CFG_PERIPHERAL_BASE + 0x00000600
 #endif
 
-#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || defined(CONFIG_440GR) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)
-#define CR0_MASK        0xdfffffff
-#define CR0_EXTCLK_ENA  0x00800000
-#define CR0_UDIV_POS    0
-#else
+#if defined(CONFIG_440GP)
 #define CR0_MASK        0x3fff0000
 #define CR0_EXTCLK_ENA  0x00600000
 #define CR0_UDIV_POS    16
-#endif /* CONFIG_440GX */
-#elif defined(CONFIG_405EP)
+#define UDIV_SUBTRACT	1
+#define UART0_SDR	cntrl0
+#define MFREG(a, d)	d = mfdcr(a)
+#define MTREG(a, d)	mtdcr(a, d)
+#else /* #if defined(CONFIG_440GP) */
+/* all other 440 PPC's access clock divider via sdr register */
+#define CR0_MASK        0xdfffffff
+#define CR0_EXTCLK_ENA  0x00800000
+#define CR0_UDIV_POS    0
+#define UDIV_SUBTRACT	0
+#define UART0_SDR	sdr_uart0
+#define UART1_SDR	sdr_uart1
+#if defined(CONFIG_440EP) || defined(CONFIG_440EPx) || \
+    defined(CONFIG_440GR) || defined(CONFIG_440GRx) || \
+    defined(CONFIG_440SP) || defined(CONFIG_440SPe)
+#define UART2_SDR	sdr_uart2
+#endif
+#if defined(CONFIG_440EP) || defined(CONFIG_440EPx) || \
+    defined(CONFIG_440GR) || defined(CONFIG_440GRx)
+#define UART3_SDR	sdr_uart3
+#endif
+#define MFREG(a, d)	mfsdr(a, d)
+#define MTREG(a, d)	mtsdr(a, d)
+#endif /* #if defined(CONFIG_440GP) */
+#elif defined(CONFIG_405EP) || defined(CONFIG_405EZ)
 #define UART0_BASE      0xef600300
 #define UART1_BASE      0xef600400
 #define UCR0_MASK       0x0000007f
@@ -309,21 +331,15 @@ int serial_tstc ()
 #if defined(CONFIG_UART1_CONSOLE)
 #define ACTING_UART0_BASE	UART1_BASE
 #define ACTING_UART1_BASE	UART0_BASE
-#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || \
-	defined(CONFIG_440GR) || defined(CONFIG_440SP) || \
-	defined(CONFIG_440SPE)
-#define UART0_SDR           sdr_uart1
-#define UART1_SDR           sdr_uart0
-#endif /* CONFIG_440GX */
 #else
 #define ACTING_UART0_BASE	UART0_BASE
 #define ACTING_UART1_BASE	UART1_BASE
-#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || \
-	defined(CONFIG_440GR) || defined(CONFIG_440SP) || \
-	defined(CONFIG_440SPE)
-#define UART0_SDR           sdr_uart0
-#define UART1_SDR           sdr_uart1
-#endif /* CONFIG_440GX */
+#endif
+
+#if defined(CONFIG_SERIAL_MULTI)
+#define UART_BASE	dev_base
+#else
+#define UART_BASE	ACTING_UART0_BASE
 #endif
 
 #if defined(CONFIG_405EP) && defined(CFG_EXT_SERIAL_CLOCK)
@@ -377,49 +393,102 @@ volatile static serial_buffer_t buf_info;
 
 #if defined(CONFIG_440) && !defined(CFG_EXT_SERIAL_CLOCK)
 static void serial_divs (int baudrate, unsigned long *pudiv,
-			 unsigned short *pbdiv )
+			 unsigned short *pbdiv)
 {
-	sys_info_t	sysinfo;
+	sys_info_t sysinfo;
 	unsigned long div;		/* total divisor udiv * bdiv */
 	unsigned long umin;		/* minimum udiv	*/
-	unsigned short diff;    /* smallest diff */
-	unsigned long udiv;     /* best udiv */
-
-	unsigned short idiff;   /* current diff */
-	unsigned short ibdiv;   /* current bdiv */
+	unsigned short diff;		/* smallest diff */
+	unsigned long udiv;		/* best udiv */
+	unsigned short idiff;		/* current diff */
+	unsigned short ibdiv;		/* current bdiv */
 	unsigned long i;
-	unsigned long est;      /* current estimate */
+	unsigned long est;		/* current estimate */
 
-	get_sys_info( &sysinfo );
+	get_sys_info(&sysinfo);
 
-	udiv = 32;     /* Assume lowest possible serial clk */
-	div = sysinfo.freqPLB/(16*baudrate); /* total divisor */
-	umin = sysinfo.pllOpbDiv<<1; /* 2 x OPB divisor */
-	diff = 32;      /* highest possible */
+	udiv = 32;			/* Assume lowest possible serial clk */
+	div = sysinfo.freqPLB / (16 * baudrate); /* total divisor */
+	umin = sysinfo.pllOpbDiv << 1;	/* 2 x OPB divisor */
+	diff = 32;			/* highest possible */
 
 	/* i is the test udiv value -- start with the largest
 	 * possible (32) to minimize serial clock and constrain
 	 * search to umin.
 	 */
-	for( i = 32; i > umin; i-- ){
-		ibdiv = div/i;
+	for (i = 32; i > umin; i--) {
+		ibdiv = div / i;
 		est = i * ibdiv;
 		idiff = (est > div) ? (est-div) : (div-est);
-		if( idiff == 0 ){
+		if (idiff == 0) {
 			udiv = i;
 			break;      /* can't do better */
-		}
-		else if( idiff < diff ){
+		} else if (idiff < diff) {
 			udiv = i;       /* best so far */
 			diff = idiff;   /* update lowest diff*/
 		}
 	}
 
 	*pudiv = udiv;
-	*pbdiv = div/udiv;
-
+	*pbdiv = div / udiv;
 }
-#endif /* defined(CONFIG_440) && !defined(CFG_EXT_SERIAL_CLK */
+
+#elif defined(CONFIG_405EZ)
+
+static void serial_divs (int baudrate, unsigned long *pudiv,
+			 unsigned short *pbdiv)
+{
+	sys_info_t sysinfo;
+	unsigned long div;		/* total divisor udiv * bdiv */
+	unsigned long umin;		/* minimum udiv	*/
+	unsigned short diff;		/* smallest diff */
+	unsigned long udiv;		/* best udiv */
+	unsigned short idiff;		/* current diff */
+	unsigned short ibdiv;		/* current bdiv */
+	unsigned long i;
+	unsigned long est;		/* current estimate */
+	unsigned long plloutb;
+	unsigned long cpr_pllc;
+	u32 reg;
+
+	/* check the pll feedback source */
+	mfcpr(cprpllc, cpr_pllc);
+
+	get_sys_info(&sysinfo);
+
+	plloutb = ((CONFIG_SYS_CLK_FREQ * ((cpr_pllc & PLLC_SRC_MASK) ?
+		sysinfo.pllFwdDivB : sysinfo.pllFwdDiv) * sysinfo.pllFbkDiv) /
+		sysinfo.pllFwdDivB);
+	udiv = 256;			/* Assume lowest possible serial clk */
+	div = plloutb / (16 * baudrate); /* total divisor */
+	umin = (plloutb / get_OPB_freq()) << 1;	/* 2 x OPB divisor */
+	diff = 256;			/* highest possible */
+
+	/* i is the test udiv value -- start with the largest
+	 * possible (256) to minimize serial clock and constrain
+	 * search to umin.
+	 */
+	for (i = 256; i > umin; i--) {
+		ibdiv = div / i;
+		est = i * ibdiv;
+		idiff = (est > div) ? (est-div) : (div-est);
+		if (idiff == 0) {
+			udiv = i;
+			break;      /* can't do better */
+		} else if (idiff < diff) {
+			udiv = i;       /* best so far */
+			diff = idiff;   /* update lowest diff*/
+		}
+	}
+
+	*pudiv = udiv;
+	mfcpr(cprperd0, reg);
+	reg &= ~0x0000ffff;
+	reg |= ((udiv - 0) << 8) | (udiv - 0);
+	mtcpr(cprperd0, reg);
+	*pbdiv = div / udiv;
+}
+#endif /* defined(CONFIG_440) && !defined(CFG_EXT_SERIAL_CLK) */
 
 /*
  * Minimal serial functions needed to use one of the SMC ports
@@ -441,23 +510,9 @@ int serial_init(void)
 	unsigned long tmp;
 #endif
 
-#if defined(CONFIG_440GX) || defined(CONFIG_440SP) || \
-	defined(CONFIG_440SPE)
-#if defined(CONFIG_SERIAL_MULTI)
-	if (UART0_BASE == dev_base) {
-		mfsdr(UART0_SDR,reg);
-		reg &= ~CR0_MASK;
-	} else {
-		mfsdr(UART1_SDR,reg);
-		reg &= ~CR0_MASK;
-	}
-#else
-	mfsdr(UART0_SDR,reg);
+	MFREG(UART0_SDR, reg);
 	reg &= ~CR0_MASK;
-#endif
-#else
-	reg = mfdcr(cntrl0) & ~CR0_MASK;
-#endif /* CONFIG_440GX */
+
 #ifdef CFG_EXT_SERIAL_CLOCK
 	reg |= CR0_EXTCLK_ENA;
 	udiv = 1;
@@ -471,47 +526,34 @@ int serial_init(void)
 	serial_divs (gd->baudrate, &udiv, &bdiv);
 #endif
 
-#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || \
-	defined(CONFIG_440GR) || defined(CONFIG_440SP) || \
-	defined(CONFIG_440SPE)
-	reg |= udiv << CR0_UDIV_POS;	/* set the UART divisor */
-#if defined(CONFIG_SERIAL_MULTI)
-	if (UART0_BASE == dev_base) {
-		mtsdr (UART0_SDR,reg);
-	} else {
-		mtsdr (UART1_SDR,reg);
-	}
-#else
-	mtsdr (UART0_SDR,reg);
+	reg |= (udiv - UDIV_SUBTRACT) << CR0_UDIV_POS;	/* set the UART divisor */
+
+	/*
+	 * Configure input clock to baudrate generator for all
+	 * available serial ports here
+	 */
+	MTREG(UART0_SDR, reg);
+#if defined(UART1_SDR)
+	MTREG(UART1_SDR, reg);
 #endif
-#else
-	reg |= (udiv - 1) << CR0_UDIV_POS;	/* set the UART divisor */
-	mtdcr (cntrl0, reg);
+#if defined(UART2_SDR)
+	MTREG(UART2_SDR, reg);
+#endif
+#if defined(UART3_SDR)
+	MTREG(UART3_SDR, reg);
 #endif
 
-#if defined(CONFIG_SERIAL_MULTI)
-	out8 (dev_base + UART_LCR, 0x80);	/* set DLAB bit */
-	out8 (dev_base + UART_DLL, bdiv);	/* set baudrate divisor */
-	out8 (dev_base + UART_DLM, bdiv >> 8);/* set baudrate divisor */
-	out8 (dev_base + UART_LCR, 0x03);	/* clear DLAB; set 8 bits, no parity */
-	out8 (dev_base + UART_FCR, 0x00);	/* disable FIFO */
-	out8 (dev_base + UART_MCR, 0x00);	/* no modem control DTR RTS */
-	val = in8 (dev_base + UART_LSR);	/* clear line status */
-	val = in8 (dev_base + UART_RBR);	/* read receive buffer */
-	out8 (dev_base + UART_SCR, 0x00);	/* set scratchpad */
-	out8 (dev_base + UART_IER, 0x00);	/* set interrupt enable reg */
-#else
-	out8 (ACTING_UART0_BASE + UART_LCR, 0x80);	/* set DLAB bit */
-	out8 (ACTING_UART0_BASE + UART_DLL, bdiv);	/* set baudrate divisor */
-	out8 (ACTING_UART0_BASE + UART_DLM, bdiv >> 8);/* set baudrate divisor */
-	out8 (ACTING_UART0_BASE + UART_LCR, 0x03);	/* clear DLAB; set 8 bits, no parity */
-	out8 (ACTING_UART0_BASE + UART_FCR, 0x00);	/* disable FIFO */
-	out8 (ACTING_UART0_BASE + UART_MCR, 0x00);	/* no modem control DTR RTS */
-	val = in8 (ACTING_UART0_BASE + UART_LSR);	/* clear line status */
-	val = in8 (ACTING_UART0_BASE + UART_RBR);	/* read receive buffer */
-	out8 (ACTING_UART0_BASE + UART_SCR, 0x00);	/* set scratchpad */
-	out8 (ACTING_UART0_BASE + UART_IER, 0x00);	/* set interrupt enable reg */
-#endif
+	out8(UART_BASE + UART_LCR, 0x80);	/* set DLAB bit */
+	out8(UART_BASE + UART_DLL, bdiv);	/* set baudrate divisor */
+	out8(UART_BASE + UART_DLM, bdiv >> 8);	/* set baudrate divisor */
+	out8(UART_BASE + UART_LCR, 0x03);	/* clear DLAB; set 8 bits, no parity */
+	out8(UART_BASE + UART_FCR, 0x00);	/* disable FIFO */
+	out8(UART_BASE + UART_MCR, 0x00);	/* no modem control DTR RTS */
+	val = in8(UART_BASE + UART_LSR);	/* clear line status */
+	val = in8(UART_BASE + UART_RBR);	/* read receive buffer */
+	out8(UART_BASE + UART_SCR, 0x00);	/* set scratchpad */
+	out8(UART_BASE + UART_IER, 0x00);	/* set interrupt enable reg */
+
 	return (0);
 }
 
@@ -530,6 +572,10 @@ int serial_init (void)
 	unsigned short bdiv;
 	volatile char val;
 
+#if defined(CONFIG_405EZ)
+	serial_divs(gd->baudrate, &udiv, &bdiv);
+	clk = tmp = reg = 0;
+#else
 #ifdef CONFIG_405EP
 	reg = mfdcr(cpc0_ucr) & ~(UCR0_MASK | UCR1_MASK);
 	clk = gd->cpu_clk;
@@ -560,33 +606,21 @@ int serial_init (void)
 	reg |= (udiv - 1) << CR0_UDIV_POS;	/* set the UART divisor */
 	mtdcr (cntrl0, reg);
 #endif /* CONFIG_405EP */
-
 	tmp = gd->baudrate * udiv * 16;
 	bdiv = (clk + tmp / 2) / tmp;
+#endif /* CONFIG_405EZ */
 
-#if defined(CONFIG_SERIAL_MULTI)
-	out8 (dev_base + UART_LCR, 0x80);	/* set DLAB bit */
-	out8 (dev_base + UART_DLL, bdiv);	/* set baudrate divisor */
-	out8 (dev_base + UART_DLM, bdiv >> 8);/* set baudrate divisor */
-	out8 (dev_base + UART_LCR, 0x03);	/* clear DLAB; set 8 bits, no parity */
-	out8 (dev_base + UART_FCR, 0x00);	/* disable FIFO */
-	out8 (dev_base + UART_MCR, 0x00);	/* no modem control DTR RTS */
-	val = in8 (dev_base + UART_LSR);	/* clear line status */
-	val = in8 (dev_base + UART_RBR);	/* read receive buffer */
-	out8 (dev_base + UART_SCR, 0x00);	/* set scratchpad */
-	out8 (dev_base + UART_IER, 0x00);	/* set interrupt enable reg */
-#else
-	out8 (ACTING_UART0_BASE + UART_LCR, 0x80);	/* set DLAB bit */
-	out8 (ACTING_UART0_BASE + UART_DLL, bdiv);	/* set baudrate divisor */
-	out8 (ACTING_UART0_BASE + UART_DLM, bdiv >> 8);/* set baudrate divisor */
-	out8 (ACTING_UART0_BASE + UART_LCR, 0x03);	/* clear DLAB; set 8 bits, no parity */
-	out8 (ACTING_UART0_BASE + UART_FCR, 0x00);	/* disable FIFO */
-	out8 (ACTING_UART0_BASE + UART_MCR, 0x00);	/* no modem control DTR RTS */
-	val = in8 (ACTING_UART0_BASE + UART_LSR);	/* clear line status */
-	val = in8 (ACTING_UART0_BASE + UART_RBR);	/* read receive buffer */
-	out8 (ACTING_UART0_BASE + UART_SCR, 0x00);	/* set scratchpad */
-	out8 (ACTING_UART0_BASE + UART_IER, 0x00);	/* set interrupt enable reg */
-#endif
+	out8(UART_BASE + UART_LCR, 0x80);	/* set DLAB bit */
+	out8(UART_BASE + UART_DLL, bdiv);	/* set baudrate divisor */
+	out8(UART_BASE + UART_DLM, bdiv >> 8);	/* set baudrate divisor */
+	out8(UART_BASE + UART_LCR, 0x03);	/* clear DLAB; set 8 bits, no parity */
+	out8(UART_BASE + UART_FCR, 0x00);	/* disable FIFO */
+	out8(UART_BASE + UART_MCR, 0x00);	/* no modem control DTR RTS */
+	val = in8(UART_BASE + UART_LSR);	/* clear line status */
+	val = in8(UART_BASE + UART_RBR);	/* read receive buffer */
+	out8(UART_BASE + UART_SCR, 0x00);	/* set scratchpad */
+	out8(UART_BASE + UART_IER, 0x00);	/* set interrupt enable reg */
+
 	return (0);
 }
 
@@ -598,55 +632,10 @@ void serial_setbrg_dev (unsigned long dev_base)
 void serial_setbrg (void)
 #endif
 {
-	unsigned long tmp;
-	unsigned long clk;
-	unsigned long udiv;
-	unsigned short bdiv;
-
-#ifdef CFG_EXT_SERIAL_CLOCK
-	clk = CFG_EXT_SERIAL_CLOCK;
-#else
-	clk = gd->cpu_clk;
-#endif
-
-#ifdef CONFIG_405EP
-	udiv = ((mfdcr (cpc0_ucr) & UCR0_MASK) >> UCR0_UDIV_POS);
-#else
-	udiv = ((mfdcr (cntrl0) & 0x3e) >> 1) + 1;
-#endif /* CONFIG_405EP */
-
-#if !defined(CFG_EXT_SERIAL_CLOCK) && \
-	( defined(CONFIG_440GX) || defined(CONFIG_440EP) || \
-	  defined(CONFIG_440GR) || defined(CONFIG_440SP) || \
-	  defined(CONFIG_440SPE) )
-	serial_divs (gd->baudrate, &udiv, &bdiv);
-	tmp = udiv << CR0_UDIV_POS;		/* set the UART divisor */
 #if defined(CONFIG_SERIAL_MULTI)
-	if (UART0_BASE == dev_base) {
-		mtsdr (UART0_SDR, tmp);
-	} else {
-		mtsdr (UART1_SDR, tmp);
-	}
+	serial_init_dev(dev_base);
 #else
-	mtsdr (UART0_SDR, tmp);
-#endif
-
-#else
-
-	tmp = gd->baudrate * udiv * 16;
-	bdiv = (clk + tmp / 2) / tmp;
-#endif /* !defined(CFG_EXT_SERIAL_CLOCK) && (...) */
-
-#if defined(CONFIG_SERIAL_MULTI)
-	out8 (dev_base + UART_LCR, 0x80);	/* set DLAB bit */
-	out8 (dev_base + UART_DLL, bdiv);	/* set baudrate divisor */
-	out8 (dev_base + UART_DLM, bdiv >> 8);/* set baudrate divisor */
-	out8 (dev_base + UART_LCR, 0x03);	/* clear DLAB; set 8 bits, no parity */
-#else
-	out8 (ACTING_UART0_BASE + UART_LCR, 0x80);	/* set DLAB bit */
-	out8 (ACTING_UART0_BASE + UART_DLL, bdiv);	/* set baudrate divisor */
-	out8 (ACTING_UART0_BASE + UART_DLM, bdiv >> 8);/* set baudrate divisor */
-	out8 (ACTING_UART0_BASE + UART_LCR, 0x03);	/* clear DLAB; set 8 bits, no parity */
+	serial_init();
 #endif
 }
 
@@ -667,19 +656,11 @@ void serial_putc (const char c)
 
 	/* check THRE bit, wait for transmiter available */
 	for (i = 1; i < 3500; i++) {
-#if defined(CONFIG_SERIAL_MULTI)
-		if ((in8 (dev_base + UART_LSR) & 0x20) == 0x20)
-#else
-		if ((in8 (ACTING_UART0_BASE + UART_LSR) & 0x20) == 0x20)
-#endif
+		if ((in8 (UART_BASE + UART_LSR) & 0x20) == 0x20)
 			break;
 		udelay (100);
 	}
-#if defined(CONFIG_SERIAL_MULTI)
-	out8 (dev_base + UART_THR, c);	/* put character out */
-#else
-	out8 (ACTING_UART0_BASE + UART_THR, c);	/* put character out */
-#endif
+	out8 (UART_BASE + UART_THR, c);	/* put character out */
 }
 
 #if defined(CONFIG_SERIAL_MULTI)
@@ -709,11 +690,7 @@ int serial_getc (void)
 #if defined(CONFIG_HW_WATCHDOG)
 		WATCHDOG_RESET ();	/* Reset HW Watchdog, if needed */
 #endif	/* CONFIG_HW_WATCHDOG */
-#if defined(CONFIG_SERIAL_MULTI)
-		status = in8 (dev_base + UART_LSR);
-#else
-		status = in8 (ACTING_UART0_BASE + UART_LSR);
-#endif
+		status = in8 (UART_BASE + UART_LSR);
 		if ((status & asyncLSRDataReady1) != 0x0) {
 			break;
 		}
@@ -721,22 +698,14 @@ int serial_getc (void)
 				asyncLSROverrunError1 |
 				asyncLSRParityError1  |
 				asyncLSRBreakInterrupt1 )) != 0) {
-#if defined(CONFIG_SERIAL_MULTI)
-			out8 (dev_base + UART_LSR,
-#else
-			out8 (ACTING_UART0_BASE + UART_LSR,
-#endif
+			out8 (UART_BASE + UART_LSR,
 			      asyncLSRFramingError1 |
 			      asyncLSROverrunError1 |
 			      asyncLSRParityError1  |
 			      asyncLSRBreakInterrupt1);
 		}
 	}
-#if defined(CONFIG_SERIAL_MULTI)
-	return (0x000000ff & (int) in8 (dev_base));
-#else
-	return (0x000000ff & (int) in8 (ACTING_UART0_BASE));
-#endif
+	return (0x000000ff & (int) in8 (UART_BASE));
 }
 
 #if defined(CONFIG_SERIAL_MULTI)
@@ -747,11 +716,7 @@ int serial_tstc (void)
 {
 	unsigned char status;
 
-#if defined(CONFIG_SERIAL_MULTI)
-	status = in8 (dev_base + UART_LSR);
-#else
-	status = in8 (ACTING_UART0_BASE + UART_LSR);
-#endif
+	status = in8 (UART_BASE + UART_LSR);
 	if ((status & asyncLSRDataReady1) != 0x0) {
 		return (1);
 	}
@@ -759,11 +724,7 @@ int serial_tstc (void)
 			asyncLSROverrunError1 |
 			asyncLSRParityError1  |
 			asyncLSRBreakInterrupt1 )) != 0) {
-#if defined(CONFIG_SERIAL_MULTI)
-		out8 (dev_base + UART_LSR,
-#else
-		out8 (ACTING_UART0_BASE + UART_LSR,
-#endif
+		out8 (UART_BASE + UART_LSR,
 		      asyncLSRFramingError1 |
 		      asyncLSROverrunError1 |
 		      asyncLSRParityError1  |
@@ -887,7 +848,7 @@ int serial_buffered_tstc (void)
 
 #endif	/* CONFIG_SERIAL_SOFTWARE_FIFO */
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 /*
   AS HARNOIS : according to CONFIG_KGDB_SER_INDEX kgdb uses serial port
   number 0 or number 1
@@ -993,7 +954,7 @@ void kgdb_interruptible (int yes)
 	return;
 }
 #endif	/* (CONFIG_KGDB_SER_INDEX & 2) */
-#endif	/* CFG_CMD_KGDB */
+#endif
 
 
 #if defined(CONFIG_SERIAL_MULTI)

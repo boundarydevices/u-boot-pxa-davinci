@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2000, 2002
+# (C) Copyright 2000-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 #
 # See file CREDITS for list of people who contributed to this
@@ -23,67 +23,55 @@
 
 include $(TOPDIR)/config.mk
 
-CPU_TYPE=xscale
+LIB	= $(obj)lib$(CPU).a
+
+START	= start.o
+COBJS	= serial.o interrupts.o cpu.o i2c.o pxafb.o mmc.o usb.o
+
+ifdef CONFIG_PXA27X
+        COBJS += usb_ohci.o
+else
+ifdef CONFIG_SM501
+#        COBJS += usb_ohci.o
+endif
+endif
 
 ifeq ($(SOFTWARE_TYPE),WINCE)
 STACKS_VALID = -DCONFIG_STACKS_VALID
 else
-
 ifeq ($(SOFTWARE_TYPE),GAME)
 STACKS_VALID = -DCONFIG_STACKS_VALID
 else
 STACKS_VALID = -DCONFIG_STACKS_VALID
 endif
 endif
-ARM_ELF_GCC     ?= $(CROSS_COMPILE)gcc
 
-LIB	= lib$(CPU).a
+CPU_TYPE=xscale
+ARM_ELF_GCC     ?= $(CROSS_COMPILE)gcc
 
 ifeq ($(INCLUDE_MINIDEBUG),y)
 START	= minidebug.o ministart.o
 else
 START	= start.o ministart.o
 endif
-OBJS	= serial.o interrupts.o cpu.o i2c.o mmc.o
 
-OBJS	+= pxafb.o
+SRCS	:= $(START:.o=.S) $(SOBJS:.o=.S) $(COBJS:.o=.c)
+OBJS	:= $(addprefix $(obj),$(SOBJS) $(COBJS))
+START	:= $(addprefix $(obj),$(START))
 
-ifeq ($(PLATFORM_TYPE),HALOGEN)
-   OBJS	+= usb_ohci.o
-else
-ifeq ($(PLATFORM_TYPE),ARGON)
-   OBJS	+= usb_ohci.o
-else
-ifeq ($(PLATFORM_TYPE),NEON270)
-   OBJS	+= usb_ohci.o
-else
-ifeq ($(PLATFORM_TYPE),NEON)
-   OBJS	+= usb_ohci.o
-else
-ifeq ($(PLATFORM_TYPE),NEONB)
-   OBJS	+= usb_ohci.o
-else
-endif
-endif
-endif
-endif
-endif
+all:	$(obj).depend $(START) $(LIB)
 
-SOBJS =  xmodemReceive.o
-
-all:	.depend $(START) $(LIB)
-
-$(LIB):	$(OBJS) $(SOBJS)
-	$(AR) crv $@ $^
+$(LIB):	$(OBJS)
+	$(AR) $(ARFLAGS) $@ $(OBJS)
 
 #########################################################################
 
-.depend: Makefile $(START.o=.S) $(OBJS:.o=.c)
-	$(CC) -M $(CFLAGS) $(START:.o=.S) $(OBJS:.o=.c) > $@
+# defines $(obj).depend target
+include $(SRCTREE)/rules.mk
 
-sinclude .depend
+sinclude $(obj).depend
 
-minidebug.o : minidebug.S Makefile
+minidebug.o: minidebug.S
 	$(ARM_ELF_GCC) -c $(D_GNUC) -DUBOOT=1 -DDISPLAY_TYPE=$(DISPLAY_TYPE) -DPLATFORM_TYPE=$(PLATFORM_TYPE) -DPLATFORM_REV=$(PLATFORM_REV) -DSOFTWARE_TYPE=$(SOFTWARE_TYPE) $(STACKS_VALID) -DCPU_CLOCK=$(CPU_CLOCK) \
 		$(SOFT_FLOAT) -I$(TOPDIR)/include -mtune=$(CPU_TYPE) -mcpu=$(CPU_TYPE) -o $@ $<
 

@@ -44,6 +44,12 @@
 DECLARE_GLOBAL_DATA_PTR;
 #endif
 
+/*
+ * Board-specific Platform code can reimplement show_boot_progress () if needed
+ */
+void inline __show_boot_progress (int val) {}
+void inline show_boot_progress (int val) __attribute__((weak, alias("__show_boot_progress")));
+
 #if defined(CONFIG_BOOT_RETRY_TIME) && defined(CONFIG_RESET_TO_RETRY)
 extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);		/* for do_reset() prototype */
 #endif
@@ -95,14 +101,12 @@ static __inline__ int abortboot(int bootdelay)
 {
 	int abort = 0;
 	uint64_t etime = endtick(bootdelay);
-	struct
-	{
+	struct {
 		char* str;
 		u_int len;
 		int retry;
 	}
-	delaykey [] =
-	{
+	delaykey [] = {
 		{ str: getenv ("bootdelaykey"),  retry: 1 },
 		{ str: getenv ("bootdelaykey2"), retry: 1 },
 		{ str: getenv ("bootstopkey"),   retry: 0 },
@@ -114,16 +118,8 @@ static __inline__ int abortboot(int bootdelay)
 	u_int presskey_max = 0;
 	u_int i;
 
-#ifdef CONFIG_SILENT_CONSOLE
-	if (gd->flags & GD_FLG_SILENT) {
-		/* Restore serial console */
-		console_assign (stdout, "serial");
-		console_assign (stderr, "serial");
-	}
-#endif
-
 #  ifdef CONFIG_AUTOBOOT_PROMPT
-	printf (CONFIG_AUTOBOOT_PROMPT, bootdelay);
+	printf(CONFIG_AUTOBOOT_PROMPT, bootdelay);
 #  endif
 
 #  ifdef CONFIG_AUTOBOOT_DELAY_STR
@@ -197,18 +193,12 @@ static __inline__ int abortboot(int bootdelay)
 	}
 #  if DEBUG_BOOTKEYS
 	if (!abort)
-		puts ("key timeout\n");
+		puts("key timeout\n");
 #  endif
 
 #ifdef CONFIG_SILENT_CONSOLE
-	if (abort) {
-		/* permanently enable normal console output */
-		gd->flags &= ~(GD_FLG_SILENT);
-	} else if (gd->flags & GD_FLG_SILENT) {
-		/* Restore silent console */
-		console_assign (stdout, "nulldev");
-		console_assign (stderr, "nulldev");
-	}
+	if (abort)
+		gd->flags &= ~GD_FLG_SILENT;
 #endif
 
 	return abort;
@@ -223,14 +213,6 @@ static int menukey = 0;
 static __inline__ int abortboot(int bootdelay)
 {
 	int abort = 0;
-
-#ifdef CONFIG_SILENT_CONSOLE
-	if (gd->flags & GD_FLG_SILENT) {
-		/* Restore serial console */
-		console_assign (stdout, "serial");
-		console_assign (stderr, "serial");
-	}
-#endif
 
 #ifdef CONFIG_MENUPROMPT
 	printf(CONFIG_MENUPROMPT, bootdelay);
@@ -247,7 +229,7 @@ static __inline__ int abortboot(int bootdelay)
 		if (tstc()) {	/* we got a key press	*/
 			(void) getc();  /* consume input	*/
 			puts ("\b\b\b 0");
-			abort = 1; 	/* don't auto boot	*/
+			abort = 1;	/* don't auto boot	*/
 		}
 	}
 #endif
@@ -268,23 +250,17 @@ static __inline__ int abortboot(int bootdelay)
 # endif
 				break;
 			}
-			udelay (10000);
+			udelay(10000);
 		}
 
-		printf ("\b\b\b%2d ", bootdelay);
+		printf("\b\b\b%2d ", bootdelay);
 	}
 
-	putc ('\n');
+	putc('\n');
 
 #ifdef CONFIG_SILENT_CONSOLE
-	if (abort) {
-		/* permanently enable normal console output */
-		gd->flags &= ~(GD_FLG_SILENT);
-	} else if (gd->flags & GD_FLG_SILENT) {
-		/* Restore silent console */
-		console_assign (stdout, "nulldev");
-		console_assign (stderr, "nulldev");
-	}
+	if (abort)
+		gd->flags &= ~GD_FLG_SILENT;
 #endif
 
 	return abort;
@@ -498,7 +474,7 @@ void main_loop (void)
 
 #ifdef CONFIG_BOOT_RETRY_TIME
 /***************************************************************************
- * initialise command line timeout
+ * initialize command line timeout
  */
 void init_cmd_timeout(void)
 {
@@ -529,23 +505,9 @@ void reset_cmd_timeout(void)
  * Author: Janghoon Lyu <nandy@mizi.com>
  */
 
-#if 1	/* avoid redundand code -- wd */
 #define putnstr(str,n)	do {			\
 		printf ("%.*s", n, str);	\
 	} while (0)
-#else
-void putnstr(const char *str, size_t n)
-{
-	if (str == NULL)
-		return;
-
-	while (n && *str != '\0') {
-		putc(*str);
-		str++;
-		n--;
-	}
-}
-#endif
 
 #define CTL_CH(c)		((c) - 'a' + 1)
 
@@ -1008,7 +970,7 @@ int readline (const char *const prompt)
 			n = 0;
 			continue;
 
-		case 0x17:				/* ^W - erase word 	*/
+		case 0x17:				/* ^W - erase word	*/
 			p=delete_char(console_buffer, p, &col, &n, plen);
 			while ((n > 0) && (*p != ' ')) {
 				p=delete_char(console_buffer, p, &col, &n, plen);
@@ -1140,105 +1102,109 @@ static void process_macros (const char *input, char *output)
 {
 	char c, prev;
 	const char *varname_start = NULL;
-	int inputcnt  = strlen (input);
+	int inputcnt = strlen (input);
 	int outputcnt = CFG_CBSIZE;
-	int state = 0;	/* 0 = waiting for '$'	*/
-			/* 1 = waiting for '(' or '{' */
-			/* 2 = waiting for ')' or '}' */
-			/* 3 = waiting for '''  */
+	int state = 0;		/* 0 = waiting for '$'  */
+
+	/* 1 = waiting for '(' or '{' */
+	/* 2 = waiting for ')' or '}' */
+	/* 3 = waiting for '''  */
 #ifdef DEBUG_PARSER
 	char *output_start = output;
 
-	printf ("[PROCESS_MACROS] INPUT len %d: \"%s\"\n", strlen(input), input);
+	printf ("[PROCESS_MACROS] INPUT len %d: \"%s\"\n", strlen (input),
+		input);
 #endif
 
-	prev = '\0';			/* previous character	*/
+	prev = '\0';		/* previous character   */
 
 	while (inputcnt && outputcnt) {
-	    c = *input++;
-	    inputcnt--;
-
-	    if (state!=3) {
-	    /* remove one level of escape characters */
-	    if ((c == '\\') && (prev != '\\')) {
-		if (inputcnt-- == 0)
-			break;
-		prev = c;
 		c = *input++;
-	    }
-	    }
+		inputcnt--;
 
-	    switch (state) {
-	    case 0:			/* Waiting for (unescaped) $	*/
-		if ((c == '\'') && (prev != '\\')) {
-			state = 3;
-			break;
+		if (state != 3) {
+			/* remove one level of escape characters */
+			if ((c == '\\') && (prev != '\\')) {
+				if (inputcnt-- == 0)
+					break;
+				prev = c;
+				c = *input++;
+			}
 		}
-		if ((c == '$') && (prev != '\\')) {
-			state++;
-		} else {
-			*(output++) = c;
-			outputcnt--;
-		}
-		break;
-	    case 1:			/* Waiting for (	*/
-		if (c == '(' || c == '{') {
-			state++;
-			varname_start = input;
-		} else {
-			state = 0;
-			*(output++) = '$';
-			outputcnt--;
 
-			if (outputcnt) {
+		switch (state) {
+		case 0:	/* Waiting for (unescaped) $    */
+			if ((c == '\'') && (prev != '\\')) {
+				state = 3;
+				break;
+			}
+			if ((c == '$') && (prev != '\\')) {
+				state++;
+			} else {
 				*(output++) = c;
 				outputcnt--;
 			}
-		}
-		break;
-	    case 2:			/* Waiting for )	*/
-		if (c == ')' || c == '}') {
-			int i;
-			char envname[CFG_CBSIZE], *envval;
-			int envcnt = input-varname_start-1; /* Varname # of chars */
+			break;
+		case 1:	/* Waiting for (        */
+			if (c == '(' || c == '{') {
+				state++;
+				varname_start = input;
+			} else {
+				state = 0;
+				*(output++) = '$';
+				outputcnt--;
 
-			/* Get the varname */
-			for (i = 0; i < envcnt; i++) {
-				envname[i] = varname_start[i];
-			}
-			envname[i] = 0;
-
-			/* Get its value */
-			envval = getenv (envname);
-
-			/* Copy into the line if it exists */
-			if (envval != NULL)
-				while ((*envval) && outputcnt) {
-					*(output++) = *(envval++);
+				if (outputcnt) {
+					*(output++) = c;
 					outputcnt--;
 				}
-			/* Look for another '$' */
-			state = 0;
+			}
+			break;
+		case 2:	/* Waiting for )        */
+			if (c == ')' || c == '}') {
+				int i;
+				char envname[CFG_CBSIZE], *envval;
+				int envcnt = input - varname_start - 1;	/* Varname # of chars */
+
+				/* Get the varname */
+				for (i = 0; i < envcnt; i++) {
+					envname[i] = varname_start[i];
+				}
+				envname[i] = 0;
+
+				/* Get its value */
+				envval = getenv (envname);
+
+				/* Copy into the line if it exists */
+				if (envval != NULL)
+					while ((*envval) && outputcnt) {
+						*(output++) = *(envval++);
+						outputcnt--;
+					}
+				/* Look for another '$' */
+				state = 0;
+			}
+			break;
+		case 3:	/* Waiting for '        */
+			if ((c == '\'') && (prev != '\\')) {
+				state = 0;
+			} else {
+				*(output++) = c;
+				outputcnt--;
+			}
+			break;
 		}
-		break;
-	    case 3:			/* Waiting for '	*/
-		if ((c == '\'') && (prev != '\\')) {
-			state = 0;
-		} else {
-			*(output++) = c;
-			outputcnt--;
-		}
-		break;
-	    }
-	    prev = c;
+		prev = c;
 	}
 
 	if (outputcnt)
 		*output = 0;
+	else
+		*(output - 1) = 0;
 
 #ifdef DEBUG_PARSER
 	printf ("[PROCESS_MACROS] OUTPUT len %d: \"%s\"\n",
-		strlen(output_start), output_start);
+		strlen (output_start), output_start);
 #endif
 }
 
@@ -1353,7 +1319,7 @@ int run_command (const char *cmd, int flag)
 			continue;
 		}
 
-#if (CONFIG_COMMANDS & CFG_CMD_BOOTD)
+#if defined(CONFIG_CMD_BOOTD)
 		/* avoid "bootd" recursion */
 		if (cmdtp->cmd == do_bootd) {
 #ifdef DEBUG_PARSER
@@ -1367,7 +1333,7 @@ int run_command (const char *cmd, int flag)
 				flag |= CMD_FLAG_BOOTD;
 			}
 		}
-#endif	/* CFG_CMD_BOOTD */
+#endif
 
 		/* OK - call function to do the command */
 		if ((cmdtp->cmd) (cmdtp, flag, argc, argv) != 0) {
@@ -1378,7 +1344,7 @@ int run_command (const char *cmd, int flag)
 
 		/* Did the user stop this? */
 		if (had_ctrlc ())
-			return 0;	/* if stopped then not repeatable */
+			return -1;	/* if stopped then not repeatable */
 	}
 
 	return rc ? rc : repeatable;
@@ -1386,7 +1352,7 @@ int run_command (const char *cmd, int flag)
 
 /****************************************************************************/
 
-#if (CONFIG_COMMANDS & CFG_CMD_RUN)
+#if defined(CONFIG_CMD_RUN)
 int do_run (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 {
 	int i;
@@ -1414,4 +1380,4 @@ int do_run (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 	}
 	return 0;
 }
-#endif	/* CFG_CMD_RUN */
+#endif

@@ -33,6 +33,10 @@
 #include <spd.h>
 #include <miiphy.h>
 
+#if defined(CONFIG_OF_FLAT_TREE)
+#include <ft_build.h>
+#endif
+
 #if defined(CONFIG_DDR_ECC) && !defined(CONFIG_ECC_INIT_VIA_DDRCONTROLLER)
 extern void ddr_enable_ecc(unsigned int dram_size);
 #endif
@@ -539,8 +543,40 @@ void
 pci_init_board(void)
 {
 #ifdef CONFIG_PCI
-	extern void pci_mpc85xx_init(struct pci_controller *hose);
-
 	pci_mpc85xx_init(&hose);
 #endif /* CONFIG_PCI */
 }
+
+
+#if defined(CONFIG_OF_FLAT_TREE) && defined(CONFIG_OF_BOARD_SETUP)
+void
+ft_soc_setup(void *blob, bd_t *bd)
+{
+	u32 *p;
+	int len;
+
+	p = ft_get_prop(blob, "/" OF_SOC "/cpm@e0000000/brg-frequency", &len);
+
+	if (p != NULL)
+		*p = cpu_to_be32(bd->bi_brgfreq);
+
+	p = ft_get_prop(blob,
+			"/" OF_SOC "/cpm@e0000000/scc@91a00/current-speed",
+			&len);
+	if (p != NULL)
+		*p = cpu_to_be32(bd->bi_baudrate);
+
+	p = ft_get_prop(blob,
+			"/" OF_SOC "/cpm@e0000000/scc@91a20/current-speed",
+			&len);
+	if (p != NULL)
+		*p = cpu_to_be32(bd->bi_baudrate);
+}
+
+void
+ft_board_setup(void *blob, bd_t *bd)
+{
+	ft_cpu_setup(blob, bd);
+	ft_soc_setup(blob, bd);
+}
+#endif

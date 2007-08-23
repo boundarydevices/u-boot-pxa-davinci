@@ -22,7 +22,7 @@
 
 #include <common.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_NAND)
+#if defined(CONFIG_CMD_NAND)
 
 #include <nand.h>
 
@@ -55,12 +55,13 @@ static int netstar_nand_ready(struct mtd_info *mtd)
 }
 ***/
 
-void board_nand_init(struct nand_chip *nand)
+int board_nand_init(struct nand_chip *nand)
 {
 	nand->options = NAND_SAMSUNG_LP_OPTIONS;
 	nand->eccmode = NAND_ECC_SOFT;
 	nand->hwcontrol = netstar_nand_hwcontrol;
 /*	nand->dev_ready = netstar_nand_ready; */
 	nand->chip_delay = 18;
+	return 0;
 }
 #endif

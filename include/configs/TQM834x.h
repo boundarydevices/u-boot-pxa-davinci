@@ -28,19 +28,17 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#define DEBUG
-#undef DEBUG
-
 /*
  * High Level Configuration Options
  */
 #define CONFIG_E300		1	/* E300 Family */
 #define CONFIG_MPC83XX		1	/* MPC83XX family */
 #define CONFIG_MPC834X		1	/* MPC834X specific */
+#define CONFIG_MPC8349		1	/* MPC8349 specific */
 #define CONFIG_TQM834X		1	/* TQM834X board specific */
 
 /* IMMR Base Addres Register, use Freescale default: 0xff400000 */
-#define CFG_IMMRBAR		0xff400000
+#define CFG_IMMR		0xff400000
 
 /* System clock. Primary input clock when in PCI host mode */
 #define CONFIG_83XX_CLKIN	66666000	/* 66,666 MHz */
@@ -83,6 +81,7 @@
 #define CFG_FLASH_CFI_DRIVER			/* use the CFI driver */
 #undef CFG_FLASH_CHECKSUM
 #define CFG_FLASH_BASE		0x80000000	/* start of FLASH   */
+#define CFG_FLASH_SIZE		8		/* FLASH size in MB */
 
 /* buffered writes in the AMD chip set is not supported yet */
 #undef CFG_FLASH_USE_BUFFER_WRITE
@@ -197,14 +196,15 @@ extern int tqm834x_num_flash_banks;
 #define CFG_BAUDRATE_TABLE  \
 	{300, 600, 1200, 2400, 4800, 9600, 19200, 38400,115200}
 
-#define CFG_NS16550_COM1	(CFG_IMMRBAR + 0x4500)
-#define CFG_NS16550_COM2	(CFG_IMMRBAR + 0x4600)
+#define CFG_NS16550_COM1	(CFG_IMMR + 0x4500)
+#define CFG_NS16550_COM2	(CFG_IMMR + 0x4600)
 
 /*
  * I2C
  */
 #define CONFIG_HARD_I2C				/* I2C with hardware support	*/
 #undef CONFIG_SOFT_I2C				/* I2C bit-banged		*/
+#define CONFIG_FSL_I2C
 #define CFG_I2C_SPEED			400000	/* I2C speed: 400KHz		*/
 #define CFG_I2C_SLAVE			0x7F	/* slave address		*/
 #define CFG_I2C_OFFSET			0x3000
@@ -235,9 +235,9 @@ extern int tqm834x_num_flash_banks;
 #define CONFIG_MII
 
 #define CFG_TSEC1_OFFSET	0x24000
-#define CFG_TSEC1		(CFG_IMMRBAR + CFG_TSEC1_OFFSET)
+#define CFG_TSEC1		(CFG_IMMR + CFG_TSEC1_OFFSET)
 #define CFG_TSEC2_OFFSET	0x25000
-#define CFG_TSEC2		(CFG_IMMRBAR + CFG_TSEC2_OFFSET)
+#define CFG_TSEC2		(CFG_IMMR + CFG_TSEC2_OFFSET)
 
 #if defined(CONFIG_TSEC_ENET)
 
@@ -245,14 +245,16 @@ extern int tqm834x_num_flash_banks;
 #define CONFIG_NET_MULTI
 #endif
 
-#define CONFIG_MPC83XX_TSEC1		1
-#define CONFIG_MPC83XX_TSEC1_NAME	"TSEC0"
-#define CONFIG_MPC83XX_TSEC2		1
-#define CONFIG_MPC83XX_TSEC2_NAME	"TSEC1"
+#define CONFIG_TSEC1		1
+#define CONFIG_TSEC1_NAME	"TSEC0"
+#define CONFIG_TSEC2		1
+#define CONFIG_TSEC2_NAME	"TSEC1"
 #define TSEC1_PHY_ADDR			2
 #define TSEC2_PHY_ADDR			1
 #define TSEC1_PHYIDX			0
 #define TSEC2_PHYIDX			0
+#define TSEC1_FLAGS		TSEC_GIGABIT
+#define TSEC2_FLAGS		TSEC_GIGABIT
 
 /* Options are: TSEC[0-1] */
 #define CONFIG_ETHPRIME			"TSEC0"
@@ -277,7 +279,6 @@ extern int tqm834x_num_flash_banks;
 #define CFG_PCI1_IO_BASE        0xe2000000
 #define CFG_PCI1_IO_PHYS        CFG_PCI1_IO_BASE
 #define CFG_PCI1_IO_SIZE        0x1000000       /* 16M */
-
 
 #undef CONFIG_EEPRO100
 #define CONFIG_EEPRO100
@@ -313,38 +314,36 @@ extern int tqm834x_num_flash_banks;
 #define CONFIG_LOADS_ECHO		1	/* echo on for serial download */
 #define CFG_LOADS_BAUD_CHANGE		1	/* allow baudrate change */
 
-/* Common commands */
-#define CFG_CMD_TQM8349_COMMON	CFG_CMD_DATE | CFG_CMD_I2C | CFG_CMD_DTT\
-				| CFG_CMD_PING | CFG_CMD_EEPROM		\
-				| CFG_CMD_MII | CFG_CMD_JFFS2
+/*
+ * BOOTP options
+ */
+#define CONFIG_BOOTP_BOOTFILESIZE
+#define CONFIG_BOOTP_BOOTPATH
+#define CONFIG_BOOTP_GATEWAY
+#define CONFIG_BOOTP_HOSTNAME
+
+
+/*
+ * Command line configuration.
+ */
+#include <config_cmd_default.h>
+
+#define CONFIG_CMD_DATE
+#define CONFIG_CMD_DTT
+#define CONFIG_CMD_EEPROM
+#define CONFIG_CMD_I2C
+#define CONFIG_CMD_JFFS2
+#define CONFIG_CMD_MII
+#define CONFIG_CMD_PING
+
+#if defined(CONFIG_PCI)
+    #define CONFIG_CMD_PCI
+#endif
 
 #if defined(CFG_RAMBOOT)
-
-#if defined(CONFIG_PCI)
-#define  CONFIG_COMMANDS	((CONFIG_CMD_DFL | CFG_CMD_PCI	\
-				| CFG_CMD_TQM8349_COMMON)	\
-				&				\
-				~(CFG_CMD_ENV | CFG_CMD_LOADS))
-#else
-#define  CONFIG_COMMANDS	((CONFIG_CMD_DFL		\
-				| CFG_CMD_TQM8349_COMMON)	\
-				&				\
-				~(CFG_CMD_ENV | CFG_CMD_LOADS))
+    #undef CONFIG_CMD_ENV
+    #undef CONFIG_CMD_LOADS
 #endif
-
-#else /* CFG_RAMBOOT */
-
-#if defined(CONFIG_PCI)
-#define  CONFIG_COMMANDS	(CONFIG_CMD_DFL | CFG_CMD_PCI	\
-				| CFG_CMD_TQM8349_COMMON)
-#else
-#define  CONFIG_COMMANDS	(CONFIG_CMD_DFL			\
-				| CFG_CMD_TQM8349_COMMON)
-#endif
-
-#endif /* CFG_RAMBOOT */
-
-#include <cmd_confdefs.h>
 
 /*
  * Miscellaneous configurable options
@@ -353,7 +352,13 @@ extern int tqm834x_num_flash_banks;
 #define CFG_LOAD_ADDR		0x2000000	/* default load address */
 #define CFG_PROMPT		"=> "		/* Monitor Command Prompt */
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#define CONFIG_CMDLINE_EDITING	1	/* add command line history	*/
+#define CFG_HUSH_PARSER		1	/* Use the HUSH parser		*/
+#ifdef	CFG_HUSH_PARSER
+#define	CFG_PROMPT_HUSH_PS2	"> "
+#endif
+
+#if defined(CONFIG_CMD_KGDB)
 	#define CFG_CBSIZE	1024		/* Console I/O Buffer Size */
 #else
 	#define CFG_CBSIZE	256		/* Console I/O Buffer Size */
@@ -378,7 +383,7 @@ extern int tqm834x_num_flash_banks;
  */
 #define CFG_DCACHE_SIZE		32768
 #define CFG_CACHELINE_SIZE	32
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CFG_CACHELINE_SHIFT	5	/*log base 2 of the above value*/
 #endif
 
@@ -422,9 +427,9 @@ extern int tqm834x_num_flash_banks;
 #define CFG_SICRL	SICRL_LDP_A
 
 /* i-cache and d-cache disabled */
-#define CFG_HID0_INIT		0x000000000
-#define CFG_HID0_FINAL		CFG_HID0_INIT
-#define CFG_HID2		0x000000000
+#define CFG_HID0_INIT	0x000000000
+#define CFG_HID0_FINAL	CFG_HID0_INIT
+#define CFG_HID2	HID2_HBE
 
 /* DDR 0 - 512M */
 #define CFG_IBAT0L	(CFG_SDRAM_BASE | BATL_PP_10 | BATL_MEMCOHERENCE)
@@ -437,16 +442,25 @@ extern int tqm834x_num_flash_banks;
 #define CFG_IBAT2U	(CFG_INIT_RAM_ADDR | BATU_BL_128K | BATU_VS | BATU_VP)
 
 /* PCI */
-#define CFG_IBAT3L	(CFG_PCI1_MEM_BASE | BATL_PP_10 | BATL_CACHEINHIBIT | BATL_GUARDEDSTORAGE)
+#ifdef CONFIG_PCI
+#define CFG_IBAT3L	(CFG_PCI1_MEM_BASE | BATL_PP_10 | BATL_MEMCOHERENCE)
 #define CFG_IBAT3U	(CFG_PCI1_MEM_BASE | BATU_BL_256M | BATU_VS | BATU_VP)
-#define CFG_IBAT4L	(CFG_PCI1_MEM_BASE + 0x10000000 | BATL_PP_10 | BATL_CACHEINHIBIT | BATL_GUARDEDSTORAGE)
+#define CFG_IBAT4L	(CFG_PCI1_MEM_BASE + 0x10000000 | BATL_PP_10 | BATL_MEMCOHERENCE)
 #define CFG_IBAT4U	(CFG_PCI1_MEM_BASE + 0x10000000 | BATU_BL_256M | BATU_VS | BATU_VP)
 #define CFG_IBAT5L	(CFG_PCI1_IO_BASE | BATL_PP_10 | BATL_CACHEINHIBIT | BATL_GUARDEDSTORAGE)
 #define CFG_IBAT5U	(CFG_PCI1_IO_BASE + 0x10000000 | BATU_BL_16M | BATU_VS | BATU_VP)
+#else
+#define CFG_IBAT3L	(0)
+#define CFG_IBAT3U	(0)
+#define CFG_IBAT4L	(0)
+#define CFG_IBAT4U	(0)
+#define CFG_IBAT5L	(0)
+#define CFG_IBAT5U	(0)
+#endif
 
 /* IMMRBAR */
-#define CFG_IBAT6L	(CFG_IMMRBAR | BATL_PP_10 | BATL_CACHEINHIBIT | BATL_GUARDEDSTORAGE)
-#define CFG_IBAT6U	(CFG_IMMRBAR | BATU_BL_1M | BATU_VS | BATU_VP)
+#define CFG_IBAT6L	(CFG_IMMR | BATL_PP_10 | BATL_CACHEINHIBIT | BATL_GUARDEDSTORAGE)
+#define CFG_IBAT6U	(CFG_IMMR | BATU_BL_1M | BATU_VS | BATU_VP)
 
 /* FLASH */
 #define CFG_IBAT7L	(CFG_FLASH_BASE | BATL_PP_10 | BATL_CACHEINHIBIT | BATL_GUARDEDSTORAGE)
@@ -477,7 +491,7 @@ extern int tqm834x_num_flash_banks;
 #define BOOTFLAG_COLD		0x01	/* Normal Power-On: Boot from FLASH */
 #define BOOTFLAG_WARM		0x02	/* Software reboot */
 
-#if (CONFIG_COMMANDS & CFG_CMD_KGDB)
+#if defined(CONFIG_CMD_KGDB)
 #define CONFIG_KGDB_BAUDRATE	230400	/* speed of kgdb serial port */
 #define CONFIG_KGDB_SER_INDEX	2	/* which serial port to use */
 #endif

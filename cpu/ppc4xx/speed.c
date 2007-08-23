@@ -199,7 +199,8 @@ ulong get_PCI_freq (void)
 
 #elif defined(CONFIG_440)
 
-#if  defined(CONFIG_440EP) || defined(CONFIG_440GR)
+#if defined(CONFIG_440EP) || defined(CONFIG_440GR) || \
+    defined(CONFIG_440EPX) || defined(CONFIG_440GRX)
 void get_sys_info (sys_info_t *sysInfo)
 {
 	unsigned long temp;
@@ -330,7 +331,7 @@ void get_sys_info (sys_info_t * sysInfo)
 	unsigned long m;
 	unsigned long prbdv0;
 
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_YUCCA)
 	unsigned long sys_freq;
 	unsigned long sys_per=0;
 	unsigned long msr;
@@ -347,7 +348,7 @@ void get_sys_info (sys_info_t * sysInfo)
 	/*-------------------------------------------------------------------------+
 	 | Calculate the system clock speed from the period.
 	 +-------------------------------------------------------------------------*/
-	sys_freq=(ONE_BILLION/sys_per)*1000;
+	sys_freq = (ONE_BILLION / sys_per) * 1000;
 #endif
 
 	/* Extract configured divisors */
@@ -384,17 +385,17 @@ void get_sys_info (sys_info_t * sysInfo)
 		m = sysInfo->pllExtBusDiv * sysInfo->pllOpbDiv * sysInfo->pllFwdDivB;
 
 	/* Now calculate the individual clocks */
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_YUCCA)
 	sysInfo->freqVCOMhz = (m * sys_freq) ;
 #else
-	sysInfo->freqVCOMhz = (m * CONFIG_SYS_CLK_FREQ) + (m>>1);
+	sysInfo->freqVCOMhz = (m * CONFIG_SYS_CLK_FREQ) + (m >> 1);
 #endif
 	sysInfo->freqProcessor = sysInfo->freqVCOMhz/sysInfo->pllFwdDivA;
 	sysInfo->freqPLB = sysInfo->freqVCOMhz/sysInfo->pllFwdDivB/prbdv0;
 	sysInfo->freqOPB = sysInfo->freqPLB/sysInfo->pllOpbDiv;
 	sysInfo->freqEPB = sysInfo->freqOPB/sysInfo->pllExtBusDiv;
 
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_YUCCA)
 	/* Determine PCI Clock Period */
 	pci_clock_per = determine_pci_clock_per();
 	sysInfo->freqPCI = (ONE_BILLION/pci_clock_per) * 1000;
@@ -407,7 +408,7 @@ void get_sys_info (sys_info_t * sysInfo)
 
 #endif
 
-#if defined(CONFIG_440SPE)
+#if defined(CONFIG_YUCCA)
 unsigned long determine_sysper(void)
 {
 	unsigned int fpga_clocking_reg;
@@ -582,7 +583,6 @@ unsigned long determine_sysper(void)
 	}
 
 	return(sys_per);
-
 }
 
 /*-------------------------------------------------------------------------+
@@ -767,11 +767,120 @@ ulong get_PCI_freq (void)
 	return val;
 }
 
+#elif defined(CONFIG_405EZ)
+void get_sys_info (PPC405_SYS_INFO * sysInfo)
+{
+	unsigned long cpr_plld;
+	unsigned long cpr_pllc;
+	unsigned long cpr_primad;
+	unsigned long sysClkPeriodPs = ONE_BILLION / (CONFIG_SYS_CLK_FREQ/1000);
+	unsigned long primad_cpudv;
+	unsigned long m;
+
+	/*
+	 * Read PLL Mode registers
+	 */
+	mfcpr(cprplld, cpr_plld);
+	mfcpr(cprpllc, cpr_pllc);
+
+	/*
+	 * Determine forward divider A
+	 */
+	sysInfo->pllFwdDiv = ((cpr_plld & PLLD_FWDVA_MASK) >> 16);
+
+	/*
+	 * Determine forward divider B
+	 */
+	sysInfo->pllFwdDivB = ((cpr_plld & PLLD_FWDVB_MASK) >> 8);
+	if (sysInfo->pllFwdDivB == 0)
+		sysInfo->pllFwdDivB = 8;
+
+	/*
+	 * Determine FBK_DIV.
+	 */
+	sysInfo->pllFbkDiv = ((cpr_plld & PLLD_FBDV_MASK) >> 24);
+	if (sysInfo->pllFbkDiv == 0)
+		sysInfo->pllFbkDiv = 256;
+
+	/*
+	 * Read CPR_PRIMAD register
+	 */
+	mfcpr(cprprimad, cpr_primad);
+	/*
+	 * Determine PLB_DIV.
+	 */
+	sysInfo->pllPlbDiv = ((cpr_primad & PRIMAD_PLBDV_MASK) >> 16);
+	if (sysInfo->pllPlbDiv == 0)
+		sysInfo->pllPlbDiv = 16;
+
+	/*
+	 * Determine EXTBUS_DIV.
+	 */
+	sysInfo->pllExtBusDiv = (cpr_primad & PRIMAD_EBCDV_MASK);
+	if (sysInfo->pllExtBusDiv == 0)
+		sysInfo->pllExtBusDiv = 16;
+
+	/*
+	 * Determine OPB_DIV.
+	 */
+	sysInfo->pllOpbDiv = ((cpr_primad & PRIMAD_OPBDV_MASK) >> 8);
+	if (sysInfo->pllOpbDiv == 0)
+		sysInfo->pllOpbDiv = 16;
+
+	/*
+	 * Determine the M factor
+	 */
+	if (cpr_pllc & PLLC_SRC_MASK)
+		m = sysInfo->pllFbkDiv * sysInfo->pllFwdDivB;
+	else
+		m = sysInfo->pllFbkDiv * sysInfo->pllFwdDiv;
+
+	/*
+	 * Determine VCO clock frequency
+	 */
+	sysInfo->freqVCOHz = (1000000000000LL * (unsigned long long)m) /
+		(unsigned long long)sysClkPeriodPs;
+
+	/*
+	 * Determine CPU clock frequency
+	 */
+	primad_cpudv = ((cpr_primad & PRIMAD_CPUDV_MASK) >> 24);
+	if (primad_cpudv == 0)
+		primad_cpudv = 16;
+
+	sysInfo->freqProcessor = (CONFIG_SYS_CLK_FREQ * m) /
+		sysInfo->pllFwdDiv / primad_cpudv;
+
+	/*
+	 * Determine PLB clock frequency
+	 */
+	sysInfo->freqPLB = (CONFIG_SYS_CLK_FREQ * m) /
+		sysInfo->pllFwdDiv / sysInfo->pllPlbDiv;
+}
+
+/********************************************
+ * get_OPB_freq
+ * return OPB bus freq in Hz
+ *********************************************/
+ulong get_OPB_freq (void)
+{
+	ulong val = 0;
+
+	PPC405_SYS_INFO sys_info;
+
+	get_sys_info (&sys_info);
+	val = (CONFIG_SYS_CLK_FREQ * sys_info.pllFbkDiv) / sys_info.pllOpbDiv;
+
+	return val;
+}
+
 #endif
 
 int get_clocks (void)
 {
-#if defined(CONFIG_405GP) || defined(CONFIG_405CR) || defined(CONFIG_440) || defined(CONFIG_405) || defined(CONFIG_405EP)
+#if defined(CONFIG_405GP) || defined(CONFIG_405CR) || \
+    defined(CONFIG_405EP) || defined(CONFIG_405EZ) || \
+    defined(CONFIG_440) || defined(CONFIG_405)
 	sys_info_t sys_info;
 
 	get_sys_info (&sys_info);
@@ -796,7 +905,9 @@ ulong get_bus_freq (ulong dummy)
 {
 	ulong val;
 
-#if defined(CONFIG_405GP) || defined(CONFIG_405CR) || defined(CONFIG_405) || defined(CONFIG_440) || defined(CONFIG_405EP)
+#if defined(CONFIG_405GP) || defined(CONFIG_405CR) || \
+    defined(CONFIG_405EP) || defined(CONFIG_405EZ) || \
+    defined(CONFIG_440) || defined(CONFIG_405)
 	sys_info_t sys_info;
 
 	get_sys_info (&sys_info);

@@ -28,13 +28,14 @@
  */
 #include <common.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_REISER)
+#if defined(CONFIG_CMD_REISER)
 #include <config.h>
 #include <command.h>
 #include <image.h>
 #include <linux/ctype.h>
 #include <asm/byteorder.h>
 #include <reiserfs.h>
+#include <part.h>
 
 #ifndef CONFIG_DOS_PARTITION
 #error DOS partition support must be selected
@@ -47,41 +48,6 @@
 #else
 #define PRINTF(fmt,args...)
 #endif
-
-static block_dev_desc_t *get_dev (char* ifname, int dev)
-{
-#if (CONFIG_COMMANDS & CFG_CMD_IDE)
-	if (strncmp(ifname,"ide",3)==0) {
-		extern block_dev_desc_t * ide_get_dev(int dev);
-		return((dev >= CFG_IDE_MAXDEVICE) ? NULL : ide_get_dev(dev));
-	}
-#endif
-#if (CONFIG_COMMANDS & CFG_CMD_SCSI)
-	if (strncmp(ifname,"scsi",4)==0) {
-		extern block_dev_desc_t * scsi_get_dev(int dev);
-		return((dev >= CFG_SCSI_MAXDEVICE) ? NULL : scsi_get_dev(dev));
-	}
-#endif
-#if ((CONFIG_COMMANDS & CFG_CMD_USB) && defined(CONFIG_USB_STORAGE))
-	if (strncmp(ifname,"usb",3)==0) {
-		extern block_dev_desc_t * usb_stor_get_dev(int dev);
-		return((dev >= USB_MAX_STOR_DEV) ? NULL : usb_stor_get_dev(dev));
-	}
-#endif
-#if defined(CONFIG_MMC)
-	if (strncmp(ifname,"mmc",3)==0) {
-		extern block_dev_desc_t *  mmc_get_dev(int dev);
-		return((dev >= 1) ? NULL : mmc_get_dev(dev));
-	}
-#endif
-#if defined(CONFIG_SYSTEMACE)
-	if (strcmp(ifname,"ace")==0) {
-		extern block_dev_desc_t *  systemace_get_dev(int dev);
-		return((dev >= 1) ? NULL : systemace_get_dev(dev));
-	}
-#endif
-	return NULL;
-}
 
 int do_reiserls (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
@@ -97,7 +63,7 @@ int do_reiserls (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return 1;
 	}
 	dev = (int)simple_strtoul (argv[2], &ep, 16);
-	dev_desc=get_dev(argv[1],dev);
+	dev_desc = get_dev(argv[1],dev);
 
 	if (dev_desc == NULL) {
 		printf ("\n** Block device %s %d not supported\n", argv[1], dev);
@@ -124,7 +90,7 @@ int do_reiserls (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	}
 
 	if (!reiserfs_mount(part_length)) {
-		printf ("** Bad Reisefs partition or disk - %s %d:%d **\n",  argv[1], dev, part);
+		printf ("** Bad Reiserfs partition or disk - %s %d:%d **\n",  argv[1], dev, part);
 		return 1;
 	}
 
@@ -196,7 +162,7 @@ int do_reiserload (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	}
 
 	dev = (int)simple_strtoul (argv[2], &ep, 16);
-	dev_desc=get_dev(argv[1],dev);
+	dev_desc = get_dev(argv[1],dev);
 	if (dev_desc==NULL) {
 		printf ("\n** Block device %s %d not supported\n", argv[1], dev);
 		return 1;
@@ -217,7 +183,7 @@ int do_reiserload (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			return 1;
 		}
 
-		if (strncmp(info.type, BOOT_PART_TYPE, sizeof(info.type)) != 0) {
+		if (strncmp((char *)info.type, BOOT_PART_TYPE, sizeof(info.type)) != 0) {
 			printf ("\n** Invalid partition type \"%.32s\""
 				" (expect \"" BOOT_PART_TYPE "\")\n",
 				info.type);
@@ -238,7 +204,7 @@ int do_reiserload (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	}
 
 	if (!reiserfs_mount(part_length)) {
-		printf ("** Bad Reisefs partition or disk - %s %d:%d **\n",  argv[1], dev, part);
+		printf ("** Bad Reiserfs partition or disk - %s %d:%d **\n",  argv[1], dev, part);
 		return 1;
 	}
 
@@ -274,4 +240,4 @@ U_BOOT_CMD(
 	"      to address 'addr' from dos filesystem\n"
 );
 
-#endif	/* CONFIG_COMMANDS & CFG_CMD_REISER */
+#endif

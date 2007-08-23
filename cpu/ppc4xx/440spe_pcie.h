@@ -139,9 +139,17 @@
  */
 #define PECFG_BAR0LMPA		0x210
 #define PECFG_BAR0HMPA		0x214
+#define PECFG_BAR1MPA		0x218
+#define PECFG_BAR2MPA		0x220
+
 #define PECFG_PIMEN		0x33c
 #define PECFG_PIM0LAL		0x340
 #define PECFG_PIM0LAH		0x344
+#define PECFG_PIM1LAL		0x348
+#define PECFG_PIM1LAH		0x34c
+#define PECFG_PIM01SAL		0x350
+#define PECFG_PIM01SAH		0x354
+
 #define PECFG_POM0LAL		0x380
 #define PECFG_POM0LAH		0x384
 
@@ -153,10 +161,26 @@
 	mtdcr(DCRN_SDR0_CFGADDR, offset); \
 	mtdcr(DCRN_SDR0_CFGDATA,data);})
 
+#define PCIE_IN(opcode, ret, addr) \
+	__asm__ __volatile__(			\
+		"sync\n"			\
+		#opcode " %0,0,%1\n"		\
+		"1: twi 0,%0,0\n"		\
+		"isync\n"			\
+		"b 3f\n"			\
+		"2: li %0,-1\n"			\
+		"3:\n"				\
+		".section __ex_table,\"a\"\n"	\
+		".balign 4\n"			\
+		".long 1b,2b\n"			\
+		".previous\n"			\
+		: "=r" (ret) : "r" (addr), "m" (*addr));
+
 int ppc440spe_init_pcie(void);
 int ppc440spe_init_pcie_rootport(int port);
 void yucca_setup_pcie_fpga_rootpoint(int port);
-void ppc440spe_setup_pcie(struct pci_controller *hose, int port);
+void ppc440spe_setup_pcie_rootpoint(struct pci_controller *hose, int port);
+int ppc440spe_setup_pcie_endpoint(struct pci_controller *hose, int port);
 int yucca_pcie_card_present(int port);
 int pcie_hose_scan(struct pci_controller *hose, int bus);
 #endif /* __440SPE_PCIE_H */

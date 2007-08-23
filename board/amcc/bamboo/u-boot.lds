@@ -68,19 +68,7 @@ SECTIONS
 
     cpu/ppc4xx/start.o	(.text)
     board/amcc/bamboo/init.o	(.text)
-    cpu/ppc4xx/kgdb.o	(.text)
-    cpu/ppc4xx/traps.o	(.text)
-    cpu/ppc4xx/interrupts.o	(.text)
-    cpu/ppc4xx/serial.o	(.text)
-    cpu/ppc4xx/cpu_init.o	(.text)
-    cpu/ppc4xx/speed.o	(.text)
-    common/dlmalloc.o	(.text)
-    lib_generic/crc32.o		(.text)
-    lib_ppc/extable.o	(.text)
-    lib_generic/zlib.o		(.text)
-
-/*    . = env_offset;*/
-/*    common/environment.o(.text)*/
+    board/amcc/bamboo/bamboo.o	(.text)
 
     *(.text)
     *(.fixup)
@@ -152,8 +140,6 @@ SECTIONS
    *(.bss)
    *(COMMON)
   }
-
-  ppcenv_assert = ASSERT(. < 0xFFFF8000, ".bss section too big, overlaps .ppcenv section. Please update your confguration: CFG_MONITOR_BASE, CFG_MONITOR_LEN and TEXT_BASE may need to be modified.");
 
   _end = . ;
   PROVIDE (end = .);

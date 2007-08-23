@@ -1,5 +1,5 @@
 /*
- * Copyright 2004 Freescale Semiconductor.
+ * Copyright 2004, 2007 Freescale Semiconductor.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -69,8 +69,8 @@ SECTIONS
     cpu/mpc85xx/interrupts.o (.text)
     cpu/mpc85xx/cpu_init.o (.text)
     cpu/mpc85xx/cpu.o (.text)
+    drivers/tsec.o (.text)
     cpu/mpc85xx/speed.o (.text)
-    cpu/mpc85xx/pci.o (.text)
     common/dlmalloc.o (.text)
     lib_generic/crc32.o (.text)
     lib_ppc/extable.o (.text)
