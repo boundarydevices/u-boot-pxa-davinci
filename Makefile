@@ -2068,6 +2068,9 @@ omap5912osk_config :	unconfig
 davinci_dvevm_config :	unconfig
 	@$(MKCONFIG) $(@:_config=) arm arm926ejs dv-evm davinci davinci
 
+davinci_xenon_config :	unconfig
+	@$(MKCONFIG) $(@:_config=) arm arm926ejs xenon davinci davinci
+
 davinci_schmoogie_config :	unconfig
 	@$(MKCONFIG) $(@:_config=) arm arm926ejs schmoogie davinci davinci
 
