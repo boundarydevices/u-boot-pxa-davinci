@@ -1,6 +1,6 @@
 #include "platformTypes.h"
 #define SUB_LR_FALL_THRU_FOR_FIQ 1		//0 for branch
-#define LITTLE_ENDIAN 1		//describes memory system
+#define BIG_ENDIAN 0		//use little endian memory system
 #define DDEBUG 0
 #define DO_GPTEST 0
 
@@ -397,8 +397,15 @@ InvalidateAndReturn:
 .endm
 .macro	ReadHexE dest,rCnt1
 
-#if LITTLE_ENDIAN
-	mov	\rCnt1,#4
+#if BIG_ENDIAN
+	mov	\rCnt1,#8						//Big
+	mov	\dest,#0
+1:	bl	ReadHex
+	bcc	CheckSumError
+	add	rGdbChkSum,rGdbChkSum,r0		//update checksum
+	add	\dest,r1,\dest,LSL #4
+#else
+	mov	\rCnt1,#4						//Little
 	mov	\dest,#0
 1:	bl	ReadHex
 	bcc	CheckSumError
@@ -410,13 +417,6 @@ InvalidateAndReturn:
 	bcc	CheckSumError
 	add	rGdbChkSum,rGdbChkSum,r0		//update checksum
 	add	\dest,\dest,r1,LSL #24
-#else
-	mov	\rCnt1,#8
-	mov	\dest,#0
-1:	bl	ReadHex
-	bcc	CheckSumError
-	add	rGdbChkSum,rGdbChkSum,r0		//update checksum
-	add	\dest,r1,\dest,LSL #4
 #endif
 	subs	\rCnt1,\rCnt1,#1
 	bne	1b
