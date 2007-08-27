@@ -193,6 +193,7 @@
 /* U-Boot commands */
 /*=================*/
 #include <config_cmd_default.h>
+#define CMD_XMODEM 1
 #define CONFIG_CMD_ASKENV
 #define CONFIG_CMD_DHCP
 #define CONFIG_CMD_DIAG
