@@ -150,11 +150,11 @@
 
 	eor	\rRunningCRC,\rRunningCRC,r1,LSR #3
 //
-#if LITTLE_ENDIAN
+#if BIG_ENDIAN
+	orr	r2,r0,r2,LSL #8		//this assumes a big endian memory system
+#else
 	mov	r0,r0,LSL #24
 	orr	r2,r0,r2,LSR #8		//this assumes a little endian memory system
-#else
-	orr	r2,r0,r2,LSL #8		//this assumes a big endian memory system
 #endif
 
 	tst	\rPacketLength,#3
@@ -270,10 +270,10 @@
 61:
 	ldr	r2,[r1]
 66:
-#if LITTLE_ENDIAN
-	and	r0,r2,#0xff
+#if BIG_ENDIAN
+	mov	r0,r2,LSR #24		//Big
 #else
-	mov	r0,r2,LSR #24
+	and	r0,r2,#0xff			//Little
 #endif
 //
 	eor	r0,\rCRC,r0,LSL #24
@@ -285,10 +285,10 @@
 	orr	\rCRC,\rCRC,r0,LSR #8
 
 	eor	\rCRC,\rCRC,r0,LSR #3
-#if LITTLE_ENDIAN
-	mov	r2,r2,LSR #8
+#if BIG_ENDIAN
+	mov	r2,r2,LSL #8	//Big
 #else
-	mov	r2,r2,LSL #8
+	mov	r2,r2,LSR #8	//Little
 #endif
 	add	r1,r1,#1
 	tst	r1,#3
