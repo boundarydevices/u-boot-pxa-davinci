@@ -55,6 +55,7 @@ else
 START	= start.o ministart.o
 endif
 
+SOBJS =  xmodemReceive.o
 SRCS	:= $(START:.o=.S) $(SOBJS:.o=.S) $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(SOBJS) $(COBJS))
 START	:= $(addprefix $(obj),$(START))
