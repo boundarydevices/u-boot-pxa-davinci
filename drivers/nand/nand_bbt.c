@@ -1037,15 +1037,12 @@ int nand_isbad_bbt (struct mtd_info *mtd, loff_t offs, int allowbbt)
 	/* Get block number * 2 */
 	block = (int) (offs >> (this->bbt_erase_shift - 1));
 	res = (this->bbt[block >> 3] >> (block & 0x06)) & 0x03;
+	if (res==0) return 0;
 
 	DEBUG (MTD_DEBUG_LEVEL2, "nand_isbad_bbt(): bbt info for offs 0x%08x: (block %d) 0x%02x\n",
-		(unsigned int)offs, res, block >> 1);
+		(unsigned int)offs, block >> 1, res);
 
-	switch ((int)res) {
-	case 0x00:	return 0;
-	case 0x01:	return 1;
-	case 0x02:	return allowbbt ? 0 : 1;
-	}
+	if (res==2) return allowbbt ? 0 : 1;
 	return 1;
 }
 
