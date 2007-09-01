@@ -29,10 +29,7 @@ typedef struct {
 	dv_reg		AWCCR;
 	dv_reg		SDBCR;
 	dv_reg		SDRCR;
-	dv_reg		AB1CR;
-	dv_reg		AB2CR;
-	dv_reg		AB3CR;
-	dv_reg		AB4CR;
+	dv_reg		AB_CR[4];
 	dv_reg		SDTIMR;
 	dv_reg		DDRSR;
 	dv_reg		DDRPHYCR;
