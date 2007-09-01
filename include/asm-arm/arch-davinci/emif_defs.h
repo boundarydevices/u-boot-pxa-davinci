@@ -51,10 +51,7 @@ typedef struct {
 	dv_reg		NANDFCR;
 	dv_reg		NANDFSR;
 	u_int8_t	RSVD1[8];
-	dv_reg		NANDF1ECC;
-	dv_reg		NANDF2ECC;
-	dv_reg		NANDF3ECC;
-	dv_reg		NANDF4ECC;
+	dv_reg		NANDF_ECC[4];
 } emif_registers;
 
 typedef emif_registers	*emifregs;
