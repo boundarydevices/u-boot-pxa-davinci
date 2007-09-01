@@ -258,22 +258,9 @@ static int nand_davinci_waitfunc(struct mtd_info *mtd, struct nand_chip *this, i
 	return (*p);
 }
 
-static void nand_flash_init(void)
+int board_nand_init(struct nand_chip *nand)
 {
-	u_int32_t	acfg1 = 0x3ffffffc;
-	u_int32_t	acfg2 = 0x3ffffffc;
-	u_int32_t	acfg3 = 0x3ffffffc;
-	u_int32_t	acfg4 = 0x3ffffffc;
-	emifregs	emif_regs;
-
-	/*------------------------------------------------------------------*
-	 *  NAND FLASH CHIP TIMEOUT @ 459 MHz                               *
-	 *                                                                  *
-	 *  AEMIF.CLK freq   = PLL1/6 = 459/6 = 76.5 MHz                    *
-	 *  AEMIF.CLK period = 1/76.5 MHz = 13.1 ns                         *
-	 *                                                                  *
-	 *------------------------------------------------------------------*/
-	 acfg1 = 0
+	u_int32_t acfg = 0
 	 	| (0 << 31 )	/* selectStrobe */
 	 	| (0 << 30 )	/* extWait */
 	 	| (1 << 26 )	/* writeSetup	10 ns */
@@ -285,23 +272,24 @@ static void nand_flash_init(void)
 	 	| (3 << 2 )	/* turnAround	?? ns */
 	 	| (0 << 0 )	/* asyncSize	8-bit bus */
 	 	;
+	/*------------------------------------------------------------------*
+	 *  NAND FLASH CHIP TIMEOUT @ 459 MHz                               *
+	 *                                                                  *
+	 *  AEMIF.CLK freq   = PLL1/6 = 459/6 = 76.5 MHz                    *
+	 *  AEMIF.CLK period = 1/76.5 MHz = 13.1 ns                         *
+	 *                                                                  *
+	 *------------------------------------------------------------------*/
 
-	emif_regs = (emifregs)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
-
-	emif_regs->AWCCR |= 0x10000000;
-	emif_regs->AB1CR = acfg1;	/* 0x08244128 */;
-	emif_regs->AB2CR = acfg2;
-	emif_regs->AB3CR = acfg3;
-	emif_regs->AB4CR = acfg4;
-	emif_regs->NANDFCR = 0x00000101;
-}
-
-int board_nand_init(struct nand_chip *nand)
-{
-#ifdef NAND_GPIO_READY_LIST
+	emifregs emif_regs = (emifregs)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
 	u_int32_t	addr = (u_int32_t)nand->IO_ADDR_R;
 	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		//0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5
-	if (chipNum<4) {
+	if (chipNum>=4) return -1;
+
+	emif_regs->AB_CR[chipNum] = acfg;	/* 0x08244128 */;
+	emif_regs->NANDFCR |= 1<<chipNum;
+
+#ifdef NAND_GPIO_READY_LIST
+	{
 		unsigned int gp = nandGpioReadyList[chipNum];
 		if (gp) {
 			unsigned int bank = (gp>>5);
@@ -336,9 +324,6 @@ int board_nand_init(struct nand_chip *nand)
 
 	nand->dev_ready = nand_davinci_dev_ready;
 	nand->waitfunc = nand_davinci_waitfunc;
-
-	nand_flash_init();
-
 	return(0);
 }
 
