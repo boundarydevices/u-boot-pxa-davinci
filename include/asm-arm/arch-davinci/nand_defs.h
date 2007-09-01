@@ -26,8 +26,6 @@
 #ifndef _NAND_DEFS_H_
 #define _NAND_DEFS_H_
 
-#include <asm/arch/hardware.h>
-
 #define	MASK_CLE	0x10
 #define	MASK_ALE	0x08
 
