@@ -299,7 +299,6 @@ static void nand_flash_init(void)
 int board_nand_init(struct nand_chip *nand)
 {
 #ifdef NAND_GPIO_READY_LIST
-	struct		nand_chip *nand = mtd->priv;
 	u_int32_t	addr = (u_int32_t)nand->IO_ADDR_R;
 	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		//0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5
 	if (chipNum<4) {
