@@ -29,23 +29,23 @@
 	.equiv	SM_numColumnAddrBits, 9
 	.equiv	SM_numRowAddrBits, 13	//for MT48LC8M16A2 - 75 B
 	.equiv	SM_ADDRESS_TEST_MASK,(1<<(1+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
-	.equiv	SM_LARGE_MAP_ENABLE (0)
+	.equiv	SM_LARGE_MAP_ENABLE, (0)
 	//128 meg option
 	.equiv	BM_numColumnAddrBits, 10
 	.equiv	BM_numRowAddrBits, 13	//for k4s561632a
 	.equiv	BM_ADDRESS_TEST_MASK,(1<<(1+BM_numColumnAddrBits))
-	.equiv	BM_LARGE_MAP_ENABLE (1<<31)
+	.equiv	BM_LARGE_MAP_ENABLE, (1<<31)
 #else
 	//32 meg option
 	.equiv	SM_numColumnAddrBits, 9
 	.equiv	SM_numRowAddrBits, 12	//for MT48LC8M16A2 - 75 B
 	.equiv	SM_ADDRESS_TEST_MASK,(1<<(1+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
-	.equiv	SM_LARGE_MAP_ENABLE (0)
+	.equiv	SM_LARGE_MAP_ENABLE, (0)
 	//64 meg option
 	.equiv	BM_numColumnAddrBits, 9
 	.equiv	BM_numRowAddrBits, 13	//for k4s561632a
 	.equiv	BM_ADDRESS_TEST_MASK,(1<<(1+BM_numColumnAddrBits+BM_numRowAddrBits+numBankAddrBits))
-	.equiv	BM_LARGE_MAP_ENABLE (0)
+	.equiv	BM_LARGE_MAP_ENABLE, (0)
 #endif
 	.equiv	BM_SA1111_mask, 0		//(1<<12)
 	.equiv	BM_DRI_cnt,  (((99530*64)>>BM_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
