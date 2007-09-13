@@ -105,17 +105,15 @@
 
 
 //rFrameBuffer is start of frame buffer in memory
-.macro SetupLcd	rFrameBuffer,rTmp0,rTmp1,rTmp2,rTmp3,rTmp4
+//rDesc is where to put descriptor
+.macro SetupLcd	rFrameBuffer,rDesc,rTmp0,rTmp1,rTmp2,rTmp3
 	.if __ENABLED_LCD_MASK
 	mov	\rTmp0,\rFrameBuffer
 	GetFrameSize \rTmp1,DEF_P
-	add	\rTmp4,\rFrameBuffer,\rTmp1
-	add	\rTmp4,\rTmp4,#0x3fc			//round up to a nice boundary
-	bic	\rTmp4,\rTmp4,#0x3fc
-	str	\rTmp4,[\rTmp4,#FDESC_FDADR]		//next frame descriptor address, loop to self
-	str	\rFrameBuffer,[\rTmp4,#FDESC_FSADR]		//start of frame
-	str	\rFrameBuffer,[\rTmp4,#FDESC_FIDR]		//id of frame, anything I want
-	str	\rTmp1,[\rTmp4,#FDESC_DCMD]		//length of dma transfer
+	str	\rDesc,[\rDesc,#FDESC_FDADR]		//next frame descriptor address, loop to self
+	str	\rFrameBuffer,[\rDesc,#FDESC_FSADR]		//start of frame
+	str	\rFrameBuffer,[\rDesc,#FDESC_FIDR]		//id of frame, anything I want
+	str	\rTmp1,[\rDesc,#FDESC_DCMD]		//length of dma transfer
 
 #if (BYTES_PER_PIXEL==2)
 	BigMov	\rTmp2,(BLUE_VAL<<0)+(GREEN_VAL<<5)+(RED_VAL<<11)		//rgb value
@@ -126,19 +124,13 @@
 #else
 	BigMov	\rTmp2,(BLUE_VAL<<0)+(GREEN_VAL<<6)+(RED_VAL<<12)		//rgb value
 	orr		\rTmp2,\rTmp2,\rTmp2,LSL #24
-
-	mov		\rTmp3,\rTmp2,LSR #8
-	orr		\rTmp3,\rTmp3,\rTmp3,LSL #24
-
-	mov		\rTmp4,\rTmp3,LSR #8
-	orr		\rTmp4,\rTmp4,\rTmp4,LSL #24
-79:	stmia	\rTmp0!,{\rTmp2,\rTmp3,\rTmp4}
+79:	str		\rTmp2,[\rTmp0],#4
+	mov		\rTmp2,\rTmp2,LSR #8
+	orr		\rTmp2,\rTmp2,\rTmp2,LSL #24
 	subs	\rTmp1,\rTmp1,#12
 	bne		79b
-	add	\rTmp4,\rTmp0,#0x3fc			//round up to a nice boundary
-	bic	\rTmp4,\rTmp4,#0x3fc
 #endif
 
-	InitLCD	\rTmp4,\rTmp0,\rTmp1	//\rTmp4 has descriptor address
+	InitLCD	\rDesc,\rTmp0,\rTmp1	//\rDesc has descriptor address
 	.endif
 .endm

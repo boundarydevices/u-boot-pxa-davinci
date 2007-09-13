@@ -93,10 +93,10 @@
 	.set __nVal,(\val)
 	.if (~__nVal)<>0
 		NextSetMask __nVal
-		.if (((__nVal)&~(__nMask))=0)
-			and\cc	\dest,\dest,#(__nVal)&(__nMask)
-		.else
+		.if (((__nVal)&~(__nMask))<>0)
 			Big2CC bic\cc,\dest,~__nVal
+		.else
+			and\cc	\dest,\dest,#(__nVal)&(__nMask)
 		.endif
 	.endif
 .endm
@@ -166,10 +166,10 @@
 	.set __nVal,(\val)
 	.if (~__nVal)<>0
 		NextSetMask __nVal
-		.if (((__nVal)&~(__nMask))=0)
-			and\cc	\dest,\src,#(__nVal)&(__nMask)
-		.else
+		.if (((__nVal)&~(__nMask))<>0)
 			BigCC bic,\cc,\dest,\src,~__nVal
+		.else
+			and\cc	\dest,\src,#(__nVal)&(__nMask)
 		.endif
 	.else
 		mov\cc	\dest,\src

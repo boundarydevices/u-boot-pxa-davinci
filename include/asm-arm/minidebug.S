@@ -2783,8 +2783,9 @@ Setup_TTBR:
 #endif
 #ifndef SKIP_LCD_SETUP
 Setup_Lcd:
+	sub	lr,r3,#0x20			//last 32 bytes are descriptor
 	sub	r3,r3,#0x200000		//last even meg-8k for video ram
-	SetupLcd	r3,r0,r1,r2,sp,lr		//r0-r2,sp,lr trashed
+	SetupLcd	r3,lr,r0,r1,r2,sp		//r0-r2,sp trashed
 	add	r3,r3,#0x200000		//back to end of ram
 	FinalInitChangeCPUSpeed r0,r1,r2	//don't change without dma active???
 #endif
