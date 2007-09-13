@@ -49,7 +49,7 @@
 #endif
 	.equiv	BM_SA1111_mask, 0		//(1<<12)
 	.equiv	BM_DRI_cnt,  (((99530*64)>>BM_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
-	.equiv	BM_MDCNFG_VAL, 1+((BM_numColumnAddrBits-8)<<3)+((BM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(BM_SA1111_mask)+BM_LARGE_MAP_ENABLE	//DLATCH0, latch return data with return clock
+	.equiv	BM_MDCNFG_VAL, ((BM_numColumnAddrBits-8)<<3)+((BM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(BM_SA1111_mask)+BM_LARGE_MAP_ENABLE	//DLATCH0, latch return data with return clock
 	.equiv	BM_MDREFR_VAL, (1<<16)+(1<<15)+(BM_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
 //	.equiv	BM_MDREFR_VAL, (1<<20)+(1<<16)+(1<<15)+(BM_DRI_cnt&0xfff)		//20: APD, bit 16: K1RUN, 15:E1PIN
 //			 13		9		  2	       2 (4bytes per address)=2**26=64 MB
@@ -58,7 +58,7 @@
 //SM small memory option
 	.equiv	SM_SA1111_mask, 0
 	.equiv	SM_DRI_cnt,  (((99530*64)>>SM_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
-	.equiv	SM_MDCNFG_VAL, 1+((SM_numColumnAddrBits-8)<<3)+((SM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(SM_SA1111_mask)+SM_LARGE_MAP_ENABLE	//DLATCH0, latch return data with return clock
+	.equiv	SM_MDCNFG_VAL, ((SM_numColumnAddrBits-8)<<3)+((SM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(SM_SA1111_mask)+SM_LARGE_MAP_ENABLE	//DLATCH0, latch return data with return clock
 	.equiv	SM_MDREFR_VAL, (1<<16)+(1<<15)+(SM_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
 //			 12		9		  2	       2 (4bytes per address)=2**25=32 MB
 	.equiv	SM_MEM_SIZE, (1<<(2+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
@@ -68,37 +68,60 @@
 // or if 16 bit mode
 //    c-0 try 32meg, c-1 try 16meg
 //Out: z-0 if 16 bit mode if RomWidthIsRamWidth
-.macro InitRam	rBase,rTemp
+.macro InitRam	rBase,rTemp,rTemp2
 	BigMov	\rBase,MEMORY_CONTROL_BASE
 	.if RomWidthIsRamWidth
 	ldr	\rTemp,[\rBase,#BOOT_DEF]
 	tst	\rTemp,#1			//bit 0 - 1 means 16 bit mode
 	.endif
-	BigMov	\rTemp,SM_MDCNFG_VAL
-	BigEor2Cc \rTemp,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
+
+	BigMov	\rTemp,((BM_MDREFR_VAL)&0xfff)|(1<<24)|(1>>22)|(1<<17)		//k1free, slfrsh,k1db2
+	BigEor2Cs \rTemp,((BM_MDREFR_VAL)^(SM_MDREFR_VAL))&0xfff
+	str	\rTemp,[\rBase,#MDREFR]
+	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+
+	BigEor2	\rTemp,(1<<24)|(1<<17)|(1<<16)		//disable k1free,disable k1db2, enable K1RUN
+	str	\rTemp,[\rBase,#MDREFR]
+	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+
+	bic	\rTemp,#(1<<22)				//disable slfrsh
+	str	\rTemp,[\rBase,#MDREFR]
+	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+
+	orr	\rTemp,\rTemp,#(1<<15)		//Enable E1PIN
+	str	\rTemp,[\rBase,#MDREFR]
+	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+
+	BigMov	\rTemp2,SM_MDCNFG_VAL
+	BigEor2Cc \rTemp2,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
 	.if RomWidthIsRamWidth
-	BigOrr2Ne \rTemp,(1<<2)			//select 16 bit width
+	BigOrr2Ne \rTemp2,(1<<2)			//select 16 bit width
 	.endif
-//pxa270 requires the next 3 stores be in the same cache line+8 bytes??????
-	.ifdef __ARMASM
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	.else
-	.balignl        32,0xe1a00000	//nop code
+	str	\rTemp2,[\rBase,#MDCNFG]		//Configure, but don't enable
+	ldr	\rTemp,[\rBase,#MDCNFG]		//wait for completion
+	mov	\rTemp,#0x10000
+	mrs	\rTemp2,CPSR			//save flags
+90:	subs	\rTemp,\rTemp,#1
+	bne		90b
+
+	mov		\rTemp,#8
+	BigMov	\rBase,MEM_START
+91:	str		\rTemp,[\rBase]			//8 refresh cycles
+	subs	\rTemp,\rTemp,#1
+	bne		91b
+	msr		CPSR_f,\rTemp2			//restore flags
+
+	BigMov	\rTemp2,SM_MDCNFG_VAL|1
+	BigEor2Cc \rTemp2,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
+	.if RomWidthIsRamWidth
+	BigOrr2Ne \rTemp2,(1<<2)			//select 16 bit width
 	.endif
-	str	\rTemp,[\rBase,#MDCNFG]//str cannot be at cache line offset 10,14,18, or 1c
-								//str can be at 0,04,08,1c
+
+	BigMov	\rBase,MEMORY_CONTROL_BASE
+	str		\rTemp2,[\rBase,#MDCNFG]		//enable
 
 	mov	\rTemp,#0
 	str	\rTemp,[\rBase,#MDMRS] 
-
-	BigMov	\rTemp,BM_MDREFR_VAL
-	BigEor2Cs \rTemp,(BM_MDREFR_VAL)^(SM_MDREFR_VAL)
-	str	\rTemp,[\rBase,#MDREFR]
 .endm
 
 
@@ -196,7 +219,7 @@
 #endif
 
 1:
-	InitRam \rBase, \rTemp		//out: \rBase - MEMORY_CONTROL_BASE
+	InitRam \rBase, \rTemp,\rTemp2		//out: \rBase - MEMORY_CONTROL_BASE
 
 #if (PLATFORM_TYPE==BOUNDARY_OLD_BOARD)
 	.equiv	CHIP_MODE, 0		//don't use VIO_READY
