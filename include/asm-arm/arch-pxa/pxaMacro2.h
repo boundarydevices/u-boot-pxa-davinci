@@ -29,23 +29,27 @@
 	.equiv	SM_numColumnAddrBits, 9
 	.equiv	SM_numRowAddrBits, 13	//for MT48LC8M16A2 - 75 B
 	.equiv	SM_ADDRESS_TEST_MASK,(1<<(1+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
+	.equiv	SM_LARGE_MAP_ENABLE (0)
 	//128 meg option
 	.equiv	BM_numColumnAddrBits, 10
 	.equiv	BM_numRowAddrBits, 13	//for k4s561632a
 	.equiv	BM_ADDRESS_TEST_MASK,(1<<(1+BM_numColumnAddrBits))
+	.equiv	BM_LARGE_MAP_ENABLE (1<<31)
 #else
 	//32 meg option
 	.equiv	SM_numColumnAddrBits, 9
 	.equiv	SM_numRowAddrBits, 12	//for MT48LC8M16A2 - 75 B
 	.equiv	SM_ADDRESS_TEST_MASK,(1<<(1+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
+	.equiv	SM_LARGE_MAP_ENABLE (0)
 	//64 meg option
 	.equiv	BM_numColumnAddrBits, 9
 	.equiv	BM_numRowAddrBits, 13	//for k4s561632a
 	.equiv	BM_ADDRESS_TEST_MASK,(1<<(1+BM_numColumnAddrBits+BM_numRowAddrBits+numBankAddrBits))
+	.equiv	BM_LARGE_MAP_ENABLE (0)
 #endif
 	.equiv	BM_SA1111_mask, 0		//(1<<12)
 	.equiv	BM_DRI_cnt,  (((99530*64)>>BM_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
-	.equiv	BM_MDCNFG_VAL, 1+((BM_numColumnAddrBits-8)<<3)+((BM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(BM_SA1111_mask)	//DLATCH0, latch return data with return clock
+	.equiv	BM_MDCNFG_VAL, 1+((BM_numColumnAddrBits-8)<<3)+((BM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(BM_SA1111_mask)+BM_LARGE_MAP_ENABLE	//DLATCH0, latch return data with return clock
 	.equiv	BM_MDREFR_VAL, (1<<16)+(1<<15)+(BM_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
 //	.equiv	BM_MDREFR_VAL, (1<<20)+(1<<16)+(1<<15)+(BM_DRI_cnt&0xfff)		//20: APD, bit 16: K1RUN, 15:E1PIN
 //			 13		9		  2	       2 (4bytes per address)=2**26=64 MB
@@ -54,7 +58,7 @@
 //SM small memory option
 	.equiv	SM_SA1111_mask, 0
 	.equiv	SM_DRI_cnt,  (((99530*64)>>SM_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
-	.equiv	SM_MDCNFG_VAL, 1+((SM_numColumnAddrBits-8)<<3)+((SM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(SM_SA1111_mask)	//DLATCH0, latch return data with return clock
+	.equiv	SM_MDCNFG_VAL, 1+((SM_numColumnAddrBits-8)<<3)+((SM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(SM_SA1111_mask)+SM_LARGE_MAP_ENABLE	//DLATCH0, latch return data with return clock
 	.equiv	SM_MDREFR_VAL, (1<<16)+(1<<15)+(SM_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
 //			 12		9		  2	       2 (4bytes per address)=2**25=32 MB
 	.equiv	SM_MEM_SIZE, (1<<(2+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
@@ -70,8 +74,8 @@
 	ldr	\rTemp,[\rBase,#BOOT_DEF]
 	tst	\rTemp,#1			//bit 0 - 1 means 16 bit mode
 	.endif
-	BigMov	\rTemp,BM_MDCNFG_VAL
-	BigEor2Cs \rTemp,(BM_MDCNFG_VAL)^(SM_MDCNFG_VAL)
+	BigMov	\rTemp,SM_MDCNFG_VAL
+	BigEor2Cc \rTemp,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
 	.if RomWidthIsRamWidth
 	BigOrr2Ne \rTemp,(1<<2)			//select 16 bit width
 	.endif
