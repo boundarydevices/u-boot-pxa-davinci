@@ -75,12 +75,14 @@ int board_late_init(void)
 }
 
 
+int CalcMemEnd(void);
 int dram_init (void)
 {
+	int end = CalcMemEnd();
 	DECLARE_GLOBAL_DATA_PTR;
 
 	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
+	gd->bd->bi_dram[0].size = end-PHYS_SDRAM_1;
 
 	return 0;
 }
