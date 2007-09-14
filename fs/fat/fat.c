@@ -130,7 +130,7 @@ fat_register_device(block_dev_desc_t *dev_desc, int part_no)
 #if (defined(CONFIG_CMD_IDE) || \
      defined(CONFIG_CMD_SCSI) || \
      defined(CONFIG_CMD_USB) || \
-     (defined(CONFIG_MMC) && defined(CONFIG_LPC2292)) || \
+     defined(CONFIG_MMC) || \
      defined(CONFIG_SYSTEMACE)          )
 		/* First we assume, there is a MBR */
 		if (!get_partition_info (dev_desc, part_no, &info)) {
