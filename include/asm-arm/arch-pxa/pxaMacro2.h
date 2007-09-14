@@ -84,7 +84,7 @@
 	str	\rTemp,[\rBase,#MDREFR]
 	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
 
-	bic	\rTemp,#(1<<22)				//disable slfrsh
+	bic	\rTemp,\rTemp,#(1<<22)				//disable slfrsh
 	str	\rTemp,[\rBase,#MDREFR]
 	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
 
