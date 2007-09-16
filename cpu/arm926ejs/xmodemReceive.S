@@ -1,4 +1,4 @@
-#include <configs/select.h>
+#include <config.h>
 #define L1(a)          ((CH_##a))
 #define L2(a,b)     ((CH_##a)+(CH_##b<<8))
 #define L3(a,b,c)   ((CH_##a)+(CH_##b<<8)+(CH_##c<<16))
