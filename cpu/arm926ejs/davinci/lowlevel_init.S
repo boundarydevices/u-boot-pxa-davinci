@@ -47,6 +47,10 @@
 
 .globl	lowlevel_init
 lowlevel_init:
+	mov	r0,pc
+	sub	r0,r0,#0x80000000
+	cmp	r0,#0x10000000	//256Meg
+	blo	SkipMost
 
 	/*-------------------------------------------------------*
 	 * Mask all IRQs by setting all bits in the EINT default *
@@ -545,6 +549,7 @@ VTP1Lock:
 	mov	r10, $0
 	str	r10, [r6]
 
+SkipMost:
 	/*
 	 * Call board-specific lowlevel init.
  	 * That MUST be present and THAT returns

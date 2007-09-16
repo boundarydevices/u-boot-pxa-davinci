@@ -282,6 +282,7 @@ printf( "current LCD: %ux%u at %p\n", lcd->info.xres, lcd->info.yres, lcd->fbAdd
 #else
 # error bmp_display() requires CONFIG_LCD, CONFIG_LCD_MULTI, or CONFIG_VIDEO
 #endif
+
    return 0 ;
 }
 

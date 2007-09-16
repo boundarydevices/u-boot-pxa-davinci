@@ -27,7 +27,6 @@ int xmodem_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	ulong loadAddress = 0;
 	ulong endAddress = 0;
 	int rcode = 0;
-	char *s;
 
 	if (argc < 2) return -1;
 	loadAddress = simple_strtoul(argv[1], NULL, 16);

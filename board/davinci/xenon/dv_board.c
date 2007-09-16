@@ -149,7 +149,7 @@ int board_init(void)
 	REG(PINMUX1) |= 1;
 
 	/* Enable EMAC and AEMIF pins */
-	REG(PINMUX0) = 0x80000c1f;
+	REG(PINMUX0) = 0x80000c00;
 
 	/* Enable I2C pin Mux */
 	REG(PINMUX1) |= (1 << 7);

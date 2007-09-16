@@ -29,10 +29,7 @@ typedef struct {
 	dv_reg		AWCCR;
 	dv_reg		SDBCR;
 	dv_reg		SDRCR;
-	dv_reg		AB1CR;
-	dv_reg		AB2CR;
-	dv_reg		AB3CR;
-	dv_reg		AB4CR;
+	dv_reg		AB_CR[4];
 	dv_reg		SDTIMR;
 	dv_reg		DDRSR;
 	dv_reg		DDRPHYCR;
@@ -51,10 +48,7 @@ typedef struct {
 	dv_reg		NANDFCR;
 	dv_reg		NANDFSR;
 	u_int8_t	RSVD1[8];
-	dv_reg		NANDF1ECC;
-	dv_reg		NANDF2ECC;
-	dv_reg		NANDF3ECC;
-	dv_reg		NANDF4ECC;
+	dv_reg		NANDF_ECC[4];
 } emif_registers;
 
 typedef emif_registers	*emifregs;

@@ -194,6 +194,7 @@ out:
 
 int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 {
+	int read;
 	int i, dev, ret;
 	ulong addr, off, size;
 	char *cmd, *s;
@@ -351,27 +352,20 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 	}
 
 	/* read write */
-	if (strncmp(cmd, "read", 4) == 0 || strncmp(cmd, "write", 5) == 0) {
-		int read;
+	read = strncmp(cmd, "read", 4) == 0; /* 1 = read, 0 = write */
+	if (read || strncmp(cmd, "write", 5) == 0) {
 
 		if (argc < 4)
 			goto usage;
 
 		addr = (ulong)simple_strtoul(argv[2], NULL, 16);
 
-		read = strncmp(cmd, "read", 4) == 0; /* 1 = read, 0 = write */
 		printf("\nNAND %s: ", read ? "read" : "write");
 		if (arg_off_size(argc - 3, argv + 3, nand, &off, &size) != 0)
 			return 1;
 
-		i = strncmp(cmd, "read", 4) == 0;	/* 1 = read, 0 = write */
 		printf("\nNAND %s: device %d offset %u, size %u ...\n",
-		       i ? "read" : "write", nand_curr_device, off, size);
-
-		if (i)
-			ret = nand_read(nand, off, &size, (u_char *)addr);
-		else
-			ret = nand_write(nand, off, &size, (u_char *)addr);
+		       read ? "read" : "write", nand_curr_device, off, size);
 
 		s = strchr(cmd, '.');
 		if (s != NULL &&
@@ -399,10 +393,13 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 				ret = nand_write_opts(nand, &opts);
 			}
 		} else {
-			if (read)
+			if (read) {
 				ret = nand_read(nand, off, &size, (u_char *)addr);
-			else
+				DEBUG (MTD_DEBUG_LEVEL3, "%s read: off:%x, size:%x addr:%x\n", __FUNCTION__,off,size,addr);
+			} else {
 				ret = nand_write(nand, off, &size, (u_char *)addr);
+				DEBUG (MTD_DEBUG_LEVEL3, "%s write: off:%x, size:%x addr:%x\n", __FUNCTION__,off,size,addr);
+			}
 		}
 
 		printf(" %d bytes %s: %s\n", size,

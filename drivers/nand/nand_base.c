@@ -928,10 +928,11 @@ static int nand_write_page (struct mtd_info *mtd, struct nand_chip *this, int pa
 			this->enable_hwecc(mtd, NAND_ECC_WRITE);
 			this->write_buf(mtd, &this->data_poi[datidx], this->eccsize);
 			this->calculate_ecc(mtd, &this->data_poi[datidx], ecc_code);
+			DEBUG (MTD_DEBUG_LEVEL3, "%s: page:%x data:%x\n", __FUNCTION__, page, *((unsigned int*)&this->data_poi[datidx]));
 			for (i = 0; i < eccbytes; i++, eccidx++)
 				oob_buf[oob_config[eccidx]] = ecc_code[i];
 			/* If the hardware ecc provides syndromes then
-			 * the ecc code must be written immidiately after
+			 * the ecc code must be written immediately after
 			 * the data bytes (words) */
 			if (this->options & NAND_HWECC_SYNDROME)
 				this->write_buf(mtd, ecc_code, eccbytes);
@@ -994,6 +995,7 @@ static int nand_verify_pages (struct mtd_info *mtd, struct nand_chip *this, int 
 	u_char 	oobdata[64];
 
 	hweccbytes = (this->options & NAND_HWECC_SYNDROME) ? (oobsel->eccbytes / eccsteps) : 0;
+	DEBUG (MTD_DEBUG_LEVEL3, "nand_verify_pages: page = 0x%08x, numpages = %i\n", (unsigned int) page, (int) numpages);
 
 	/* Send command to read back the first page */
 	this->cmdfunc (mtd, NAND_CMD_READ0, 0, page);
@@ -1236,6 +1238,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 				this->enable_hwecc(mtd, NAND_ECC_READ);
 //				DEBUG (MTD_DEBUG_LEVEL3, "read_buf: index=0x%x, len=0x%x\n", datidx,ecc);
 				this->read_buf(mtd, &data_poi[datidx], ecc);
+				DEBUG (MTD_DEBUG_LEVEL3, "%s: page:%x data:%x\n", __FUNCTION__, page, *((unsigned int*)&data_poi[datidx]));
 
 				/* HW ecc with syndrome calculation must read the
 				 * syndrome from flash immidiately after the data */
@@ -1651,8 +1654,10 @@ static int nand_write_ecc (struct mtd_info *mtd, loff_t to, size_t len,
 	this->select_chip(mtd, chipnr);
 
 	/* Check, if it is write protected */
-	if (nand_check_wp(mtd))
+	if (nand_check_wp(mtd)) {
+		printk (KERN_NOTICE "nand_write_ecc: Device is write protected\n");
 		goto out;
+	}
 
 	/* if oobsel is NULL, use chip defaults */
 	if (oobsel == NULL)
@@ -1788,8 +1793,10 @@ int nand_write_raw(struct mtd_info *mtd, loff_t to, size_t len, size_t * retlen,
 	this->select_chip(mtd, chipnr);
 
 	/* Check, if it is write protected */
-	if (nand_check_wp(mtd))
+	if (nand_check_wp(mtd)) {
+		printk (KERN_NOTICE "nand_write_ecc: Device is write protected\n");
 		goto out;
+	}
 
 	/* Invalidate the page cache, if we write to the cached page */
 	if (page == this->pagebuf)

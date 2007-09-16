@@ -50,10 +50,14 @@
 /* Board */
 /*=======*/
 #define DV_EVM
-#define CFG_NAND_SMALLPAGE
-#define CFG_USE_NOR
-// #define CFG_USE_NAND
-
+#define CFG_NAND_LARGEPAGE
+//#define CFG_NAND_SMALLPAGE
+// #define CFG_USE_NOR
+#define CFG_USE_NAND
+#define CONFIG_MTD_DEBUG_VERBOSE 2
+#define CONFIG_MTD_DEBUG
+#define NAND_GPIO_READY_LIST 18			//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
+         										//if CSn is not a nand chip, include a 0 in its position if later CS is a nand chip
 /*===================*/
 /* SoC Configuration */
 /*===================*/
@@ -194,6 +198,7 @@
 /* U-Boot commands */
 /*=================*/
 #include <config_cmd_default.h>
+#define CMD_XMODEM 1
 #define CONFIG_CMD_ASKENV
 #define CONFIG_CMD_DHCP
 #define CONFIG_CMD_DIAG

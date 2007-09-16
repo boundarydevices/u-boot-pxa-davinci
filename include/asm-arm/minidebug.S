@@ -277,8 +277,26 @@ data_cache_clean_invalidate_all:
 
 //r0 - value to printm r9 - chksum
 PrintHexEndian:
-#if LITTLE_ENDIAN
-	mov	r2,#8
+#if BIG_ENDIAN
+	mov	r2,#8		//Big
+	mov	r4,r0
+1:	mov	r3,lr
+2:	mov	r4,r4,ROR #28
+	and	r0,r4,#0xf
+	cmp	r0,#0xA
+	addcs	r0,r0,#L1(a)-0x0a
+	addcc	r0,r0,#L1(0)
+	add	r9,r9,r0
+	bl	Transmit
+	subs	r2,r2,#1
+	bne	2b
+	mov	pc,r3
+PrintHexByteEndian:
+	mov	r4,r0,LSL #24
+	mov	r2,#2
+	b	1b
+#else
+	mov	r2,#8		//little
 1:	mov	r4,r0
 	mov	r3,lr
 2:	tst	r2,#1
@@ -296,24 +314,6 @@ PrintHexEndian:
 	mov	pc,r3
 
 PrintHexByteEndian:
-	mov	r2,#2
-	b	1b
-#else
-	mov	r2,#8
-	mov	r4,r0
-1:	mov	r3,lr
-2:	mov	r4,r4,ROR #28
-	and	r0,r4,#0xf
-	cmp	r0,#0xA
-	addcs	r0,r0,#L1(a)-0x0a
-	addcc	r0,r0,#L1(0)
-	add	r9,r9,r0
-	bl	Transmit
-	subs	r2,r2,#1
-	bne	2b
-	mov	pc,r3
-PrintHexByteEndian:
-	mov	r4,r0,LSL #24
 	mov	r2,#2
 	b	1b
 #endif
@@ -638,19 +638,8 @@ PrintHexEndian12:
 	b	TransmitChkSum
 	.endif
 1:
-#if LITTLE_ENDIAN
-	mov	r7,lr
-	mov	r5,r1
-	mov	r6,r2
-	bl	PrintHexEndian	//r0
-	mov	r0,r5
-	bl	PrintHexEndian	//r1
-	mov	r0,r6
-	mov	lr,r7
-	b	PrintHexEndian	//r2
-
-#else
-	mov	r7,lr
+#if BIG_ENDIAN
+	mov	r7,lr			//Big
 	mov	r5,r0
 	mov	r6,r1
 	mov	r0,r2
@@ -660,6 +649,16 @@ PrintHexEndian12:
 	mov	r0,r5
 	mov	lr,r7
 	b	PrintHexEndian	//r0
+#else
+	mov	r7,lr			//Little
+	mov	r5,r1
+	mov	r6,r2
+	bl	PrintHexEndian	//r0
+	mov	r0,r5
+	bl	PrintHexEndian	//r1
+	mov	r0,r6
+	mov	lr,r7
+	b	PrintHexEndian	//r2
 #endif
 
 
@@ -705,16 +704,16 @@ ReadHexEndian:
 ReadHexEndian12:
 	mov	r3,lr
 
-#if LITTLE_ENDIAN
-	ReadHexE r4,r7
+#if BIG_ENDIAN
+	ReadHexE r2,r7	//Big
 	ReadHexE r5,r7
-	ReadHexE r2,r7
+	ReadHexE r4,r7
 	mov	r0,r4
 	mov	r1,r5
 #else
-	ReadHexE r2,r7
+	ReadHexE r4,r7	//Little
 	ReadHexE r5,r7
-	ReadHexE r4,r7
+	ReadHexE r2,r7
 	mov	r0,r4
 	mov	r1,r5
 #endif
@@ -1178,11 +1177,11 @@ ReadEndian:
 	mov	r5,#4
 1:	bl	ReadByteEndian
 
-#if LITTLE_ENDIAN
-	mov	r0,r0,LSL #24
-	orr	r2,r0,r2,LSR #8
+#if BIG_ENDIAN
+	orr	r2,r0,r2,LSL #8		//Big
 #else
-	orr	r2,r0,r2,LSL #8
+	mov	r0,r0,LSL #24		//Little
+	orr	r2,r0,r2,LSR #8
 #endif
 
 	subs	r5,r5,#1
@@ -2784,8 +2783,9 @@ Setup_TTBR:
 #endif
 #ifndef SKIP_LCD_SETUP
 Setup_Lcd:
+	sub	lr,r3,#0x20			//last 32 bytes are descriptor
 	sub	r3,r3,#0x200000		//last even meg-8k for video ram
-	SetupLcd	r3,r0,r1,r2,sp,lr		//r0-r2,sp,lr trashed
+	SetupLcd	r3,lr,r0,r1,r2,sp		//r0-r2,sp trashed
 	add	r3,r3,#0x200000		//back to end of ram
 	FinalInitChangeCPUSpeed r0,r1,r2	//don't change without dma active???
 #endif

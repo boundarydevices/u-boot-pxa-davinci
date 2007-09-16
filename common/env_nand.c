@@ -168,7 +168,7 @@ int saveenv(void)
 	offset &= ~(CFG_ENV_SECT_SIZE-1);		//aligned offset to sector boundary
 #else
 	ulong total = CFG_ENV_SIZE;
-	uchar *env_buffer = (uchar *)env_ptr;
+//	uchar *env_buffer = (uchar *)env_ptr;
 #endif	/* CFG_ENV_SECT_SIZE */
 
 #ifdef CFG_ENV_OFFSET_REDUND
@@ -272,11 +272,18 @@ void env_relocate_spec (void)
 	printf("nand_read start %s\n",nand_info[0].name);
 	ret = nand_read(&nand_info[0], CFG_ENV_OFFSET, &total, (u_char*)env_ptr);
 	puts ("nand_read done\n");
-  	if (ret || total != CFG_ENV_SIZE)
+  	if (ret || total != CFG_ENV_SIZE) {
+  		DEBUG (MTD_DEBUG_LEVEL3, "env read err: ret:%x total:%x expected total:%x\n",ret,total,CFG_ENV_SIZE);
 		return use_default();
+  	}
 
-	if (crc32(0, env_ptr->data, ENV_SIZE) != env_ptr->crc)
-		return use_default();
+  	{
+  		int crc = crc32(0, env_ptr->data, ENV_SIZE); 
+  		if ( crc != env_ptr->crc) {
+  			DEBUG (MTD_DEBUG_LEVEL3, "env read crc32 err, calc:%x, read:%x length:%x\n",crc,env_ptr->crc,ENV_SIZE);
+  			return use_default();
+  		}
+  	}
 #endif /* ! ENV_IS_EMBEDDED */
 }
 #endif /* CFG_ENV_OFFSET_REDUND */
