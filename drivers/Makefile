@@ -29,7 +29,7 @@ LIB	= $(obj)libdrivers.a
 
 COBJS	= 3c589.o 5701rls.o ali512x.o at45.o ata_piix.o atmel_usart.o \
 	  bcm570x.o bcm570x_autoneg.o cfb_console.o cfi_flash.o \
-	  cs8900.o ct69000.o dataflash.o dc2114x.o dm9000x.o \
+	  cs8900.o ct69000.o dataflash.o davinci_mmc.o dc2114x.o dm9000x.o \
 	  e1000.o eepro100.o enc28j60.o \
 	  i8042.o inca-ip_sw.o isp116x-hcd.o keyboard.o \
 	  lan91c96.o macb.o \

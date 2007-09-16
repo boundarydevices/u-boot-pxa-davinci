@@ -51,8 +51,9 @@
 /*=======*/
 #define DV_EVM
 #define CFG_NAND_SMALLPAGE
-// #define CFG_USE_NOR
-#define CFG_USE_NAND
+#define CFG_USE_NOR
+// #define CFG_USE_NAND
+
 /*===================*/
 /* SoC Configuration */
 /*===================*/
@@ -220,4 +221,10 @@
 #define CONFIG_KGDB_BAUDRATE	115200	/* speed to run kgdb serial port */
 #define CONFIG_KGDB_SER_INDEX	1	/* which serial port to use */
 #endif
+
+#define CONFIG_CMD_FAT
+#define CONFIG_MMC
+#define CONFIG_CMD_MMC
+#define CONFIG_DOS_PARTITION
+
 #endif /* __CONFIG_H */
