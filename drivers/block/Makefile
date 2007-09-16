@@ -29,6 +29,7 @@ COBJS-y += ahci.o
 COBJS-y += ata_piix.o
 COBJS-$(CONFIG_FSL_SATA) += fsl_sata.o
 COBJS-$(CONFIG_LIBATA) += libata.o
+COBJS-$(CONFIG_DAVINCI_MMC) += davinci_mmc.o
 COBJS-y += sil680.o
 COBJS-y += sym53c8xx.o
 COBJS-y += systemace.o
