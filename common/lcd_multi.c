@@ -243,6 +243,7 @@ U_BOOT_CMD(
 
 int lcd_multi_init(void)
 {
+   unsigned i = 0 ;
    char *panelName = getenv( "panel" );
    if( panelName ){
       char *start = panelName = strdup(panelName);
@@ -258,7 +259,12 @@ int lcd_multi_init(void)
             print_panel_info( panel );
             lcd = newPanel(panel);
             if( lcd ){
+               char cRes[20];
+               sprintf( cRes, "  %u x %u", lcd->info.xres, lcd->info.yres );
                addPanel(lcd);
+               setCurrentPanel(i);
+               lcd_puts(cRes);
+               i++ ;
             }
          }
          else
