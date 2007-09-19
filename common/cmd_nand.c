@@ -43,6 +43,29 @@ static int nand_dump_oob(nand_info_t *nand, ulong off)
 {
 	return 0;
 }
+void dumpBytes(u_char* p,ulong off,ulong byteCnt)
+{
+	int i = byteCnt>>4;
+	while (i--) {
+		printf( "%08x  %02x %02x %02x %02x %02x %02x %02x %02x"
+			"  %02x %02x %02x %02x %02x %02x %02x %02x\n",off,
+			p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+			p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+		p += 16;
+		off += 16;
+	}
+	byteCnt &= 0x0f;
+	if (byteCnt) {
+		printf( "%08x  %02x",p[0]);
+		do {
+			p++;
+			byteCnt--;
+			if (byteCnt==0) break;
+			printf( " %02x",p[0]);
+		} while (1);
+		printf( "\n" );
+	}
+}
 
 static int nand_dump(nand_info_t *nand, ulong off)
 {
@@ -64,61 +87,24 @@ static int nand_dump(nand_info_t *nand, ulong off)
 	printf("Page %08x dump:\n", off);
 	i = nand->oobblock >> 4; p = buf;
 	while (i--) {
-		printf( "%03x\t%08x %08x %08x %08x\n",(int)(p-buf),
-			((int*)p)[0], ((int*)p)[1], ((int*)p)[2], ((int*)p)[3]);
+		printf( "\t%02x %02x %02x %02x %02x %02x %02x %02x"
+			"  %02x %02x %02x %02x %02x %02x %02x %02x\n",
+			p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+			p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
 		p += 16;
 	}
 	puts("OOB:\n");
-	i = nand->oobsize >> 4;
+	i = nand->oobsize >> 3;
 	while (i--) {
-		printf( "%03x\t%06x %04x %02x\n\t%06x %04x %02x %08x\n",(int)(p-buf),
-			p[0]+(p[1]<<8)+(p[2]<<16), p[3]+(p[4]<<8), p[5],
-			p[6]+(p[7]<<8)+(p[8]<<16), p[9]+(p[10]<<8), p[11],
-			((int*)p)[3] );
-		p += 16;
+		printf( "\t%02x %02x %02x %02x %02x %02x %02x %02x\n",
+			p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+		p += 8;
 	}
 	free(buf);
 
 	return 0;
 }
-int nand_write_raw (struct mtd_info *mtd, loff_t to, size_t len, size_t * retlen, const u_char * buf);
 
-static int nand_testwrite(nand_info_t *nand, ulong off)
-{
-	int i;
-	u_char *buf, *p;
-	unsigned long *ulp;
-	size_t retLen;
-	int ret=0;
-
-	buf = malloc(nand->oobblock + nand->oobsize);
-	if (!buf) {
-		puts("No memory for page buffer\n");
-		return 1;
-	}
-	off &= ~(nand->oobblock - 1);
-	
-	if (nand_erase(nand,off, 0x20000)) {
-		printf("erase failure\n");
-		ret=1;
-	} else {
-		ulp = (unsigned long *)buf;
-		for (i=0; i < nand->oobblock; i+=4) {
-			*ulp++ = i;
-		}
-		p = (u_char*)ulp;
-		for (i=0; i < nand->oobsize; i++) {
-			*p++ = i;
-		}
-		i = nand_write_raw (nand, off, nand->oobblock + nand->oobsize, &retLen, buf);
-		if (i<0) {
-			printf("Error (%d) writing page %08x\n", i, off);
-			ret=1;
-		}
-	}
-	free(buf);
-	return ret;
-}
 /* ------------------------------------------------------------------------- */
 
 static inline int str2long(char *p, ulong *num)
@@ -191,10 +177,112 @@ out:
 		printf("offset 0x%x, size 0x%x\n", *off, *size);
 	return 0;
 }
+extern ulong eccReadMask;	/* bitmask off ecc err groups*/
+
+int seq_nand(nand_info_t *nand, ulong off, ulong size, u_char *buf,int bRead)
+{
+	ulong pageSize = nand->oobblock;
+	u_char* pEnd = buf+size;
+	size_t retlen;
+	ulong seq = 0;
+	int i;
+	ulong prevEccReadMask=0;
+	ulong readMask;
+	int groupSize = nand->eccsize;
+	int groupsPerPage = pageSize/groupSize;
+	int maxNumOfPagesRead = ((size/pageSize)<<2)+4;		/* give up if not success by then */
+	u_char tmp;
+	u_char tmp2;
+	u_char* rBuf = buf;
+	u_char* tmpBuf = (u_char*)malloc((pageSize<<1) + nand->oobsize);
+	u_char* oob_buf = tmpBuf+(pageSize<<1);
+	u_char* fixBuf;
+	int ret=0;
+	if (!bRead) {
+		rBuf = tmpBuf;
+	}
+	fixBuf = rBuf;
+	while (1) {
+		memset(oob_buf,-1,nand->oobsize);
+		tmp = (u_char)(seq & 0x0f);
+		tmp = (u_char)((tmp<<4)|tmp);
+		retlen=0;
+		if (maxNumOfPagesRead==0) {
+			ret = -1;
+			break;
+		}
+		if (!bRead) {
+			oob_buf[0] = tmp;
+			nand->write_ecc(nand, off, pageSize, &retlen, buf, oob_buf, NULL);
+		}
+		nand->read_ecc(nand, off, pageSize, &retlen, rBuf, oob_buf, NULL);
+		maxNumOfPagesRead--;
+		readMask = eccReadMask;
+		if (readMask) printf("ecc error group mask: %x off:\n",readMask,off);
+		off += pageSize;
+		if (tmp!=oob_buf[0]) {
+			if ((!prevEccReadMask) && seq) {
+				seq--;
+				tmp2 = (u_char)(seq & 0x0f);
+				tmp2 = (u_char)((tmp2<<4)|tmp2);
+			} else tmp2 = tmp;
+			if (tmp2!=oob_buf[0]) {
+				ulong t1 = oob_buf[0];
+				ulong t2 = (t1>>4);
+				printf("Sequence number error, found:%02x, expected:%02x at %x\n",oob_buf[0],tmp,off-pageSize);
+				dumpBytes(rBuf,off-pageSize,pageSize);
+				dumpBytes(oob_buf,0,nand->oobsize);
+				if (((t1^t2)&0x0f)==0) {
+					ret = -1;	/* both nibbles of sequence # are the same,(i.e 0xff) but wrong */
+					break;
+				}
+				continue;	/* ignore page, sequence # not valid */
+			}
+			prevEccReadMask = 0x80000000;
+		}
+		if (prevEccReadMask) {
+			u_char* p = rBuf;
+			u_char* pfix = fixBuf;
+			prevEccReadMask &= readMask;
+			/* copy good groups to previous page */
+			for (i=0; i<groupsPerPage; i++) {
+				if ((readMask&1)==0) {
+					memcpy(pfix,p,groupSize);
+				}
+				p+=groupSize;
+				pfix+=groupSize;
+				readMask >>= 1;
+			}
+			if (prevEccReadMask) continue;
+		} else if (readMask) {
+			prevEccReadMask = readMask;
+			fixBuf = rBuf;
+			rBuf = tmpBuf+pageSize;
+			continue;
+		}
+		if (!bRead) {
+			/* double check that buffers match */
+			if (memcmp(buf,tmpBuf,pageSize)) {
+				/* didn't match, rewrite block*/
+				prevEccReadMask = 0x80000000;
+				fixBuf = rBuf;
+				rBuf = tmpBuf+pageSize;
+				printf("Very odd, page doesn't match but no ECC error, rewriting\n");
+				continue;
+			}
+		}
+		buf += pageSize;
+		rBuf = (bRead)? buf : tmpBuf;
+		if (buf >= pEnd) break;
+		seq++;
+		seq &= 0x0f;
+	}
+	free(tmpBuf);
+	return ret;
+}
 
 int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 {
-	int read;
 	int i, dev, ret;
 	ulong addr, off, size;
 	char *cmd, *s;
@@ -341,65 +429,55 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		return ret == 0 ? 1 : 0;
 
 	}
-	if (strncmp(cmd, "testwrite", 9) == 0) {
-		if (argc < 3)
-			goto usage;
-
-		s = strchr(cmd, '.');
-		off = (int)simple_strtoul(argv[2], NULL, 16);
-		ret = nand_testwrite(nand, off);
-		return ret == 0 ? 1 : 0;
-	}
 
 	/* read write */
-	read = strncmp(cmd, "read", 4) == 0; /* 1 = read, 0 = write */
-	if (read || strncmp(cmd, "write", 5) == 0) {
+	if (strncmp(cmd, "read", 4) == 0 || strncmp(cmd, "write", 5) == 0) {
+		int read;
 
 		if (argc < 4)
 			goto usage;
 
 		addr = (ulong)simple_strtoul(argv[2], NULL, 16);
 
+		read = strncmp(cmd, "read", 4) == 0; /* 1 = read, 0 = write */
 		printf("\nNAND %s: ", read ? "read" : "write");
 		if (arg_off_size(argc - 3, argv + 3, nand, &off, &size) != 0)
 			return 1;
 
-		printf("\nNAND %s: device %d offset %u, size %u ...\n",
-		       read ? "read" : "write", nand_curr_device, off, size);
-
 		s = strchr(cmd, '.');
-		if (s != NULL &&
-		    (!strcmp(s, ".jffs2") || !strcmp(s, ".e") || !strcmp(s, ".i"))) {
-			if (read) {
-				/* read */
-				nand_read_options_t opts;
-				memset(&opts, 0, sizeof(opts));
-				opts.buffer	= (u_char*) addr;
-				opts.length	= size;
-				opts.offset	= off;
-				opts.quiet      = quiet;
-				ret = nand_read_opts(nand, &opts);
+		if (s) {
+			if (!strcmp(s, ".jffs2") || !strcmp(s, ".e") || !strcmp(s, ".i")) {
+				if (read) {
+					/* read */
+					nand_read_options_t opts;
+					memset(&opts, 0, sizeof(opts));
+					opts.buffer	= (u_char*) addr;
+					opts.length	= size;
+					opts.offset	= off;
+					opts.quiet      = quiet;
+					ret = nand_read_opts(nand, &opts);
+				} else {
+					/* write */
+					nand_write_options_t opts;
+					memset(&opts, 0, sizeof(opts));
+					opts.buffer	= (u_char*) addr;
+					opts.length	= size;
+					opts.offset	= off;
+					/* opts.forcejffs2 = 1; */
+					opts.pad	= 1;
+					opts.blockalign = 1;
+					opts.quiet      = quiet;
+					ret = nand_write_opts(nand, &opts);
+				}
 			} else {
-				/* write */
-				nand_write_options_t opts;
-				memset(&opts, 0, sizeof(opts));
-				opts.buffer	= (u_char*) addr;
-				opts.length	= size;
-				opts.offset	= off;
-				/* opts.forcejffs2 = 1; */
-				opts.pad	= 1;
-				opts.blockalign = 1;
-				opts.quiet      = quiet;
-				ret = nand_write_opts(nand, &opts);
+				if ((argc < 5)||strcmp(s, ".seq")) goto usage;
+				ret = seq_nand(nand, off, size, (u_char *)addr,read);
 			}
 		} else {
-			if (read) {
+			if (read)
 				ret = nand_read(nand, off, &size, (u_char *)addr);
-				DEBUG (MTD_DEBUG_LEVEL3, "%s read: off:%x, size:%x addr:%x\n", __FUNCTION__,off,size,addr);
-			} else {
+			else
 				ret = nand_write(nand, off, &size, (u_char *)addr);
-				DEBUG (MTD_DEBUG_LEVEL3, "%s write: off:%x, size:%x addr:%x\n", __FUNCTION__,off,size,addr);
-			}
 		}
 
 		printf(" %d bytes %s: %s\n", size,
@@ -499,18 +577,19 @@ usage:
 	return 1;
 }
 
-U_BOOT_CMD(nand, 5, 1, do_nand,
+U_BOOT_CMD(nand, 5, 0, do_nand,
 	"nand    - NAND sub-system\n",
 	"info                  - show available NAND devices\n"
 	"nand device [dev]     - show or set current device\n"
 	"nand read[.jffs2]     - addr off|partition size\n"
+	"nand read.seq         - addr off size\n"
 	"nand write[.jffs2]    - addr off|partiton size - read/write `size' bytes starting\n"
 	"    at offset `off' to/from memory address `addr'\n"
+	"nand write.seq        - addr off size\n"
 	"nand erase [clean] [off size] - erase `size' bytes from\n"
 	"    offset `off' (entire device if not specified)\n"
 	"nand bad - show bad blocks\n"
 	"nand dump[.oob] off - dump page\n"
-	"nand testwrite off - erase a block & write a page with a pattern\n"
 	"nand scrub - really clean NAND erasing bad blocks (UNSAFE)\n"
 	"nand markbad off - mark bad block at offset (UNSAFE)\n"
 	"nand biterr off - make a bit error at offset (UNSAFE)\n"
@@ -1066,7 +1145,7 @@ int do_nandboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 }
 
 U_BOOT_CMD(
-	nboot,	4,	0,	do_nandboot,
+	nboot,	4,	1,	do_nandboot,
 	"nboot   - boot from NAND device\n",
 	"loadAddr dev\n"
 );
