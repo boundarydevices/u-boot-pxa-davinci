@@ -1102,7 +1102,7 @@ static int nand_read (struct mtd_info *mtd, loff_t from, size_t len, size_t * re
 	return nand_read_ecc (mtd, from, len, retlen, buf, NULL, NULL);
 }
 
-
+ulong eccReadMask=0;	/* bitmask off ecc err groups*/
 /**
  * nand_read_ecc - [MTD Interface] Read data with ECC
  * @mtd:	MTD device structure
@@ -1278,6 +1278,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 			ecc_code[j] = oob_data[oob_config[j]];
 
 		/* correct data, if neccecary */
+		eccReadMask = 0;
 		for (i = 0, j = 0, datidx = 0; i < this->eccsteps; i++, datidx += ecc) {
 			ecc_status = this->correct_data(mtd, &data_poi[datidx], &ecc_code[j], &ecc_calc[j]);
 
@@ -1294,7 +1295,8 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 			}
 
 			if (ecc_status == -1) {
-				DEBUG (MTD_DEBUG_LEVEL0, "nand_read_ecc: " "Failed ECC read, page 0x%08x\n", page);
+				eccReadMask |= (1<<i);
+				DEBUG (MTD_DEBUG_LEVEL0, "nand_read_ecc: " "Failed ECC read, Page 0x%08x\n", page);
 				ecc_failed++;
 			}
 		}
