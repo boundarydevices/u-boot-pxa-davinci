@@ -27,6 +27,7 @@
 #if defined(CONFIG_CMD_MMC)
 
 #include <mmc.h>
+#include <part.h>
 
 int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
@@ -103,6 +104,47 @@ U_BOOT_CMD(
 	mmccmd,	5,	0,	do_mmc_cmd,
 	"mmccmd - issue mmc command\n",
 	"mmccmd cmd# argh(hex) argl(hex) rsptype\n"
+);
+
+int do_mmc_bread(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+   if( 3 == argc ){
+      char *endp ;
+      void *addr ;
+      unsigned long blocknum = simple_strtoul(argv[1], &endp, 16 );
+      if( 0 != *endp )
+      {
+         printf( "Invalid blockNum %s (use hex)\n", argv[1] );
+         return -1;
+      }
+      addr = (void *)simple_strtoul(argv[2], &endp, 16 );
+      if( 0 != *endp )
+      {
+         printf( "Invalid address %s (use hex)\n", argv[2] );
+         return -1;
+      }
+      printf( "read block number 0x%x into address %p\n", blocknum, addr );
+      
+      block_dev_desc_t *dev = mmc_get_dev(0);
+      if( dev ){
+         unsigned long rval = dev->block_read(0, blocknum, 1, addr );
+         if( 1 == rval ){
+            printf( "read block %lu (0x%lx)\n", blocknum, blocknum );
+         }
+         else
+            printf( "error reading block %lu (0x%lx)\n", blocknum, blocknum );
+      }
+   }
+   else
+      printf( "Usage: mmcread blockNum(hex) address(hex)\n" );
+   
+   return 0 ;
+}
+
+U_BOOT_CMD(
+	mmcread,	3,	1,	do_mmc_bread,
+	"mmcread - read mmc block\n",
+	"mmcread blockNum(hex) address(hex)\\n"
 );
 
 #endif

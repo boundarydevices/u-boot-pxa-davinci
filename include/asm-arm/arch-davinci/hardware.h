@@ -163,4 +163,6 @@ typedef volatile unsigned int *	dv_reg_p;
 #define PINMUX0				(0x01c40000)
 #define PINMUX1				(0x01c40004)
 
+#define REGVALUE(__addr)   *((unsigned long volatile *)__addr)
+
 #endif /* __ASM_ARCH_HARDWARE_H */

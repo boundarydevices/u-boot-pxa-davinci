@@ -1291,8 +1291,7 @@ mmc2info(ulong addr)
 	return 0;
 }
 
-#if (CONFIG_COMMANDS & CFG_CMD_MMC)
-
+#ifdef CONFIG_CMD_MMC
 
 int do_mmc_detect (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {

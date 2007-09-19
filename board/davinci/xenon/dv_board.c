@@ -134,6 +134,7 @@ int board_init(void)
 	lpsc_on(DAVINCI_LPSC_UART0);
 	lpsc_on(DAVINCI_LPSC_TIMER1);
 	lpsc_on(DAVINCI_LPSC_GPIO);
+	lpsc_on(DAVINCI_LPSC_MMC_SD);
 
 	/* Powerup the DSP */
 	dsp_on();
@@ -172,20 +173,18 @@ int misc_init_r (void)
 	printf ("ARM Clock : %dMHz\n", ((REG(PLL1_PLLM) + 1) * 27 ) / 2);
 	printf ("DDR Clock : %dMHz\n", (clk / 2));
 
-	/* Set Ethernet MAC address from EEPROM */
-	if (i2c_read(CFG_I2C_EEPROM_ADDR, 0x7f00, CFG_I2C_EEPROM_ADDR_LEN, buf, 6)) {
-		printf("\nEEPROM @ 0x%02x read FAILED!!!\n", CFG_I2C_EEPROM_ADDR);
-	} else {
-		tmp[0] = 0xff;
-		for (i = 0; i < 6; i++)
-			tmp[0] &= buf[i];
+        buf[0] = 0x00 ;
+        buf[1] = 0x19 ;
+        buf[2] = 0xb8 ;
+        buf[3] = 0x00 ;
+        buf[4] = 0xde ;
+        buf[5] = 0xad ;
 
-		if ((tmp[0] != 0xff) && (getenv("ethaddr") == NULL)) {
-			sprintf((char *)&tmp[0], "%02x:%02x:%02x:%02x:%02x:%02x",
-				buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-			setenv("ethaddr", (char *)&tmp[0]);
-		}
-	}
+        if( getenv("ethaddr") == NULL ){
+                sprintf((char *)&tmp[0], "%02x:%02x:%02x:%02x:%02x:%02x",
+                        buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+                setenv("ethaddr", (char *)&tmp[0]);
+        }
 
 	if (!eth_hw_init()) {
 		printf("ethernet init failed!\n");
