@@ -203,9 +203,15 @@ int misc_init_r (void)
 int dram_init(void)
 {
 	DECLARE_GLOBAL_DATA_PTR;
-
+	volatile unsigned int * pCfg = (unsigned int *)0x20000008;
+	int addressBits = 13+2;	/* 13 row bits, 32 bits wide */
+	unsigned int cfg = *pCfg;
+	
+	addressBits += (cfg&7)+8;		/* # of column address bits */
+	addressBits += ((cfg>>4)&7);	/* # of bank address bits */
+	addressBits -= ((cfg>>14)&1);	/* only 16 bit bus*/
 	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
+	gd->bd->bi_dram[0].size = 1<<addressBits;
 
 	return(0);
 }
