@@ -1094,7 +1094,7 @@ static int nand_read (struct mtd_info *mtd, loff_t from, size_t len, size_t * re
 	return nand_read_ecc (mtd, from, len, retlen, buf, NULL, NULL);
 }
 
-
+ulong eccReadMask=0;	/* bitmask off ecc err groups*/
 /**
  * nand_read_ecc - [MTD Interface] Read data with ECC
  * @mtd:	MTD device structure
@@ -1276,6 +1276,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 			ecc_code[j] = oob_data[oob_config[j]];
 
 		/* correct data, if neccecary */
+		eccReadMask = 0;
 		for (i = 0, j = 0, datidx = 0; i < this->eccsteps; i++, datidx += ecc) {
 			ecc_status = this->correct_data(mtd, &data_poi[datidx], &ecc_code[j], &ecc_calc[j]);
 
@@ -1292,6 +1293,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 			}
 
 			if (ecc_status == -1) {
+				eccReadMask |= (1<<i);
 				DEBUG (MTD_DEBUG_LEVEL0, "nand_read_ecc: " "Failed ECC read, Page 0x%08x\n", page);
 				ecc_failed++;
 			}
@@ -1308,7 +1310,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 				for (i = 0, j = 0; j < mtd->oobavail; i++) {
 					int from = oobsel->oobfree[i][0];
 					int num = oobsel->oobfree[i][1];
-					memcpy(&oob_buf[oob], &oob_data[from], num);
+					memcpy(&oob_buf[oob+j], &oob_data[from], num);
 					j+= num;
 				}
 				oob += mtd->oobavail;
@@ -2563,12 +2565,9 @@ int nand_scan (struct mtd_info *mtd, int maxchips)
 
 	/* The number of bytes available for the filesystem to place fs dependend
 	 * oob data */
-	if (this->options & NAND_BUSWIDTH_16) {
-		mtd->oobavail = mtd->oobsize - (this->autooob->eccbytes + 2);
-		if (this->autooob->eccbytes & 0x01)
-			mtd->oobavail--;
-	} else
-		mtd->oobavail = mtd->oobsize - (this->autooob->eccbytes + 1);
+	mtd->oobavail = 0;
+	for (i=0; this->autooob->oobfree[i][1]; i++)
+		mtd->oobavail += this->autooob->oobfree[i][1];
 
 	/*
 	 * check ECC mode, default to software
