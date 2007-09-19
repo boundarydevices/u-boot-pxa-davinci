@@ -179,10 +179,9 @@ out:
 }
 extern ulong eccReadMask;	/* bitmask off ecc err groups*/
 
-int seq_nand(nand_info_t *nand, ulong off, ulong size, u_char *buf,int bRead)
+int seq_nand(nand_info_t *nand, ulong off, ulong* pSize, u_char *buf,int bRead)
 {
 	ulong pageSize = nand->oobblock;
-	u_char* pEnd = buf+size;
 	size_t retlen;
 	ulong seq = 0;
 	int i;
@@ -190,16 +189,41 @@ int seq_nand(nand_info_t *nand, ulong off, ulong size, u_char *buf,int bRead)
 	ulong readMask;
 	int groupSize = nand->eccsize;
 	int groupsPerPage = pageSize/groupSize;
-	int maxNumOfPagesRead = ((size/pageSize)<<2)+4;		/* give up if not success by then */
 	u_char tmp;
 	u_char tmp2;
 	u_char* rBuf = buf;
-	u_char* tmpBuf = (u_char*)malloc((pageSize<<1) + nand->oobsize);
-	u_char* oob_buf = tmpBuf+(pageSize<<1);
+	u_char* tmpBuf;
+	u_char* oob_buf;
 	u_char* fixBuf;
 	int ret=0;
+	ulong size = (int)*pSize;
+	u_char* pEnd = buf+size;
+	int maxNumOfPagesRead = ((size/pageSize)<<2)+4;		/* give up if not success by then */
+
+	if (size==0) {
+		if ( ((int)buf) & 3) return -1;
+		if (!bRead) {
+			unsigned int* p = (unsigned int*)(buf+32); 
+			size = p[2]-p[1];
+			if ((*p != 0xA1ACED00)||(size==0)||(size>(64<<20))) {
+				return -1;
+			}
+			pEnd = buf+size;
+			maxNumOfPagesRead = ((size/pageSize)<<2)+4;		/* give up if not success by then */
+			*pSize = size;
+		}
+	}
+	tmpBuf = (u_char*)malloc((pageSize<<1) + nand->oobsize);
+	oob_buf = tmpBuf+(pageSize<<1);
 	if (!bRead) {
+		ulong cnt = size & (pageSize-1); 
 		rBuf = tmpBuf;
+		if (cnt) {
+			cnt = pageSize - cnt;
+			memset(&buf[size],-1,cnt);
+			size += cnt;
+			*pSize = size;
+		}
 	}
 	fixBuf = rBuf;
 	while (1) {
@@ -270,6 +294,17 @@ int seq_nand(nand_info_t *nand, ulong off, ulong size, u_char *buf,int bRead)
 				printf("Very odd, page doesn't match but no ECC error, rewriting\n");
 				continue;
 			}
+		}
+		if (size==0) {
+			unsigned int* p = (unsigned int*)(buf+32); 
+			size = p[2]-p[1];
+			if ((*p != 0xA1ACED00)||(size==0)||(size>(64<<20))) {
+				ret = -1;
+				break;
+			}
+			pEnd = buf+size;
+			maxNumOfPagesRead = ((size/pageSize)<<2)+4;		/* give up if not success by then */
+			*pSize = size;
 		}
 		buf += pageSize;
 		rBuf = (bRead)? buf : tmpBuf;
@@ -470,8 +505,9 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 					ret = nand_write_opts(nand, &opts);
 				}
 			} else {
-				if ((argc < 5)||strcmp(s, ".seq")) goto usage;
-				ret = seq_nand(nand, off, size, (u_char *)addr,read);
+				if (strcmp(s, ".seq")) goto usage;
+				if (argc < 5) size=0;
+				ret = seq_nand(nand, off, &size, (u_char *)addr,read);
 			}
 		} else {
 			if (read)
