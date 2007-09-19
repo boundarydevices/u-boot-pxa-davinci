@@ -66,14 +66,6 @@
 #define CFG_TIMERBASE		0x01c21400	/* use timer 0 */
 #define CFG_HZ_CLOCK		27000000	/* Timer Input clock freq */
 #define CFG_HZ			1000
-/*====================================================*/
-/* EEPROM definitions for Atmel 24C256BN SEEPROM chip */
-/* on Sonata/DV_EVM board. No EEPROM on schmoogie.    */
-/*====================================================*/
-#define CFG_I2C_EEPROM_ADDR_LEN		2
-#define CFG_I2C_EEPROM_ADDR		0x50
-#define CFG_EEPROM_PAGE_WRITE_BITS	6
-#define CFG_EEPROM_PAGE_WRITE_DELAY_MS	20
 /*=============*/
 /* Memory Info */
 /*=============*/
@@ -206,7 +198,7 @@
 #define CONFIG_CMD_MII
 #define CONFIG_CMD_PING
 #define CONFIG_CMD_SAVES
-#define CONFIG_CMD_EEPROM
+#undef CONFIG_CMD_EEPROM
 #undef CONFIG_CMD_BDI
 #undef CONFIG_CMD_FPGA
 #undef CONFIG_CMD_SETGETDCR
