@@ -54,10 +54,10 @@ extern struct nand_chip nand_dev_desc[CFG_MAX_NAND_DEVICE];
 
 
 unsigned char nandCtlSetClr[] = {
-	0x00,		//1 - NAND_CTL_SETNCE, 2 - NAND_CTL_CLRNCE, Select/Deselect Chip Select (nCE)
-	MASK_CLE,	//3 - NAND_CTL_SETCLE, 4 - NAND_CTL_CLRCLE, Select/Deselect the command latch (CLE)
-	MASK_ALE,	//5 - NAND_CTL_SETALE, 6 - NAND_CTL_CLRALE, Select/Deselect the address latch (ALE)
-	0x00,		//7 - NAND_CTL_SETWP,  8 - NAND_CTL_CLRWP,  Set/Clear write protection (WP) Not used!
+	0x00,		/*1 - NAND_CTL_SETNCE, 2 - NAND_CTL_CLRNCE, Select/Deselect Chip Select (nCE) */
+	MASK_CLE,	/*3 - NAND_CTL_SETCLE, 4 - NAND_CTL_CLRCLE, Select/Deselect the command latch (CLE) */
+	MASK_ALE,	/*5 - NAND_CTL_SETALE, 6 - NAND_CTL_CLRALE, Select/Deselect the address latch (ALE) */
+	0x00,		/*7 - NAND_CTL_SETWP,  8 - NAND_CTL_CLRWP,  Set/Clear write protection (WP) Not used! */
 };
 
 static void nand_davinci_hwcontrol(struct mtd_info *mtd, int cmd)
@@ -69,7 +69,6 @@ static void nand_davinci_hwcontrol(struct mtd_info *mtd, int cmd)
 		if (cmd&1) addr &= ~nandCtlSetClr[cmd>>1];
 		else addr |= nandCtlSetClr[cmd>>1];
 		nand->IO_ADDR_W = (void *)addr;
-//		DEBUG (MTD_DEBUG_LEVEL3, "cmd:0x%x newAddress: 0x%x\n",cmd+1,addr);
 	} else {
 		DEBUG (MTD_DEBUG_LEVEL0, "Invalid command 0x%x\n",cmd+1);
 	}
@@ -95,15 +94,23 @@ static void nand_davinci_select_chip(struct mtd_info *mtd, int chip)
 static struct nand_oobinfo davinci_nand_oobinfo = {
 	.useecc = MTD_NANDECC_AUTOPLACE,
 	.eccbytes = 12,
+#if 1
 	.eccpos = {8, 9, 10, 24, 25, 26, 40, 41, 42, 56, 57, 58},
-	.oobfree = { {2, 6}, {12, 12}, {28, 12}, {44, 12}, {60, 4} }
+	/* The 1st two bytes of spare are reserved for factory bad block markers */
+	.oobfree = { {2, 6}, {11, 13}, {27, 13}, {43, 13}, {59, 5} }
+#else
+	/* I would prefer this format, or the software format with 8 eccs in 256 byte groups (nand_oob_64 in nand_base), what do you think? */
+	.eccpos = {2,3,4,  5,6,7,  8,9,10, 11,12,13},
+	/* The 1st two bytes of spare are reserved for factory bad block markers */
+	.oobfree = { {14, 50} }
+#endif
 };
 #elif defined(CFG_NAND_SMALLPAGE)
 static struct nand_oobinfo davinci_nand_oobinfo = {
 	.useecc = MTD_NANDECC_AUTOPLACE,
 	.eccbytes = 3,
 	.eccpos = {0, 1, 2},
-	.oobfree = { {6, 2}, {8, 8} }
+	.oobfree = { {6, 10} }
 };
 #else
 #error "Either CFG_NAND_LARGEPAGE or CFG_NAND_SMALLPAGE must be defined!"
@@ -123,29 +130,40 @@ static void nand_davinci_enable_hwecc(struct mtd_info *mtd, int mode)
 {
 	struct		nand_chip *nand = mtd->priv;
 	u_int32_t	addr = (u_int32_t)nand->IO_ADDR_R;
-	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		//0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5
+	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		/* 0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5 */
 	emifregs	emif_addr;
 	int		dummy;
 	if (chipNum>=4) return;
 
-//	DEBUG (MTD_DEBUG_LEVEL3, "enable_hwecc\n");
 	emif_addr = (emifregs)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
-	dummy = nand_davinci_readecc(mtd, chipNum);	//reset ecc to 0
-	emif_addr->NANDFCR |= (1 << (8+chipNum));	//start ECC on chip select region+2
+	dummy = nand_davinci_readecc(mtd, chipNum);	/* reset ecc to 0 */
+	emif_addr->NANDFCR |= (1 << (8+chipNum));	/* start ECC on chip select region+2 */
 }
 
 static int nand_davinci_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u_char *ecc_code)
 {
 	struct		nand_chip *nand = mtd->priv;
 	u_int32_t	addr = (u_int32_t)nand->IO_ADDR_R;
-	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		//0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5
+	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		/* 0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5 */
 	if (chipNum>=4) return -1;
 	u_int32_t	tmp = nand_davinci_readecc(mtd, chipNum);
 #ifdef CONFIG_MTD_DEBUG
-	//calculate it ourself and compare
+/* calculate it ourself and compare */
+/* FORCE_ECC_ERROR is undefined for normal operation */
+/* #define FORCE_ECC_ERROR */
+#ifdef FORCE_ECC_ERROR
 	{
-		unsigned int i = 0x00000fff;	//2**12 bits/ecc
-		unsigned int j = 512;			//512 bytes/ecc
+		/* force single bit ecc error to test ecc correction code */
+		u_char* p = (u_char*)dat;
+		unsigned int i = p[0] | (p[1]<<8);	/* 1st word of block determines which bit is made in error */
+		i &= 0xfff;
+		p[i>>3] ^= 1<<(i&7);
+		printf("Forcing ecc error, byte:%d, bit:%d\n",i>>3,i&7);
+	}
+#endif
+	{
+		unsigned int i = 0x00000fff;	/* 2**12 bits/ecc MAX */
+		unsigned int j = mtd->eccsize;			/* 256 or 512 bytes/ecc  */
 		unsigned int ecc = 0;
 		do {
 			unsigned int k=i;
@@ -161,13 +179,15 @@ static int nand_davinci_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u
 			j--;
 		} while (j);
 		if (tmp!=ecc) {
-			printf("Hardware Ecc: %x, Calculated: %x\r\n",tmp,ecc);
+#ifndef FORCE_ECC_ERROR
+			printf("Hardware Ecc: %x, Calculated: %x\n",tmp,ecc);
+#endif
 			tmp=ecc;
 		}
 	}
 #endif
-	tmp = (tmp&0x0fff)|((tmp&0x0fff0000)>>4);		//squeeze 0 middle bits out so that it fits in 3 bytes
-	tmp = ~tmp;									//invert so that erased block ecc is correct
+	tmp = (tmp&0x0fff)|((tmp&0x0fff0000)>>4);	/* squeeze 0 middle bits out so that it fits in 3 bytes */
+	tmp = ~tmp;									/* invert so that erased block ecc is correct */
 	*ecc_code++ = (u_char)(tmp);
 	*ecc_code++ = (u_char)(tmp >> 8);
 	*ecc_code++ = (u_char)(tmp >> 16);
@@ -181,14 +201,24 @@ static int nand_davinci_correct_data(struct mtd_info *mtd, u_char *dat, u_char *
 	u_int32_t	eccCalc = calc_ecc[0] | (calc_ecc[1]<<8) | (calc_ecc[2]<< 16);
 	u_int32_t	diff = eccCalc ^ eccNand;
 	if (diff) {
-		if ((((diff>>12)^diff)&0xfff)!=0xfff) {
+		if ((((diff>>12)^diff)&0xfff)==0xfff) {
+			/* Correctable error */
+			if ( (diff>>(12+3)) < mtd->eccsize ) {
+				DEBUG (MTD_DEBUG_LEVEL0, "Correcting single bit ECC error at offset: %d, bit: %d\n", diff>>(12+3), ((diff>>12)&7));
+				dat[diff>>(12+3)] ^= (1 << ((diff>>12)&7));
+			} else {
+				DEBUG (MTD_DEBUG_LEVEL0, "ECC UNCORRECTED_ERROR, illegal byte # %d\n",diff>>(12+3));
+				return(-1);
+			}
+		} else if ((diff & (-diff))==diff) {
+			DEBUG (MTD_DEBUG_LEVEL0, "Single bit ECC error in the ECC itself, nothing to fix\n");
+		} else {
 			/* Uncorrectable error */
-			DEBUG (MTD_DEBUG_LEVEL0, "ECC UNCORRECTED_ERROR %x\n",diff);
+			u_int32_t hwCalc = (~eccCalc)&0xffffff;
+			hwCalc = (hwCalc&0xfff)|((hwCalc&0xfff000)<<4);
+			DEBUG (MTD_DEBUG_LEVEL0, "ECC UNCORRECTED_ERROR diff:%x nandBlock:%x calc:%x hwCalc:%08x\n",diff,eccNand,eccCalc,hwCalc);
 			return(-1);
 		}
-		/* Correctable error */
-		DEBUG (MTD_DEBUG_LEVEL0, "Correcting single bit ECC error at offset: %d, bit: %d\n", diff>>(12+3), ((diff>>12)&7));
-		dat[diff>>(12+3)] ^= (1 << ((diff>>12)&7));
 	}
 	return(0);
 }
@@ -201,6 +231,8 @@ static unsigned char nandGpioReadyList[] = {NAND_GPIO_READY_LIST};
 static int nand_davinci_dev_ready(struct mtd_info *mtd)
 {
 #ifdef NAND_GPIO_READY_LIST
+#define GP_BANK0_OFFSET	0x10
+#define GP_BANK_LENGTH	0x28
 #define GP_DIR 0x00
 #define GP_OUT 0x04
 #define GP_SET 0x08
@@ -209,12 +241,12 @@ static int nand_davinci_dev_ready(struct mtd_info *mtd)
 
 	struct		nand_chip *nand = mtd->priv;
 	u_int32_t	addr = (u_int32_t)nand->IO_ADDR_R;
-	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		//0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5
+	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		/* 0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5 */
 	if (chipNum<4) {
 		unsigned int gp = nandGpioReadyList[chipNum];
 		if (gp) {
 			unsigned int bank = (gp>>5);
-			volatile unsigned int* p = (unsigned int*)(DAVINCI_GPIO_BASE+(bank*0x28)+0x10);
+			volatile unsigned int* p = (unsigned int*)(DAVINCI_GPIO_BASE+GP_BANK0_OFFSET+(bank*GP_BANK_LENGTH));
 			int ret = (p[GP_IN>>2] >> (gp&0x1f))&1;
 			DEBUG (MTD_DEBUG_LEVEL3, "Ready: %d\n", ret);
 			return ret;
@@ -241,7 +273,7 @@ static int nand_davinci_waitfunc(struct mtd_info *mtd, struct nand_chip *this, i
 	ulong start = get_timer(0);
 	volatile u_int8_t * p = (volatile u_int8_t *)((unsigned int)this->IO_ADDR_R);
 	unsigned long timeout = (state == FL_ERASING)? ((CFG_HZ * 400) / 1000) : ((CFG_HZ * 20) / 1000);
-#if 0	//enable this if you don't trust your ready pin.
+#if 0	/* enable this if you don't trust your ready pin. */
 	unsigned long mwait = (state == FL_ERASING)? 400 : 20;
 	udelay(mwait*1000);
 #endif
@@ -258,20 +290,21 @@ static int nand_davinci_waitfunc(struct mtd_info *mtd, struct nand_chip *this, i
 	return (*p);
 }
 
+#define BOOTCFG	0x01C40014
 int board_nand_init(struct nand_chip *nand)
 {
 	u_int32_t acfg = 0
-	 	| (0 << 31 )	/* selectStrobe */
-	 	| (0 << 30 )	/* extWait */
-	 	| (1 << 26 )	/* writeSetup	10 ns */
-	 	| (3 << 20 )	/* writeStrobe	40 ns */
-	 	| (1 << 17 )	/* writeHold	10 ns */
-	 	| (1 << 13 )	/* readSetup	10 ns */
-	 	| (5 << 7 )	/* readStrobe	60 ns */
-	 	| (1 << 4 )	/* readHold	10 ns */
-	 	| (3 << 2 )	/* turnAround	?? ns */
-	 	| (0 << 0 )	/* asyncSize	8-bit bus */
+	 	| (0<<31)	/* selectStrobe */
+	 	| (0<<30)	/* extWait */
+	 	| (1<<26)	/* writeSetup	10 ns */
+	 	| (3<<20)	/* writeStrobe	40 ns */
+	 	| (1<<17)	/* writeHold	10 ns */
+	 	| (1<<13)	/* readSetup	10 ns */
+	 	| (5<<7)	/* readStrobe	60 ns */
+	 	| (1<<4)	/* readHold	10 ns */
+	 	| (3<<2)	/* turnAround	?? ns */
 	 	;
+	acfg |= (*((unsigned int*)BOOTCFG)>>5)&1;	/* grab default width from EM_WIDTH */
 	/*------------------------------------------------------------------*
 	 *  NAND FLASH CHIP TIMEOUT @ 459 MHz                               *
 	 *                                                                  *
@@ -282,10 +315,10 @@ int board_nand_init(struct nand_chip *nand)
 
 	emifregs emif_regs = (emifregs)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
 	u_int32_t	addr = (u_int32_t)nand->IO_ADDR_R;
-	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		//0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5
+	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		/* 0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5 */
 	if (chipNum>=4) return -1;
 
-	emif_regs->AB_CR[chipNum] = acfg;	/* 0x08244128 */;
+	emif_regs->AB_CR[chipNum] = acfg;	/* 0x08244128 */
 	emif_regs->NANDFCR |= 1<<chipNum;
 
 #ifdef NAND_GPIO_READY_LIST
@@ -293,10 +326,10 @@ int board_nand_init(struct nand_chip *nand)
 		unsigned int gp = nandGpioReadyList[chipNum];
 		if (gp) {
 			unsigned int bank = (gp>>5);
-			volatile unsigned int* p = (unsigned int*)(DAVINCI_GPIO_BASE+(bank*0x28)+0x10);
+			volatile unsigned int* p = (unsigned int*)(DAVINCI_GPIO_BASE+GP_BANK0_OFFSET+(bank*GP_BANK_LENGTH));
 			int val;
 			int bitNum = (gp&0x1f);
-			p[GP_DIR>>2] |= 1<<bitNum;		//make sure it's an input
+			p[GP_DIR>>2] |= 1<<bitNum;		/* make sure it's an input */
 			val = (p[GP_IN>>2] >> bitNum)&1;
 			DEBUG (MTD_DEBUG_LEVEL3, "Bank: %x curVal:%x inReg:%p=%x\n", bank,val,&p[GP_IN>>2],p[GP_IN>>2]);
 		}
@@ -306,8 +339,9 @@ int board_nand_init(struct nand_chip *nand)
 	DEBUG (MTD_DEBUG_LEVEL3, "Nand base read:%p write:%p\n",nand->IO_ADDR_R,nand->IO_ADDR_W);
 	nand->chip_delay  = 0;
 	nand->select_chip = nand_davinci_select_chip;
+	nand->options = (acfg&1)? NAND_BUSWIDTH_16 : 0;
 #ifdef CFG_NAND_USE_FLASH_BBT
-	nand->options	  = NAND_USE_FLASH_BBT;
+	nand->options	  |= NAND_USE_FLASH_BBT;
 #endif
 #ifdef CFG_NAND_HW_ECC
 	nand->eccmode     = NAND_ECC_HW3_512;
