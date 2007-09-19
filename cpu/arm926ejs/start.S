@@ -60,6 +60,11 @@ _start:
 	ldr	pc, _irq
 	ldr	pc, _fiq
 
+#define UBL_MAGIC_SAFE 0xA1ACED00
+magicNum:		.word UBL_MAGIC_SAFE
+copStart:		.word _start
+copyEnd:		.word __bss_start
+
 _undefined_instruction:
 	.word undefined_instruction
 _software_interrupt:
