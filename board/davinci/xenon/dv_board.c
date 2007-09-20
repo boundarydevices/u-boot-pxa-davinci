@@ -29,7 +29,7 @@
 #include <asm/arch/hardware.h>
 #include <asm/arch/emac_defs.h>
 
-#define MACH_TYPE_DAVINCI_EVM		901
+#define MACH_TYPE_DAVINCI_XENON	1485
 
 extern void	i2c_init(int speed, int slaveaddr);
 extern void	timer_init(void);
@@ -118,7 +118,7 @@ int board_init(void)
 	DECLARE_GLOBAL_DATA_PTR;
 
 	/* arch number of the board */
-	gd->bd->bi_arch_number = MACH_TYPE_DAVINCI_EVM;
+	gd->bd->bi_arch_number = MACH_TYPE_DAVINCI_XENON ;
 
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = LINUX_BOOT_PARAM_ADDR;
