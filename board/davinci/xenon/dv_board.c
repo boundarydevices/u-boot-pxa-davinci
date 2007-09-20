@@ -164,36 +164,26 @@ int board_init(void)
 
 int misc_init_r (void)
 {
-	u_int8_t	tmp[20], buf[10];
-	int		i = 0;
+	char *s ;
 	int		clk = 0;
-
 	clk = ((REG(PLL2_PLLM) + 1) * 27) / ((REG(PLL2_DIV2) & 0x1f) + 1);
-
 	printf ("ARM Clock : %dMHz\n", ((REG(PLL1_PLLM) + 1) * 27 ) / 2);
 	printf ("DDR Clock : %dMHz\n", (clk / 2));
 
-   if( getenv("ethaddr") == NULL ){
-          sprintf((char *)&tmp[0], "%02x:%02x:%02x:%02x:%02x:%02x",
-                  buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-          setenv("ethaddr", (char *)&tmp[0]);
-         printf( "Mac address %02x:%02x:%02x:%02x:%02x:%02x\n",
-                 buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-   } else {
+   if( NULL != ( s = getenv("ethaddr") ) )
+         printf( "Mac address %s\n", s );
+   else
          printf( "No mac address assigned\n" );
-         memset(buf, 0, sizeof(buf));
-   }
 
 	if (!eth_hw_init()) {
 		printf("ethernet init failed!\n");
 	} else {
 		printf("ETH PHY   : %s\n", phy.name);
 	}
-
+#if 0
 	i2c_read (0x39, 0x00, 1, (u_int8_t *)&i, 1);
-
 	setenv ("videostd", ((i  & 0x80) ? "pal" : "ntsc"));
-
+#endif
 	return(0);
 }
 
