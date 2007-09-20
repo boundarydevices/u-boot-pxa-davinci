@@ -936,7 +936,6 @@ static int nand_write_page (struct mtd_info *mtd, struct nand_chip *this, int pa
 			this->enable_hwecc(mtd, NAND_ECC_WRITE);
 			this->write_buf(mtd, &this->data_poi[datidx], this->eccsize);
 			this->calculate_ecc(mtd, &this->data_poi[datidx], ecc_code);
-			DEBUG (MTD_DEBUG_LEVEL3, "%s: page:%x data:%x\n", __FUNCTION__, page, *((unsigned int*)&this->data_poi[datidx]));
 			for (i = 0; i < eccbytes; i++, eccidx++)
 				oob_buf[oob_config[eccidx]] = ecc_code[i];
 			/* If the hardware ecc provides syndromes then
@@ -1003,7 +1002,6 @@ static int nand_verify_pages (struct mtd_info *mtd, struct nand_chip *this, int 
 	u_char	oobdata[64];
 
 	hweccbytes = (this->options & NAND_HWECC_SYNDROME) ? (oobsel->eccbytes / eccsteps) : 0;
-	DEBUG (MTD_DEBUG_LEVEL3, "nand_verify_pages: page = 0x%08x, numpages = %i\n", (unsigned int) page, (int) numpages);
 
 	/* Send command to read back the first page */
 	this->cmdfunc (mtd, NAND_CMD_READ0, 0, page);
@@ -1102,7 +1100,7 @@ static int nand_read (struct mtd_info *mtd, loff_t from, size_t len, size_t * re
 	return nand_read_ecc (mtd, from, len, retlen, buf, NULL, NULL);
 }
 
-ulong eccReadMask=0;	/* bitmask off ecc err groups*/
+ulong eccReadMask;	/* bitmask off ecc err groups*/
 /**
  * nand_read_ecc - [MTD Interface] Read data with ECC
  * @mtd:	MTD device structure
@@ -1242,7 +1240,6 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 			for (i = 0, datidx = 0; eccsteps; eccsteps--, i+=eccbytes, datidx += ecc) {
 				this->enable_hwecc(mtd, NAND_ECC_READ);
 				this->read_buf(mtd, &data_poi[datidx], ecc);
-				DEBUG (MTD_DEBUG_LEVEL3, "%s: page:%x data:%x\n", __FUNCTION__, page, *((unsigned int*)&data_poi[datidx]));
 
 				/* HW ecc with syndrome calculation must read the
 				 * syndrome from flash immidiately after the data */
@@ -1296,7 +1293,7 @@ static int nand_read_ecc (struct mtd_info *mtd, loff_t from, size_t len,
 
 			if (ecc_status == -1) {
 				eccReadMask |= (1<<i);
-				DEBUG (MTD_DEBUG_LEVEL0, "nand_read_ecc: " "Failed ECC read, Page 0x%08x\n", page);
+				DEBUG (MTD_DEBUG_LEVEL0, "nand_read_ecc: " "Failed ECC read, page 0x%08x\n", page);
 				ecc_failed++;
 			}
 		}
