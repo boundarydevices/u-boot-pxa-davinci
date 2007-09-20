@@ -253,11 +253,11 @@ static int SDCard_test( void )
 			}
 		}
 		bRetry++;
-		udelay(1000);
+		udelay(5000);
 		if (bRetry > 20) {
 			return -1;
 		}
-      if (resp) printf("response %02x %02x %02x %02x %02x %02x\n",resp[0],resp[1],resp[2],resp[3],resp[4],resp[5]);
+//      if (resp) printf("response %02x %02x %02x %02x %02x %02x\n",resp[0],resp[1],resp[2],resp[3],resp[4],resp[5]);
 	} while (1);
 	if (highCapacityAllowed) 
       if (resp[4]&0x40) 
@@ -561,8 +561,6 @@ int mmc_init(int verbose)
 	}
 	rca = ( isSD )? (((ushort)resp[4] << 8 ) | resp[3]) : MMC_DEFAULT_RCA ;
 
-   printf( "rca == 0x%04x\n", rca );
-   
 	resp = mmc_cmd(7, rca<<16, MMC_CMDAT_R1);
 	if( !resp ) {
 		printf( "Error selecting RCA %x\n", rca );
