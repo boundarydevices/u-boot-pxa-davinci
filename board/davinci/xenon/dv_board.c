@@ -164,38 +164,31 @@ int board_init(void)
 
 int misc_init_r (void)
 {
-	u_int8_t	tmp[20], buf[10];
-	int		i = 0;
 	int		clk = 0;
-
 	clk = ((REG(PLL2_PLLM) + 1) * 27) / ((REG(PLL2_DIV2) & 0x1f) + 1);
-
 	printf ("ARM Clock : %dMHz\n", ((REG(PLL1_PLLM) + 1) * 27 ) / 2);
 	printf ("DDR Clock : %dMHz\n", (clk / 2));
 
-        buf[0] = 0x00 ;
-        buf[1] = 0x19 ;
-        buf[2] = 0xb8 ;
-        buf[3] = 0x00 ;
-        buf[4] = 0xde ;
-        buf[5] = 0xad ;
-
-        if( getenv("ethaddr") == NULL ){
-                sprintf((char *)&tmp[0], "%02x:%02x:%02x:%02x:%02x:%02x",
-                        buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-                setenv("ethaddr", (char *)&tmp[0]);
-        }
+	if( getenv("ethaddr") == NULL ){
+#ifdef CONFIG_ETHADDR
+#define str(s) #s
+#define xstr(s) str(s)
+		static const char tmp[] = xstr(CONFIG_ETHADDR);
+#else
+		static const char tmp[] = "00:19:b8:00:de:ad";
+#endif
+		setenv("ethaddr", (char*)tmp);
+	}
 
 	if (!eth_hw_init()) {
 		printf("ethernet init failed!\n");
 	} else {
 		printf("ETH PHY   : %s\n", phy.name);
 	}
-
+#if 0
 	i2c_read (0x39, 0x00, 1, (u_int8_t *)&i, 1);
-
 	setenv ("videostd", ((i  & 0x80) ? "pal" : "ntsc"));
-
+#endif
 	return(0);
 }
 
