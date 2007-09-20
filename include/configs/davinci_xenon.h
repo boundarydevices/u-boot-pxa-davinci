@@ -58,6 +58,7 @@
 #define CONFIG_MTD_DEBUG
 //#define NAND_GPIO_READY_LIST 18			//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
 										//if CSn is not a nand chip, include a 0 in its position if later CS is a nand chip
+#define CONFIG_ETHADDR  00:19:b8:00:de:da
 /*===================*/
 /* SoC Configuration */
 /*===================*/
