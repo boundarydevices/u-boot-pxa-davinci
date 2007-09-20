@@ -29,7 +29,7 @@
 #include <asm/arch/hardware.h>
 #include <asm/arch/emac_defs.h>
 
-#define MACH_TYPE_DAVINCI_EVM		901
+#define MACH_TYPE_DAVINCI_XENON	1485
 
 extern void	i2c_init(int speed, int slaveaddr);
 extern void	timer_init(void);
@@ -118,7 +118,7 @@ int board_init(void)
 	DECLARE_GLOBAL_DATA_PTR;
 
 	/* arch number of the board */
-	gd->bd->bi_arch_number = MACH_TYPE_DAVINCI_EVM;
+	gd->bd->bi_arch_number = MACH_TYPE_DAVINCI_XENON ;
 
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = LINUX_BOOT_PARAM_ADDR;
@@ -173,18 +173,16 @@ int misc_init_r (void)
 	printf ("ARM Clock : %dMHz\n", ((REG(PLL1_PLLM) + 1) * 27 ) / 2);
 	printf ("DDR Clock : %dMHz\n", (clk / 2));
 
-        buf[0] = 0x00 ;
-        buf[1] = 0x19 ;
-        buf[2] = 0xb8 ;
-        buf[3] = 0x00 ;
-        buf[4] = 0xde ;
-        buf[5] = 0xad ;
-
-        if( getenv("ethaddr") == NULL ){
-                sprintf((char *)&tmp[0], "%02x:%02x:%02x:%02x:%02x:%02x",
-                        buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-                setenv("ethaddr", (char *)&tmp[0]);
-        }
+   if( getenv("ethaddr") == NULL ){
+          sprintf((char *)&tmp[0], "%02x:%02x:%02x:%02x:%02x:%02x",
+                  buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+          setenv("ethaddr", (char *)&tmp[0]);
+         printf( "Mac address %02x:%02x:%02x:%02x:%02x:%02x\n",
+                 buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+   } else {
+         printf( "No mac address assigned\n" );
+         memset(buf, 0, sizeof(buf));
+   }
 
 	if (!eth_hw_init()) {
 		printf("ethernet init failed!\n");
