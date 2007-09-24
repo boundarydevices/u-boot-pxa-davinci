@@ -56,7 +56,7 @@
 #define CFG_USE_NAND
 #define CONFIG_MTD_DEBUG_VERBOSE 2
 #define CONFIG_MTD_DEBUG
-//#define NAND_GPIO_READY_LIST 18			//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
+#define NAND_GPIO_READY_LIST 18			//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
 										//if CSn is not a nand chip, include a 0 in its position if later CS is a nand chip
 /*===================*/
 /* SoC Configuration */
@@ -69,7 +69,7 @@
 /*=============*/
 /* Memory Info */
 /*=============*/
-#define CFG_MALLOC_LEN		(0x10000 + 128*1024)	/* malloc() len */
+#define CFG_MALLOC_LEN		(0x10000 + 128*1024 + 1280*1024)	/* malloc() len */
 #define CFG_GBL_DATA_SIZE	128		/* reserved for initial data */
 #define CFG_MEMTEST_START	0x80000000	/* memtest start address */
 #define CFG_MEMTEST_END		0x81000000	/* 16MB RAM test */
@@ -224,4 +224,15 @@
 #define CONFIG_CMD_MMC
 #define CONFIG_DOS_PARTITION
 
+/*
+ * LCD support
+ */
+#define CONFIG_LCDPANEL
+#define CONFIG_LCD_MULTI 1
+ 
+/* 
+ * Bitmaps, too
+ */
+#define CONFIG_CMD_BMP
+ 
 #endif /* __CONFIG_H */

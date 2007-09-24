@@ -136,6 +136,9 @@ int board_init(void)
 	lpsc_on(DAVINCI_LPSC_GPIO);
 	lpsc_on(DAVINCI_LPSC_MMC_SD);
 
+	lpsc_on(DAVINCI_LPSC_VPSSMSTR);
+	lpsc_on(DAVINCI_LPSC_VPSSSLV);
+
 	/* Powerup the DSP */
 	dsp_on();
 
