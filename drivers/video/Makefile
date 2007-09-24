@@ -34,6 +34,7 @@ COBJS-y += sed13806.o
 COBJS-y += sed156x.o
 # COBJS-$(CONFIG_SM501) += sm501.o
 COBJS-$(CONFIG_SM501) += sm501_bd.o
+COBJS-$(CONFIG_DAVINCI_FB) += davincifb.o
 COBJS-y += smiLynxEM.o
 COBJS-y += videomodes.o
 
