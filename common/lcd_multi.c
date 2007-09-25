@@ -240,12 +240,25 @@ U_BOOT_CMD(
 	"curpanel N - set current panel to n\n"
 );
 
+static void addOne( struct lcd_panel_info_t const *panel )
+{
+	struct lcd_t *lcd ;
+	print_panel_info( panel );
+	lcd = newPanel(panel);
+	if( lcd ){
+		char cRes[20];
+		sprintf( cRes, "  %u x %u", lcd->info.xres, lcd->info.yres );
+		addPanel(lcd);
+		lcd_puts(cRes);
+	}
+}
 
 int lcd_multi_init(void)
 {
    unsigned i = 0 ;
    char *panelName = getenv( "panel" );
    if( panelName ){
+      int found = 0 ;
       char *start = panelName = strdup(panelName);
       do {
          struct lcd_panel_info_t const *panel ;
@@ -255,23 +268,23 @@ int lcd_multi_init(void)
             *panelName = '\0' ;
          panel = find_lcd_panel( cur );
          if( panel ) {
-            struct lcd_t *lcd ;
-            print_panel_info( panel );
-            lcd = newPanel(panel);
-            if( lcd ){
-               char cRes[20];
-               sprintf( cRes, "  %u x %u", lcd->info.xres, lcd->info.yres );
-               addPanel(lcd);
-               setCurrentPanel(i);
-               lcd_puts(cRes);
-               i++ ;
-            }
+            addOne( panel );
+	    found = 1 ;
+            i++ ;
+            setCurrentPanel(i);
          }
-         else
-            printf( "panel %s not found\n", cur );
          if( panelName )
             *panelName++ = ',' ;
       } while( panelName );
+
+      if( !found ){
+	      struct lcd_panel_info_t panel_info ;
+	      if( parse_panel_info( start, &panel_info ) ){
+                      addOne( &panel_info );
+		      if( getPanelCount() )
+                         setCurrentPanel(getPanelCount()-1);
+	      }
+      }
       free(start);
    } // panel defined
    return 0 ;
