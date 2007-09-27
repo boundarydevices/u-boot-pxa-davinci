@@ -13,6 +13,8 @@
  * Copyright Boundary Devices, Inc. 2007
  */
 
+#if defined( CONFIG_DAVINCIFB )
+
 #include "lcd_multi.h"
 #include "common.h"
 #include "asm/arch/davinci_vpbe.h"
@@ -184,3 +186,4 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	return lcd ;
 }
 
+#endif
