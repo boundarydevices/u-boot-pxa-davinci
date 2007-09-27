@@ -227,6 +227,28 @@ static struct lcd_panel_info_t const *prompt_for_panel( void )
    return 0 ;
 }
 
+static char *build_panel_name(struct lcd_panel_info_t const *panel)
+{
+   char tempBuf[512];
+   sprintf( tempBuf, "%s:%lu,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u"
+           , panel->name
+           , panel->pixclock
+           , panel->xres
+           , panel->yres
+           , panel->pclk_redg
+           , panel->hsyn_acth
+           , panel->vsyn_acth
+           , panel->hsync_len
+           , panel->left_margin
+           , panel->right_margin
+           , panel->vsync_len
+           , panel->upper_margin
+           , panel->lower_margin
+           , panel->active
+           , panel->crt );
+   return strdup(tempBuf);
+}
+
 #ifdef CONFIG_LCD
 static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
@@ -249,6 +271,7 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
          {
             print_panel_info( panel );
             set_lcd_panel( panel );
+            setenv( "panel", build_panel_name(panel) );
          }
       }
       else if( '?' == *argv[1] )
@@ -344,6 +367,7 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
                lcd = newPanel(panel);
                if( lcd ){
                   addPanel(lcd);
+                  setenv( "panel", build_panel_name(panel) );
                }
             }
          }
