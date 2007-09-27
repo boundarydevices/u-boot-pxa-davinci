@@ -268,7 +268,10 @@ const char* const initFnNames[] = {s_cpu_init,s_board_init,
 #endif	//#ifdef DEBUG_INIT_FUNCTIONS
 
 
+#if defined( CONFIG_PXA27X ) || defined( CONFIG_PXA250 )
+#define HAVE_DBGBREAK
 void DbgBreak(void);
+#endif
 
 void start_armboot (void)
 {
@@ -304,7 +307,9 @@ void start_armboot (void)
 			if ((*init_fnc_ptr)() != 0) {
 				serial_puts(*s);
 				serial_puts(" - init function failed\n");
+#ifdef HAVE_DBGBREAK
 				DbgBreak();
+#endif
 //				hang ();
 			} else {
 				serial_puts(*s);
