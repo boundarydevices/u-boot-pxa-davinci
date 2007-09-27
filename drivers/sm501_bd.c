@@ -31,26 +31,29 @@
 #define SLOWCLOCK2 0x0A1A0A09
 #define SLOWCLOCK3 0x00090900
 
-unsigned long const fbStart = 0x0C000000 ;
+#define SM501_BASE 0x0c000000
+#define REG_BASE SM501_BASE+0x03E00000
+
+unsigned long const fbStart = SM501_BASE ;
 unsigned long const fbMax   = 0x00800000 ;    //
 
-unsigned long const mmioStart  = 0xFE00000 ;
+unsigned long const mmioStart  = REG_BASE ;
 unsigned long const mmioLength = 0x00200000 ;
-unsigned long const lcdPaletteRegs = 0xFE80400 ;
-unsigned long const crtPaletteRegs = 0xFE80C00 ;
+unsigned long const lcdPaletteRegs = REG_BASE+0x80400 ;
+unsigned long const crtPaletteRegs = REG_BASE+0x80C00 ;
 
 #ifdef CONFIG_LCD
 unsigned long paletteRegs = lcdPaletteRegs ;
 #endif
 
 const unsigned int sm501_list1[]={
-   0x0FE00000,
+   REG_BASE,
 	0x00100000,0x00001402,0x00000000,0x00000000,0x24B927C0,0x05146732,0x40715128,0x00000000,
 	0x00000000,0x00180002,0x00000002,0x00000002,0x00000000,0x00000000,0x0000001F,0x291A0201,
 	0x0000001F,0x291A0201,0x00000007,0x291A0201,0x00018000,0x00000000,0x00000000,0x00000000,
 	0x050100A0,0x00000000,0x00080800};
 
-const unsigned int sm501_list2[]={ 0x0fe80000,
+const unsigned int sm501_list2[]={ REG_BASE+0x80000,
 /* 80000 dispctrl  */ 	0x00013100,             // 0f0d0105
 /* 80004 pan       */   0x00000000,
 /* 80008 colorkey  */   0x00000000,
@@ -121,17 +124,17 @@ static unsigned const crtFbVSynReg   = 0x00080218 ;
 #define READREG( addr ) *( (unsigned long volatile *)((addr)+mmioStart) )
 #define STUFFREG( addr, value ) *( (unsigned long volatile *)((addr)+mmioStart) ) = (value)
 
-const unsigned int sm501_list3[]={0x0fe80040,
+const unsigned int sm501_list3[]={REG_BASE+0x80040,
 	0x00010000,0x0703E360,0x00200400,0x00A81330,0x0385009C,0x02200240,0x00000000,0x00000000,
 	0x00EDEDED,0x089C4040,0x0031E3B0};
  
-const unsigned int sm501_list4[]={0x0fe80080,
+const unsigned int sm501_list4[]={REG_BASE+0x80080,
 	0x00010000,0x05121880,0x28800C00,0x00108030,0x02090040,0x00840050,0x00000000,0x00000000,
 	0x0141A200,0x020A0802,0x0088D109,0x20820040,0x10800000,0x30029200,0x00080821,0x01010400,
 	0x44000120,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
 	0x00000000,0x00000000,0x00000000,0x00000000};
 
-const unsigned int sm501_list5[]={0x0fe800f0,
+const unsigned int sm501_list5[]={REG_BASE+0x800f0,
 	0x0070F800,0x00780140,0x00000000,0x0000FFFF,0x00010000};
 
 struct itemEntry {
