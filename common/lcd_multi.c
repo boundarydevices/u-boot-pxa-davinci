@@ -246,10 +246,7 @@ static void addOne( struct lcd_panel_info_t const *panel )
 	print_panel_info( panel );
 	lcd = newPanel(panel);
 	if( lcd ){
-		char cRes[20];
-		sprintf( cRes, "  %u x %u", lcd->info.xres, lcd->info.yres );
 		addPanel(lcd);
-		lcd_puts(cRes);
 	}
 }
 
@@ -286,6 +283,21 @@ int lcd_multi_init(void)
 	      }
       }
       free(start);
+
+      for( i = 0 ; i < getPanelCount(); i++ )
+      {
+         char cTemp[20];
+         struct lcd_t *lcd = getPanel(i);
+         setCurrentPanel(i);
+         
+         sprintf( cTemp, "panel %u\n  ", i );
+         lcd_puts(cTemp);
+
+         lcd_puts(lcd->info.name);
+         sprintf( cTemp, "\n  %u x %u", lcd->info.xres, lcd->info.yres );
+         lcd_puts(cTemp);
+      }
+
    } // panel defined
    return 0 ;
 }
