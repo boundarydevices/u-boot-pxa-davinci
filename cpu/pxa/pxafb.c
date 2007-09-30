@@ -676,16 +676,16 @@ void init_pxa_fb( struct lcd_t *lcd )
    panel_info.pxa.reg_lccr3 &= ~0xFF ;
    panel_info.pxa.reg_lccr3 |= get_pcd( pixClock );
 
-   printf( "set panel to %s\n"
-              "pcd == 0x%08lx\n"
-              "lclk == %i\n"
-              "palette at %p\n"
-              "frame buffer at %p\n"
-            , panel->name ? panel->name : "<Unnamed>"
-            , get_pcd( pixClock )
-            , get_lclk()
-            , panel_info.pxa.palette
-            , panel_info.pxa.screen
+   debug( "set panel to %s\n"
+          "pcd == 0x%08lx\n"
+          "lclk == %i\n"
+          "palette at %p\n"
+          "frame buffer at %p\n"
+          , panel->name ? panel->name : "<Unnamed>"
+          , get_pcd( pixClock )
+          , get_lclk()
+          , panel_info.pxa.palette
+          , panel_info.pxa.screen
    );
    pxafb_setup_gpio(&panel_info);
    pxafb_enable_controller(&panel_info);
