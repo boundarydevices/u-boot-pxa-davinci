@@ -114,7 +114,6 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
    
    if( info->crt ){
       if( 0 == num_crt ){
-         printf( "Setup SM-501 CRT here\n" );
          init_sm501_crt(rval);
       }
       else {
@@ -123,10 +122,8 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
       }
    } else {
       if( 0 == num_lcd ){
-         printf( "Initialize SM-501 LCD here\n" );
          init_sm501_lcd(rval);
       } else if( 1 == num_lcd ){
-         printf( "Initialize PXA LCD here\n" );
          init_pxa_fb(rval);
       } else {
          printf( "Only two LCD panels are supported on Neon!\n" );
