@@ -298,6 +298,8 @@ int lcd_multi_init(void)
          lcd_puts(cTemp);
       }
 
+      if( 0 < getPanelCount() )
+         setCurrentPanel(0);
    } // panel defined
    return 0 ;
 }
