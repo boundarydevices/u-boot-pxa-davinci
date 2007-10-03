@@ -12,11 +12,10 @@
  *
  * Copyright Boundary Devices, Inc. 2007
  */
-
-#if defined( CONFIG_DAVINCIFB )
+#include <common.h>
+#ifdef CONFIG_DAVINCIFB
 
 #include "lcd_multi.h"
-#include "common.h"
 #include "asm/arch/davinci_vpbe.h"
 #include "exports.h"
 #include "asm/arch/hardware.h"
@@ -56,15 +55,25 @@ static unsigned long palette[] = {
 	0x808080,0xFF0000,0x00FF00,0xFFFF00,0x0000FF,0xFF00FF,0x00FFFF,0xFFFFFF
 };
 
+#define C0_0813  5328		/* Need to divide by 65536 */
+#define C0_1140  7471
+#define C0_1687 11056
+#define C0_2990 19595
+#define C0_3313 21712
+#define C0_4187 27440
+#define C0_5000 32768
+#define C0_5870 38469
+
+
 static void rgbToYuv( unsigned rgb, unsigned char *y, unsigned char *u, unsigned char *v )
 {
-	double R = (rgb&0xff0000)>>16 ;
-	double G = (rgb&0xFF00)>>8 ;
-	double B = rgb&0xFF ;
+	int R = (rgb&0xff0000)>>16 ;
+	int G = (rgb&0xFF00)>>8 ;
+	int B = rgb&0xFF ;
 
-	double Y = (0.2990 * R) + (0.5870 * G) + (0.1140 * B);
-	double Cb = (-0.1687 * R) - (0.3313 * G) + (0.5000 * B) + 128.0 ;
-	double Cr = (0.5000 * R) - (0.4187 * G) - (0.0813 * B) + 128.0 ;
+	int Y = (C0_2990*R + C0_5870*G + C0_1140*B)>>16;
+	int Cb = ((-C0_1687*R - C0_3313*G + C0_5000*B)>>16) + 128;
+	int Cr = (( C0_5000*R - C0_4187*G - C0_0813*B)>>16) + 128;
 	*y = (signed char)Y ;
 	*u = (signed char)Cb ;
 	*v = (signed char)Cr ;
