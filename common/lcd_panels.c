@@ -360,7 +360,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     crt : 1
 }
 , {
-    name: "sxga60hz",
+    name: "crt_sxga60hz",
     pixclock: 108000000,
     xres: 1280,
     yres: 1024,
@@ -375,6 +375,23 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     lower_margin: 44,
     active : 1,
     crt : 1
+}
+, {
+    name: "lcd_sxga60hz",
+    pixclock: 108000000,
+    xres: 1280,
+    yres: 1024,
+    pclk_redg: 1,
+    hsyn_acth: 1,
+    vsyn_acth: 1,
+    hsync_len: 120,
+    left_margin: 64,
+    right_margin: 264,
+    vsync_len: 4,
+    upper_margin: 2,
+    lower_margin: 44,
+    active : 1,
+    crt : 0
 }
 , {
     name: "hitachi_92",
