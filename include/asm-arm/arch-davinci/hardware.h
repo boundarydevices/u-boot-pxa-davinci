@@ -156,7 +156,9 @@ typedef volatile unsigned int *	dv_reg_p;
 /* Some PLL defines */
 #define PLL1_PLLM			(0x01c40910)
 #define PLL2_PLLM			(0x01c40d10)
+#define PLL2_DIV1			(0x01c40d18)
 #define PLL2_DIV2			(0x01c40d1c)
+#define PLL2_CMD			(0x01c40d38)
 
 /* Miscellania... */
 #define VBPR				(0x20000020)
