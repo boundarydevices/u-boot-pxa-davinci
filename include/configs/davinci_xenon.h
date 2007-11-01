@@ -237,5 +237,9 @@
 #define CONFIG_CMD_BMP
 #endif
 
- 
+/*
+ * Allow initrd image to be loaded by U-Boot
+ */
+#define CONFIG_INITRD_TAG	 1
+
 #endif /* __CONFIG_H */

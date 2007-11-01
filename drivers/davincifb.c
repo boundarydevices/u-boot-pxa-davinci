@@ -110,9 +110,42 @@ static void disable(void)
 #define OEPOL 0
 #define NUM_WINDOWS 4
 
+static unsigned encPerPixel = 1 ;
+
+static void setPixClock( unsigned long mhz )
+{
+	unsigned highError, lowError ;
+	unsigned long divisor, high, low ;
+	unsigned long pllIn = 27000000*(REGVALUE(PLL2_PLLM)+1);
+	divisor = pllIn/mhz ;
+	if( divisor > 16 ){
+		encPerPixel = (divisor / 16)+1 ;	// add one to ensure increment available in divisor
+		divisor = pllIn/(encPerPixel*mhz);
+	} // slower than 40MHz
+	else
+		encPerPixel = 1 ;
+
+	// choose nearest
+	if( divisor < 16 ){
+		high = pllIn/(encPerPixel*divisor);
+		low = pllIn/(encPerPixel*(divisor+1));
+		highError = high-mhz ;
+		lowError = mhz-low ;
+		if( lowError < highError )
+			divisor++ ;
+	}
+	printf( "Pixel clock %lu/%u/%u == %lu\n", pllIn, divisor, encPerPixel, pllIn/(encPerPixel*divisor) );
+	divisor-- ; // register value is divisor-1
+	REGVALUE(PLL2_DIV1) = 0x8000 + divisor ;
+	REGVALUE(PLL2_CMD) = 1 ;
+}
+
 struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 {
 	unsigned i ;
+	unsigned short val[4];
+	int bit;
+	int gbit;
 	unsigned fbBytes = info->xres*info->yres ;
 	struct lcd_t *lcd = (struct lcd_t *)malloc(sizeof(struct lcd_t));
 	memcpy(&lcd->info, info,sizeof(lcd->info));
@@ -126,6 +159,8 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	lcd->disable = disable ;
 
 	REGVALUE(VPSS_CLKCTL) = 0x18 ;
+
+	setPixClock(info->pixclock);
 
 	REGVALUE(OSD_MODE) = 0 ;
 	REGVALUE(OSD_OSDWIN0MD) = 0 ;
@@ -150,18 +185,18 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 
 	REGVALUE(OSD_BASEPX) = info->left_margin ;
 	REGVALUE(OSD_BASEPY) = info->upper_margin ;
-	
+
 	/* Reset video encoder module */
 	REGVALUE(VENC_VMOD) = 0 ;
 	REGVALUE(VPSS_CLKCTL) = 0x09 ;	//disable DAC clock
 	REGVALUE(VPBE_PCR) = 0 ;		//not divided by 2
 	REGVALUE(VENC_VIDCTL) =((info->pclk_redg^1)<<14)|(1<<13);
 	REGVALUE(VENC_SYNCCTL) = (info->vsyn_acth<<3)|(info->hsyn_acth<<2)|0x03;
-	REGVALUE(VENC_HSPLS) = info->hsync_len ;
+	REGVALUE(VENC_HSPLS) = info->hsync_len*encPerPixel;
 	REGVALUE(VENC_VSPLS) = info->vsync_len ;
-	REGVALUE(VENC_HINT) = (info->xres+info->hsync_len+info->left_margin+XEND-1);
-	REGVALUE(VENC_HSTART) = info->left_margin ;
-	REGVALUE(VENC_HVALID) = info->xres ;
+	REGVALUE(VENC_HINT) = (info->xres+info->hsync_len+info->left_margin+XEND-1)*encPerPixel;
+	REGVALUE(VENC_HSTART) = info->left_margin*encPerPixel;
+	REGVALUE(VENC_HVALID) = info->xres*encPerPixel;
 	REGVALUE(VENC_VINT) = (info->yres+info->vsync_len+info->upper_margin+YEND-1);
 	REGVALUE(VENC_VSTART) = info->upper_margin ;
 	REGVALUE(VENC_VVALID) = info->yres ;
@@ -171,19 +206,44 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(PINMUX0) = (REGVALUE(PINMUX0) & ~(5<<22)) | (5<<22);	//rgb666 and output_enable
 	REGVALUE(VENC_LCDOUT) = (OEPOL<<1)|1 ;	//enable active high on gpio0
 
-	REGVALUE(VENC_DCLKCTL)  = (1<<11)|(64-1);
-	REGVALUE(VENC_DCLKPTN0) = 0xffff ;
-	REGVALUE(VENC_DCLKPTN1) = 0xffff ;
-	REGVALUE(VENC_DCLKPTN2) = 0xffff ;
-	REGVALUE(VENC_DCLKPTN3) = 0xffff ;
-		
+	val[0] = 0;
+	val[1] = 0;
+	val[2] = 0;
+	val[3] = 0;
+	gbit = (encPerPixel>>1);
+	bit = (encPerPixel>>1);
+	while (bit < 64) {
+		val[bit>>4] |= (1<<(bit&0xf));
+		bit++;
+		gbit++;
+		if (gbit>=encPerPixel) {
+			gbit = (encPerPixel>>1);
+			bit += gbit;
+		}
+	}
+	bit -= gbit;
+	REGVALUE(VENC_DCLKCTL) = ((encPerPixel==1)?(1<<11):0) | (bit-1);
+
+	REGVALUE(VENC_DCLKPTN0) = val[0];
+	REGVALUE(VENC_DCLKPTN1) = val[1];
+	REGVALUE(VENC_DCLKPTN2) = val[2];
+	REGVALUE(VENC_DCLKPTN3) = val[3];
+
 	REGVALUE(VENC_DCLKHS) = 0 ;
 	REGVALUE(VENC_DCLKHSA) = 0 ;
 	REGVALUE(VENC_DCLKHR) = info->xres+info->hsync_len+info->left_margin+XEND ;
 	REGVALUE(VENC_DCLKVS) = 0 ;
 	REGVALUE(VENC_DCLKVR) = info->yres+info->vsync_len+info->upper_margin+YEND ;
-	REGVALUE(VENC_OSDCLK0) = 16-1 ;
-	REGVALUE(VENC_OSDCLK1) = 0xffff ;
+	
+	val[0] = 0;
+	bit = 0;
+	while (bit < 16) {
+		val[0] |= (1<<bit);
+		bit+=encPerPixel;
+	}
+	if (bit>16) bit -= encPerPixel;
+	REGVALUE(VENC_OSDCLK0) = bit-1 ;
+	REGVALUE(VENC_OSDCLK1) = val[0];
 	REGVALUE(VENC_OSDHAD) = 0 ;
 	REGVALUE(VENC_VMOD) = (VENC_VMOD_VDMD_RGB666<<VENC_VMOD_VDMD_SHIFT)|VENC_VMOD_VMD|VENC_VMOD_VENC ;
 	
