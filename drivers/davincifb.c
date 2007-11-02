@@ -105,8 +105,6 @@ static void disable(void)
 {
 }
 
-#define XEND 1
-#define YEND 1
 #define OEPOL 0
 #define NUM_WINDOWS 4
 
@@ -194,10 +192,10 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(VENC_SYNCCTL) = (info->vsyn_acth<<3)|(info->hsyn_acth<<2)|0x03;
 	REGVALUE(VENC_HSPLS) = info->hsync_len*encPerPixel;
 	REGVALUE(VENC_VSPLS) = info->vsync_len ;
-	REGVALUE(VENC_HINT) = (info->xres+info->hsync_len+info->left_margin+XEND-1)*encPerPixel;
+	REGVALUE(VENC_HINT) = (info->xres+info->hsync_len+info->left_margin+info->right_margin-1)*encPerPixel;
 	REGVALUE(VENC_HSTART) = info->left_margin*encPerPixel;
 	REGVALUE(VENC_HVALID) = info->xres*encPerPixel;
-	REGVALUE(VENC_VINT) = (info->yres+info->vsync_len+info->upper_margin+YEND-1);
+	REGVALUE(VENC_VINT) = (info->yres+info->vsync_len+info->upper_margin+info->lower_margin-1);
 	REGVALUE(VENC_VSTART) = info->upper_margin ;
 	REGVALUE(VENC_VVALID) = info->yres ;
 	REGVALUE(VENC_HSDLY) = 0 ;
@@ -231,9 +229,9 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 
 	REGVALUE(VENC_DCLKHS) = 0 ;
 	REGVALUE(VENC_DCLKHSA) = 0 ;
-	REGVALUE(VENC_DCLKHR) = info->xres+info->hsync_len+info->left_margin+XEND ;
+	REGVALUE(VENC_DCLKHR) = info->xres+info->hsync_len+info->left_margin+info->right_margin ;
 	REGVALUE(VENC_DCLKVS) = 0 ;
-	REGVALUE(VENC_DCLKVR) = info->yres+info->vsync_len+info->upper_margin+YEND ;
+	REGVALUE(VENC_DCLKVR) = info->yres+info->vsync_len+info->upper_margin+info->lower_margin ;
 	
 	val[0] = 0;
 	bit = 0;
