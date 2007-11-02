@@ -326,6 +326,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     crt : 0
 }
 , {
+#define hitachi_154_P 1280,64, 24,16,	800, 20, 4, 3,	1,1,0,0,0,	1,0,0,1,62,LCD_PANEL
     name: "hitachi_154",
     pixclock: 72000000,
     xres: 1280,
@@ -334,8 +335,8 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     hsyn_acth: 1,
     vsyn_acth: 1,
     hsync_len: 64,
-    left_margin: 1,
-    right_margin: 39,
+    left_margin: 24,
+    right_margin: 16,
     vsync_len: 20,
     upper_margin: 8,
     lower_margin: 3,
