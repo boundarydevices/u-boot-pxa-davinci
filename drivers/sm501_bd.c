@@ -10,6 +10,7 @@
 #include <devices.h>
 #include <lcd.h>
 #include <lcd_panels.h>
+#include <asm/arch/pxa-regs.h>
 
 #define FASTCLOCK1 0x291A0201		//faster pixel clock:     P2S = 1, P2 =  9  (/6)      ( panel source 1, divide by 6)
                                  //                        V2S = 1, V2 = 10 (/12)      ( crt source 1, divide by 12)
@@ -31,7 +32,9 @@
 #define SLOWCLOCK2 0x0A1A0A09
 #define SLOWCLOCK3 0x00090900
 
-#define SM501_BASE 0x0c000000
+
+#define SM501_BASE PXA_CS3_PHYS				// Neon, Neon-270 Enc
+// #define SM501_BASE PXA_CS1_PHYS			// Neon-270
 #define REG_BASE SM501_BASE+0x03E00000
 
 unsigned long const fbStart = SM501_BASE ;
