@@ -37,6 +37,7 @@ COBJS-y += cmd_autoscript.o
 COBJS-$(CONFIG_CMD_BDI) += cmd_bdinfo.o
 COBJS-$(CONFIG_CMD_BEDBUG) += cmd_bedbug.o
 COBJS-$(CONFIG_CMD_BMP) += cmd_bmp.o
+COBJS-$(CONFIG_CMD_GUNZIP) += cmd_gunzip.o
 COBJS-y += image.o
 COBJS-y += gunzip.o
 COBJS-y += cmd_boot.o
