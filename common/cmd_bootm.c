@@ -77,7 +77,7 @@ extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 
 #ifdef CONFIG_GZIP
 #include <zlib.h>
-int  gunzip (void *, int, unsigned char *, unsigned long *);
+#include <gunzip.h>
 static void *zalloc(void *, unsigned, unsigned);
 static void zfree(void *, void *, unsigned);
 #endif 
