@@ -265,25 +265,23 @@ void env_relocate_spec (void)
 {
 	puts ("env_relocate_spec start3\n");
 #if !defined(ENV_IS_EMBEDDED)
-	ulong total;
-	int ret;
+	if (nand_info[0].name) {
+		ulong total;
+		int ret;
 
-	total = CFG_ENV_SIZE;
-	printf("nand_read start %s\n",nand_info[0].name);
-	ret = nand_read(&nand_info[0], CFG_ENV_OFFSET, &total, (u_char*)env_ptr);
-	puts ("nand_read done\n");
-  	if (ret || total != CFG_ENV_SIZE) {
-  		DEBUG (MTD_DEBUG_LEVEL3, "env read err: ret:%x total:%x expected total:%x\n",ret,total,CFG_ENV_SIZE);
-		return use_default();
+		total = CFG_ENV_SIZE;
+		printf("nand_read start %s\n",nand_info[0].name);
+		ret = nand_read(&nand_info[0], CFG_ENV_OFFSET, &total, (u_char*)env_ptr);
+		puts ("nand_read done\n");
+		if (ret || total != CFG_ENV_SIZE) {
+			DEBUG (MTD_DEBUG_LEVEL3, "env read err: ret:%x total:%x expected total:%x\n",ret,total,CFG_ENV_SIZE);
+		} else {
+			int crc = crc32(0, env_ptr->data, ENV_SIZE); 
+			if ( crc == env_ptr->crc) return;
+			DEBUG (MTD_DEBUG_LEVEL3, "env read crc32 err, calc:%x, read:%x length:%x\n",crc,env_ptr->crc,ENV_SIZE);
+		}
   	}
-
-  	{
-  		int crc = crc32(0, env_ptr->data, ENV_SIZE); 
-  		if ( crc != env_ptr->crc) {
-  			DEBUG (MTD_DEBUG_LEVEL3, "env read crc32 err, calc:%x, read:%x length:%x\n",crc,env_ptr->crc,ENV_SIZE);
-  			return use_default();
-  		}
-  	}
+	return use_default();
 #endif /* ! ENV_IS_EMBEDDED */
 }
 #endif /* CFG_ENV_OFFSET_REDUND */
