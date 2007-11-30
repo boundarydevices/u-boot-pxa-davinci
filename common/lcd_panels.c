@@ -450,6 +450,23 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     crt : 0
 }
 #endif
+, {
+    name: "samsung1600x1050",
+    pixclock: 142000000,
+    xres: 1600,
+    yres: 1050,
+    pclk_redg: 1,
+    hsyn_acth: 0,
+    vsyn_acth: 1,
+    hsync_len: 104,
+    left_margin: 128,
+    right_margin: 264,
+    vsync_len: 4,
+    upper_margin: 2,
+    lower_margin: 44,
+    active : 1,
+    crt : 0
+}
 };
 
 /*
