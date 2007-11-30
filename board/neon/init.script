@@ -1,26 +1,3 @@
-lecho "" ;
-set low0 a0000000
-set low1 a0000001
-set len  1e00000
-set len1 1dfffff
-for b in 00 ff aa 55 01 80 ; do
-        mw.b $low0 $b $len ;
-        while not cmp.b $low0 $low1 $len1 ; do
-                lecho "RAM failure $low0" ;
-        done
-done
-
-set low0 a2000000
-set low1 a2000001
-set len   2000000
-set len1  1ffffff
-for b in 00 ff aa 55 01 80 ; do
-        mw.b $low0 $b $len ;
-        while not cmp.b $low0 $low1 $len1 ; do
-                lecho "RAM failure $low0" ;
-        done
-done
-
 while not mmcdet ; do cls ; lecho "insert SD card" ; sleep 1 ; done ; 
 lecho "SD card Detected" ; 
 while mmcwp ; do cls ; lecho "remove write protect" ; sleep 1 ; done ; 
