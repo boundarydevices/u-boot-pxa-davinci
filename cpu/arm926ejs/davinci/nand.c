@@ -48,7 +48,34 @@
 
 #include <nand.h>
 #include <asm/arch/nand_defs.h>
-#include <asm/arch/emif_defs.h>
+#include <asm/arch/hardware.h>
+
+typedef struct {
+	volatile u32 ERCSR;
+	volatile u32 AWCCR;
+	volatile u32 SDBCR;
+	volatile u32 SDRCR;
+	volatile u32 AB_CR[4];
+	volatile u32 SDTIMR;
+	volatile u32 DDRSR;
+	volatile u32 DDRPHYCR;
+	volatile u32 DDRPHYSR;
+	volatile u32 TOTAR;
+	volatile u32 TOTACTR;
+	volatile u32 DDRPHYID_REV;
+	volatile u32 SDSRETR;
+	volatile u32 EIRR;
+	volatile u32 EIMR;
+	volatile u32 EIMSR;
+	volatile u32 EIMCR;
+	volatile u32 IOCTRLR;
+	volatile u32 IOSTATR;
+	volatile u8 RSVD0[8];
+	volatile u32 NANDFCR;
+	volatile u32 NANDFSR;
+	volatile u8 RSVD1[8];
+	volatile u32 NANDF_ECC[4];
+} emifregs;
 
 extern struct nand_chip nand_dev_desc[CFG_MAX_NAND_DEVICE];
 
@@ -60,6 +87,9 @@ unsigned char nandCtlSetClr[] = {
 	0x00,		/*7 - NAND_CTL_SETWP,  8 - NAND_CTL_CLRWP,  Set/Clear write protection (WP) Not used! */
 };
 
+/*
+ *      hardware specific access to control-lines
+*/
 static void nand_davinci_hwcontrol(struct mtd_info *mtd, int cmd)
 {
 	cmd--;
@@ -120,9 +150,9 @@ static struct nand_oobinfo davinci_nand_oobinfo = {
 static u_int32_t nand_davinci_readecc(struct mtd_info *mtd, u_int32_t chipNum)
 {
 	u_int32_t	ecc = 0;
-	emifregs	emif_base_addr;
+	emifregs*	emif_base_addr;
 
-	emif_base_addr = (emifregs)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
+	emif_base_addr = (emifregs*)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
 	ecc = emif_base_addr->NANDF_ECC[chipNum];
 	return(ecc);
 }
@@ -131,11 +161,11 @@ static void nand_davinci_enable_hwecc(struct mtd_info *mtd, int mode)
 	struct		nand_chip *nand = mtd->priv;
 	u_int32_t	addr = (u_int32_t)nand->IO_ADDR_R;
 	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		/* 0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5 */
-	emifregs	emif_addr;
+	emifregs*	emif_addr;
 	int		dummy;
 	if (chipNum>=4) return;
 
-	emif_addr = (emifregs)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
+	emif_addr = (emifregs*)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
 	dummy = nand_davinci_readecc(mtd, chipNum);	/* reset ecc to 0 */
 	emif_addr->NANDFCR |= (1 << (8+chipNum));	/* start ECC on chip select region+2 */
 }
@@ -162,6 +192,40 @@ static int nand_davinci_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u
 	}
 #endif
 	{
+#if 1
+		unsigned int j = mtd->eccsize;			/* 256 or 512 bytes/ecc  */
+		unsigned int k=0;
+		unsigned int xor = 0;
+		unsigned int ecc = 0;
+		unsigned int * p = (unsigned int *)dat;
+		unsigned int v;
+		do {
+			v = *p++;
+			xor ^= v;
+			v ^= (v>>16);
+			v ^= (v>>8);
+			v ^= (v>>4);
+			v ^= (v>>2);
+			v ^= (v>>1);
+			if (v&1) ecc ^= k;
+			k+=32;
+			j-=4;
+		} while (j);
+		v = (xor>>16)^xor;
+		v ^= ((v>>8)&(0x00ff00ff&0x00ffffff));
+		v ^= ((v>>4)&(0x0f0f0f0f&0x000f0fff));
+		v ^= ((v>>2)&(0x33333333&0x0003033f));
+		v ^= ((v>>1)&(0x55555555&0x00010117));
+		if (v&(1<<16)) ecc ^= 16;
+		if (v&(1<<8)) ecc ^= 8;
+		if (v&(1<<4)) ecc ^= 4;
+		if (v&(1<<2)) ecc ^= 2;
+		if (v&(1<<1)) ecc ^= 1;
+		ecc = (ecc<<16)|ecc;
+		if (v&(1<<0)) ecc ^= 0xfff;		/* if parity is odd, low bits are opposite of high bits*/
+		
+		
+#else
 		unsigned int i = 0x00000fff;	/* 2**12 bits/ecc MAX */
 		unsigned int j = mtd->eccsize;			/* 256 or 512 bytes/ecc  */
 		unsigned int ecc = 0;
@@ -178,6 +242,7 @@ static int nand_davinci_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u
 			i -= 8;
 			j--;
 		} while (j);
+#endif
 		if (tmp!=ecc) {
 #ifndef FORCE_ECC_ERROR
 			printf("Hardware Ecc: %x, Calculated: %x\n",tmp,ecc);
@@ -230,6 +295,7 @@ static unsigned char nandGpioReadyList[] = {NAND_GPIO_READY_LIST};
 
 static int nand_davinci_dev_ready(struct mtd_info *mtd)
 {
+	emifregs* emif_addr;
 #ifdef NAND_GPIO_READY_LIST
 #define GP_BANK0_OFFSET	0x10
 #define GP_BANK_LENGTH	0x28
@@ -253,7 +319,7 @@ static int nand_davinci_dev_ready(struct mtd_info *mtd)
 		}
 	}
 #endif
-	emifregs	emif_addr = (emifregs)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
+	emif_addr = (emifregs*)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
 	return (emif_addr->NANDFSR & 0x1);
 }
 
@@ -313,7 +379,7 @@ int board_nand_init(struct nand_chip *nand)
 	 *                                                                  *
 	 *------------------------------------------------------------------*/
 
-	emifregs emif_regs = (emifregs)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
+	emifregs* emif_regs = (emifregs*)DAVINCI_ASYNC_EMIF_CNTRL_BASE;
 	u_int32_t	addr = (u_int32_t)nand->IO_ADDR_R;
 	u_int32_t   chipNum=(addr-CFG_NAND_BASE)>>25;		/* 0 - cs2, 1 - cs3, 2 - cs4, 3 - cs5 */
 	if (chipNum>=4) return -1;
