@@ -2297,6 +2297,10 @@ argon_config	:	unconfig
 	@./mkconfig halogen arm pxa halogen
 	./Configure --PLATFORM_TYPE=ARGON
 
+oxygen_config	:	unconfig
+	@./mkconfig halogen arm pxa halogen
+	./Configure --PLATFORM_TYPE=OXYGEN
+
 neon270_config	:	unconfig
 	@./mkconfig neon arm pxa neon
 	./Configure --PLATFORM_TYPE=NEON270 --DISPLAY_TYPE=DA640X240
