@@ -666,6 +666,7 @@ void init_pxa_fb( struct lcd_t *lcd )
    panel_info.vl_efw = panel->lower_margin ;
 
    panel_info.pxa.screen = CFG_DRAM_BASE+CFG_DRAM_SIZE-(panel->xres*panel->yres+1024+4096);
+   lcd_base = panel_info.pxa.screen ;
    pxafb_init_mem( (void *)panel_info.pxa.screen, &panel_info);
    pxafb_init(&panel_info);
    
