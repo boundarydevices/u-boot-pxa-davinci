@@ -41,7 +41,7 @@
 static int bmp_info (ulong addr);
 static int bmp_display (ulong addr, int x, int y);
 
-int gunzip(void *, int, unsigned char *, unsigned long *);
+#include <gunzip.h>
 
 /*
  * Subroutine:  do_bmp

@@ -282,11 +282,20 @@ int do_mem_cmp (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	ulong	addr1, addr2, count, ngood;
 	int	size;
 	int     rcode = 0;
+	ulong   numerrs = 0 ;
+        ulong   maxerrs ;
 
-	if (argc != 4) {
+	if (argc < 4) {
 		printf ("Usage:\n%s\n", cmdtp->usage);
 		return 1;
 	}
+
+	if (argc > 4) {
+		maxerrs = simple_strtoul(argv[4],0,0);
+	}
+	else
+		maxerrs = 1 ;
+
 
 	/* Check for size specification.
 	*/
@@ -318,8 +327,8 @@ int do_mem_cmp (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 				printf("word at 0x%08lx (0x%08lx) "
 					"!= word at 0x%08lx (0x%08lx)\n",
 					addr1, word1, addr2, word2);
+				++numerrs ;
 				rcode = 1;
-				break;
 			}
 		}
 		else if (size == 2) {
@@ -329,8 +338,8 @@ int do_mem_cmp (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 				printf("halfword at 0x%08lx (0x%04x) "
 					"!= halfword at 0x%08lx (0x%04x)\n",
 					addr1, hword1, addr2, hword2);
+				++numerrs ;
 				rcode = 1;
-				break;
 			}
 		}
 		else {
@@ -340,18 +349,21 @@ int do_mem_cmp (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 				printf("byte at 0x%08lx (0x%02x) "
 					"!= byte at 0x%08lx (0x%02x)\n",
 					addr1, byte1, addr2, byte2);
+				++numerrs ;
 				rcode = 1;
-				break;
 			}
 		}
 		ngood++;
 		addr1 += size;
 		addr2 += size;
+		if( numerrs >= maxerrs )
+			break;
 	}
 
 	printf("Total of %ld %s%s were the same\n",
 		ngood, size == 4 ? "word" : size == 2 ? "halfword" : "byte",
 		ngood == 1 ? "" : "s");
+	printf("%lu bytes differed\n", numerrs );
 	return rcode;
 }
 
@@ -1184,9 +1196,9 @@ U_BOOT_CMD(
 );
 
 U_BOOT_CMD(
-	cmp,    4,     1,     do_mem_cmp,
+	cmp,    5,     1,     do_mem_cmp,
 	"cmp     - memory compare\n",
-	"[.b, .w, .l] addr1 addr2 count\n    - compare memory\n"
+	"[.b, .w, .l] addr1 addr2 count [maxdiffs]\n    - compare memory\n"
 );
 
 #ifndef CONFIG_CRC32_VERIFY

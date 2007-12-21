@@ -44,6 +44,10 @@ flash_info_t flash_info[CFG_MAX_FLASH_BANKS];	/* info for FLASH chips    */
 #define FLASH_PORT_WIDTH16 1
 #endif
 
+#if (PLATFORM_TYPE==OXYGEN)
+#define FLASH_PORT_WIDTH16 1
+#endif
+
 #ifdef FLASH_PORT_WIDTH16
 #define FLASH_PORT_WIDTH		ushort
 #define FLASH_PORT_WIDTHV		vu_short

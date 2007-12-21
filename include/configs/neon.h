@@ -201,6 +201,8 @@
 #define CONFIG_CMDLINE_TAG
 
 #define CONFIG_GZIP
+#define CONFIG_CMD_GUNZIP
+#define CONFIG_CMDLINE_EDITING
 
 #define	CONFIG_AUTOBOOT_KEYED		/* Enable password protection */
 #define	CONFIG_AUTOBOOT_PROMPT		"\nEnter password - autoboot in %d sec...\n"
