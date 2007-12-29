@@ -411,6 +411,21 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     active : 1,
     crt : 0
 }
+, { name: "sharp_480x272", 
+    pixclock: 9000000,
+    xres: 480,
+    yres: 272,
+    pclk_redg: 1,
+    hsyn_acth: 0,
+    vsyn_acth: 0,
+    hsync_len: 41,
+    left_margin: 2,
+    right_margin: 2,
+    vsync_len: 10,
+    upper_margin: 2,
+    lower_margin: 2,
+    active : 1,
+    crt : 0 }
 #if 1
 #define tovis_w_P	1024,104,56,160,	200,3,201,11,	0,0,1,0,0,	1,0,0,1,75,CRT
 , {
