@@ -2,12 +2,13 @@
 halogen1_clock="312"
 halogen2_clock="416"
 argon_clock="312"
+oxygen_clock="520"
 bd2003_clock="400"
 neon_clock="400"
 neonb_clock="400"
 
 softwareChoices="LINUX WINCE"
-targets="neon neonb halogen1 halogen2 argon bd2003"
+targets="neon neonb halogen1 halogen2 argon oxygen bd2003"
 
 for SOFTWARE in $softwareChoices ; do
 	for suff in $targets ; do 
