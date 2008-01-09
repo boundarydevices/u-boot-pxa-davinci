@@ -1,48 +1,21 @@
-while not mmcdet ; do cls ; lecho "insert SD card" ; sleep 1 ; done ; 
-lecho "SD card Detected" ; 
-while mmcwp ; do cls ; lecho "remove write protect" ; sleep 1 ; done ; 
-lecho "not write protected" ; 
-
-if fatload mmc 0 a0008000 logo*.bmp ; then
-	bmp info a0008000 ;
-	bmp display a0008000 ;
-else
-	lecho "No logo present" ;
+if fatload mmc 0 80008000 logo*.bmp ; then
+	bmp display 80008000 ;
 fi
 
-if fatload mmc 0 a2000000 uim* ; then
-	lecho 'load Linux'
-	if fatload mmc 0 a2200000 mmcinitrd* ; then
-		echo 'using initrd' ;
+if fatload mmc 0 80800000 uImage ; then
+        lecho 'load initrd'
+	if fatload mmc 0 81000000 mmcinitrd* ; then
 		lecho "Booting Linux"
-		set bootargs root=/dev/ram0 console=ttyS0,115200 debug=7 mtdparts=physmap-flash.0:1024k(armboot),256k(params),-(rootfs1)
-		if test 1 -eq $sd1bit ; then set bootargs $bootargs pxamci.use1bit=1 ; fi
-		bootm a2000000 a2200000
-	else
-		echo 'testing cramfs img' ;
-		if fatload mmc 0 a2200000 cramfs* ; then
-			if cmp.b 00140000 a2200000 $filesize ; then
-				echo 'cramfs images match' ;
-			else
-				lecho 'filesystems differ...' ;
-				protect off all ;
-				erase 00140000 01ffffff ;
-				cp.b a2200000 00140000 $filesize ;
-			fi
-
-			set bootargs console=ttyS0,115200 debug=7 mtdparts=phys_mapped_flash:1024k(armboot),256k(params),-(rootfs1) root=/dev/mtdblock3 rootfstype=cramfs
-			lecho "Booting Linux"
-			bootm a2000000
-		fi
+                set bootargs "mem=64M console=ttyS0,115200n8 root=/dev/ram0 "
+                set bootargs $bootargs "video=dm64xxfb:output=lcd:fbMemBase=64M "
+                set bootargs $bootargs "dav-dma=pool=0x400000"
+                set bootargs $bootargs "mtdparts=nand_davinci.0:2048k(bootloader),-(yaffs)"
+		set bootargs $bootargs "eth=$ethaddr"
+                set bootargs $bootargs "mmc=bits:4"
+		bootm 80800000 81000000
 	fi
+        lecho 'failed to load initrd' ;
 else
 	echo "No Linux kernel" ;
 fi
 
-lecho 'No Linux, try CE'
-
-if fatload mmc 0 A0010000 nk*.nb0 ; then
-	g A0010000 ;
-else
-	echo "No WinCE image" ;
-fi
