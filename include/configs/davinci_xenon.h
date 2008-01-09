@@ -186,7 +186,7 @@
 #define CONFIG_CMDLINE_TAG
 #define CONFIG_SETUP_MEMORY_TAGS
 #define CONFIG_BOOTARGS		"mem=120M console=ttyS0,115200n8 root=/dev/hda1 rw noinitrd ip=dhcp"
-#define CONFIG_BOOTCOMMAND	"if mmcinit ; then if fatload mmc 0 80000000 init.scr ; then autoscr 80000000 ; else echo no init ; fi ; else echo error mounting SD card ; fi"
+#define CONFIG_BOOTCOMMAND	"if mmcinit || mmcinit ; then if fatload mmc 0 80000000 init.scr ; then autoscr 80000000 ; else echo no init ; fi ; else echo error mounting SD card ; fi"
 #define CONFIG_BOOTDELAY	3
 
 /*=================*/
