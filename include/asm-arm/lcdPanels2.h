@@ -8,7 +8,7 @@
 #define sharp_vga		6
 #define qvga_portrait	7
 #define lcd_svga		8
-#define crt800X600		9
+#define crt800x600		9
 #define crt1024x768		10
 #define hitachi_92		11
 #define tovis_w			12
