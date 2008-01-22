@@ -55,7 +55,7 @@
 	SPEC_GP  15,OUT,HIGH,2		//nCS1, NC
 
 
-#if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==OXYGEN)
+#if (PLATFORM_TYPE==ARGON)
 	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control (Argon/Okaya want GP16 low)
 #else
 	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control
@@ -181,8 +181,8 @@
 	SPEC_GP  93,OUT,HIGH,0		//NC
 	SPEC_GP  94,OUT,HIGH,0		//NC
 	SPEC_GP  95,OUT,HIGH,0		//NC
-	SPEC_GP  96,OUT,HIGH,0		//NC
-	SPEC_GP  97,OUT,HIGH,0		//NC
+	SPEC_GP  96,IN,HIGH,0		//NEON270 J12 pin 2
+	SPEC_GP  97,IN,HIGH,0		//NEON270 J12 pin 3
 	SPEC_GP  98,OUT,HIGH,0		//NC
 	SPEC_GP  99,OUT,HIGH,0		//NC
 	SPEC_GP  100,OUT,HIGH,0		//NC
@@ -214,8 +214,8 @@
 	SPEC_GP  115,OUT,HIGH,0		//NC
 	SPEC_GP  116,OUT,HIGH,0		//NC
 #endif
-	SPEC_GP  117,OUT,HIGH,1		//SCL (I2C)
-	SPEC_GP  118,OUT,HIGH,1		//SDA (I2C)
+	SPEC_GP  117,IN,HIGH,1		//SCL (I2C), In or Out shouldn't matter, linux says IN
+	SPEC_GP  118,IN,HIGH,1		//SDA (I2C), In or Out shouldn't matter, linux says IN
 	SPEC_GP  119,OUT,HIGH,0		//NC
 	SPEC_GP  120,OUT,HIGH,0		//NC
 	SPEC_GP  121,IN,LOW,0		//undefined
