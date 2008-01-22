@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 Sergey Kubushyn <ksi@koi8.net>
+ * Copyright (C) 2007 Eric Nelson <eric.nelson@boundarydevices.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -56,7 +56,7 @@
 #define CFG_USE_NAND
 #define CONFIG_MTD_DEBUG_VERBOSE 2
 #define CONFIG_MTD_DEBUG
-#define NAND_GPIO_READY_LIST 18			//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
+//#define NAND_GPIO_READY_LIST 18			//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
 										//if CSn is not a nand chip, include a 0 in its position if later CS is a nand chip
 #define CONFIG_DAVINCIFB
 /*===================*/
