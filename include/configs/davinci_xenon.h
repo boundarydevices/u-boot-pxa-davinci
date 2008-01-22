@@ -56,8 +56,9 @@
 #define CFG_USE_NAND
 #define CONFIG_MTD_DEBUG_VERBOSE 2
 #define CONFIG_MTD_DEBUG
-//#define NAND_GPIO_READY_LIST 18			//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
-										//if CSn is not a nand chip, include a 0 in its position if later CS is a nand chip
+//#define NAND_GPIO_READY_LIST 18	//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
+//#define NAND_GPIO_READY_LIST 18	//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
+//if CSn is not a nand chip, include a 0 in its position if later CS is a nand chip
 #define CONFIG_DAVINCIFB
 /*===================*/
 /* SoC Configuration */
@@ -186,7 +187,9 @@
 #define CONFIG_CMDLINE_TAG
 #define CONFIG_SETUP_MEMORY_TAGS
 #define CONFIG_BOOTARGS		"mem=120M console=ttyS0,115200n8 root=/dev/hda1 rw noinitrd ip=dhcp"
-#define CONFIG_BOOTCOMMAND	"setenv setboot setenv bootargs \\$(bootargs) video=dm64xxfb:output=\\$(videostd);run setboot; bootm 0x2050000"
+#define CONFIG_BOOTCOMMAND	"if mmcinit || mmcinit ; then if fatload mmc 0 80000000 init.scr ; then autoscr 80000000 ; else echo no init ; fi ; else echo error mounting SD card ; fi"
+#define CONFIG_BOOTDELAY	3
+
 /*=================*/
 /* U-Boot commands */
 /*=================*/
@@ -241,5 +244,10 @@
  * Allow initrd image to be loaded by U-Boot
  */
 #define CONFIG_INITRD_TAG	 1
+
+
+#define	CONFIG_AUTOBOOT_KEYED		/* Enable password protection */
+#define	CONFIG_AUTOBOOT_PROMPT		"\nEnter password - autoboot in %d sec...\n"
+#define	CONFIG_AUTOBOOT_DELAY_STR	"\x1b\x1b\x1b"
 
 #endif /* __CONFIG_H */
