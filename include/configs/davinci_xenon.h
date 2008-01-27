@@ -123,7 +123,7 @@
 #define CFG_ENV_SIZE		SZ_128K
 #endif
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
-#define CONFIG_SKIP_RELOCATE_UBOOT	/* to a proper address, init done */
+//#define CONFIG_SKIP_RELOCATE_UBOOT	/* to a proper address, init done */
 #define CFG_NAND_BASE		0x02000000
 #define CFG_NAND_HW_ECC
 #define CFG_MAX_NAND_DEVICE	1	/* Max number of NAND devices */
@@ -133,7 +133,7 @@
 #elif defined(CFG_USE_NOR)
 #ifdef CONFIG_NOR_UART_BOOT
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
-#define CONFIG_SKIP_RELOCATE_UBOOT	/* to a proper address, init done */
+//#define CONFIG_SKIP_RELOCATE_UBOOT	/* to a proper address, init done */
 #else
 #undef CONFIG_SKIP_LOWLEVEL_INIT
 #undef CONFIG_SKIP_RELOCATE_UBOOT
@@ -154,9 +154,6 @@
 
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
-#endif
-#ifndef CONFIG_SKIP_RELOCATE_UBOOT
-#define CONFIG_SKIP_RELOCATE_UBOOT
 #endif
 
 /*==============================*/
