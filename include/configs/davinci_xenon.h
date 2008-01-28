@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 Sergey Kubushyn <ksi@koi8.net>
+ * Copyright (C) 2007 Eric Nelson <eric.nelson@boundarydevices.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -56,8 +56,9 @@
 #define CFG_USE_NAND
 #define CONFIG_MTD_DEBUG_VERBOSE 2
 #define CONFIG_MTD_DEBUG
-// #define NAND_GPIO_READY_LIST 18			//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
-										//if CSn is not a nand chip, include a 0 in its position if later CS is a nand chip
+//#define NAND_GPIO_READY_LIST 18	//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
+//#define NAND_GPIO_READY_LIST 18	//18,19,0,18 would mean cs2 ready is gp18, cs3 gp19, cs4 is EM_WAIT,cs5 is gp18
+//if CSn is not a nand chip, include a 0 in its position if later CS is a nand chip
 #define CONFIG_DAVINCIFB
 /*===================*/
 /* SoC Configuration */
@@ -122,7 +123,7 @@
 #define CFG_ENV_SIZE		SZ_128K
 #endif
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
-#define CONFIG_SKIP_RELOCATE_UBOOT	/* to a proper address, init done */
+//#define CONFIG_SKIP_RELOCATE_UBOOT	/* to a proper address, init done */
 #define CFG_NAND_BASE		0x02000000
 #define CFG_NAND_HW_ECC
 #define CFG_MAX_NAND_DEVICE	1	/* Max number of NAND devices */
@@ -132,7 +133,7 @@
 #elif defined(CFG_USE_NOR)
 #ifdef CONFIG_NOR_UART_BOOT
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
-#define CONFIG_SKIP_RELOCATE_UBOOT	/* to a proper address, init done */
+//#define CONFIG_SKIP_RELOCATE_UBOOT	/* to a proper address, init done */
 #else
 #undef CONFIG_SKIP_LOWLEVEL_INIT
 #undef CONFIG_SKIP_RELOCATE_UBOOT
@@ -153,9 +154,6 @@
 
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
-#endif
-#ifndef CONFIG_SKIP_RELOCATE_UBOOT
-#define CONFIG_SKIP_RELOCATE_UBOOT
 #endif
 
 /*==============================*/
