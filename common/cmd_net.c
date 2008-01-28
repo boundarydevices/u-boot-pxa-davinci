@@ -107,6 +107,8 @@ static int parse_mac( char const *macString, // input
 
 int do_mac (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
+   int rval = -1 ;
+
 	if( 2 == argc )
 	{
 		char mac[6];
@@ -114,10 +116,12 @@ int do_mac (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		{
 			printf( "setting mac address to %02x:%02x:%02x:%02x:%02x:%02x\n",
 				mac[0],mac[1],mac[2],mac[3],mac[4],mac[5] );
-			if( set_rom_mac( mac ) )
+			if( set_rom_mac( mac ) ){
 				printf( "done\n" );
-			else
-				printf( "Error setting mac address\n" );
+				rval = 0 ;
+		}
+		else
+			printf( "Error setting mac address\n" );
 		}
 		else
 			printf( "Error parsing mac: use form NN:NN:NN:NN:NN:NN\n" );
@@ -125,15 +129,17 @@ int do_mac (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	else
 	{
 		char mac[6];
-		if( get_rom_mac( mac ) )
+		if( get_rom_mac( mac ) ){
 			printf( "mac address %02x:%02x:%02x:%02x:%02x:%02x\n",
 				mac[0],mac[1],mac[2],mac[3],mac[4],mac[5] );
+			rval = 0 ;
+		}
 		else if( 0xFF == mac[0] )
 			printf( "MAC has not been programmed\n" );
 		else
 			printf( "error reading mac\n" );
 	}
-   return 0 ;
+	return rval ;
 }
 
 U_BOOT_CMD(
