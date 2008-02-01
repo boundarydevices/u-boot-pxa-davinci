@@ -32,9 +32,12 @@
 #define SLOWCLOCK2 0x0A1A0A09
 #define SLOWCLOCK3 0x00090900
 
+#if 1
+#define SM501_BASE PXA_CS3_PHYS			// Neon, Neon-270 Enc
+#else
+#define SM501_BASE PXA_CS1_PHYS			// Neon-270
+#endif
 
-#define SM501_BASE PXA_CS3_PHYS				// Neon, Neon-270 Enc
-// #define SM501_BASE PXA_CS1_PHYS			// Neon-270
 #define REG_BASE SM501_BASE+0x03E00000
 
 unsigned long const fbStart = SM501_BASE ;
