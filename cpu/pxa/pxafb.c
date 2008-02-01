@@ -30,6 +30,8 @@
 
 #include <config.h>
 #include <common.h>
+
+#ifdef CONFIG_PXALCD
 #include <version.h>
 #include <stdarg.h>
 #include <linux/types.h>
@@ -709,5 +711,5 @@ void init_pxa_fb( struct lcd_t *lcd )
 }
 
 #endif // dynamic LCD panel support
-
+#endif //CONFIG_PXALCD
 
