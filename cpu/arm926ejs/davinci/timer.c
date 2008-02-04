@@ -54,61 +54,37 @@ typedef volatile struct {
 	u_int32_t	wdtcr;
 } davinci_timer;
 
-davinci_timer		*timer = (davinci_timer *)CFG_TIMERBASE;
+davinci_timer * const timer = (davinci_timer *)CFG_TIMERBASE;
 
-#define TIMER_LOAD_VAL	(CFG_HZ_CLOCK / CFG_HZ)
-#define TIM_CLK_DIV	16
-
-static ulong timestamp;
-static ulong lastinc;
-
+#define PRESCALE 16
 int timer_init(void)
 {
 	/* We are using timer34 in unchained 32-bit mode, full speed */
 	timer->tcr = 0x0;
 	timer->tgcr = 0x0;
-	timer->tgcr = 0x06 | ((TIM_CLK_DIV - 1) << 8);
+	timer->tgcr = 0x06 | ((PRESCALE-1)<<8);	/* prescale divide by 16 */
 	timer->tim34 = 0x0;
-	timer->prd34 = TIMER_LOAD_VAL;
-	lastinc = 0;
-	timestamp = 0;
+	timer->prd34 = 0xffffffff;
 	timer->tcr = 2 << 22;
-
 	return(0);
 }
+
+ulong get_timer(ulong base)
+{
+	return(timer->tim34 - base);
+}
+
+void set_timer(ulong t)
+{
+	/* nop */
+}
+
 
 void reset_timer(void)
 {
 	timer->tcr = 0x0;
 	timer->tim34 = 0;
-	lastinc = 0;
-	timestamp = 0;
 	timer->tcr = 2 << 22;
-}
-
-static ulong get_timer_raw(void)
-{
-	ulong now = timer->tim34;
-
-	if (now >= lastinc) {
-		/* normal mode */
-		timestamp += now - lastinc;
-	} else {
-		/* overflow ... */
-		timestamp += now + TIMER_LOAD_VAL - lastinc;
-	}
-	lastinc = now;
-	return timestamp;
-}
-
-ulong get_timer(ulong base)
-{
-	return((get_timer_raw() / (TIMER_LOAD_VAL / TIM_CLK_DIV)) - base);
-}
-
-void set_timer(ulong t)
-{
-	timestamp = t;
 }
 
 void udelay(unsigned long usec)
@@ -117,14 +93,19 @@ void udelay(unsigned long usec)
 	ulong endtime;
 	signed long diff;
 
-	tmo = CFG_HZ_CLOCK / 1000;
-	tmo *= usec;
-	tmo /= (1000 * TIM_CLK_DIV);
+	if (usec >= 1000) {
+		tmo = usec / 1000;
+		tmo *= CFG_HZ;
+		tmo /= 1000;
+	} else {
+		tmo = usec * CFG_HZ;
+		tmo /= (1000*1000);
+	}
 
-	endtime = get_timer_raw() + tmo;
+	endtime = timer->tim34 + tmo;
 
 	do {
-		ulong now = get_timer_raw();
+		ulong now = timer->tim34;
 		diff = endtime - now;
 	} while (diff >= 0);
 }
@@ -135,7 +116,7 @@ void udelay(unsigned long usec)
  */
 unsigned long long get_ticks(void)
 {
-	return(get_timer(0));
+	return timer->tim34;
 }
 
 /*

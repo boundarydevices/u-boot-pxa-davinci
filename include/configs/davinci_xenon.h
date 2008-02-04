@@ -66,8 +66,8 @@
 #define CONFIG_ARM926EJS			/* arm926ejs CPU core */
 #define CONFIG_SYS_CLK_FREQ	297000000	/* Arm Clock frequency */
 #define CFG_TIMERBASE		0x01c21400	/* use timer 0 */
-#define CFG_HZ_CLOCK		27000000	/* Timer Input clock freq */
-#define CFG_HZ			1000
+#define CFG_PERIPHERAL_CLOCK	27000000
+#define CFG_HZ			(27000000/16)
 /*=============*/
 /* Memory Info */
 /*=============*/
