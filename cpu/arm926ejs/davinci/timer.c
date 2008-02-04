@@ -56,89 +56,58 @@ typedef volatile struct {
 	u_int32_t	tlmr;
 } davinci_timer;
 
-davinci_timer		*timer = (davinci_timer *)CFG_TIMERBASE;
+davinci_timer * const timer = (davinci_timer *)CFG_TIMERBASE;
 
-#define TIMER_LOAD_VAL	(CFG_HZ_CLOCK / CFG_HZ)
-#define READ_TIMER	timer->tim34
-
-static ulong timestamp;
-static ulong lastinc;
-
+#define PRESCALE 16
 int timer_init(void)
 {
 	/* We are using timer34 in unchained 32-bit mode, full speed */
 	timer->tcr = 0x0;
 	timer->tgcr = 0x0;
-	timer->tgcr = 0x06;
+	timer->tgcr = 0x06 | ((PRESCALE-1)<<8);	/* prescale divide by 16 */
 	timer->tim34 = 0x0;
-	timer->prd34 = TIMER_LOAD_VAL;
-	lastinc = 0;
-	timer->tcr = 0x80 << 16;
-	timestamp = 0;
-
+	timer->prd34 = 0xffffffff;
+	timer->tcr = 2 << 22;
 	return(0);
-}
-
-void reset_timer(void)
-{
-	reset_timer_masked();
 }
 
 ulong get_timer(ulong base)
 {
-	return(get_timer_masked() - base);
+	return(timer->tim34 - base);
 }
 
 void set_timer(ulong t)
 {
-	timestamp = t;
+	/* nop */
+}
+
+
+void reset_timer(void)
+{
+	timer->tcr = 0x0;
+	timer->tim34 = 0;
+	timer->tcr = 2 << 22;
 }
 
 void udelay(unsigned long usec)
-{
-	udelay_masked(usec);
-}
-
-void reset_timer_masked(void)
-{
-	lastinc = READ_TIMER;
-	timestamp = 0;
-}
-
-ulong get_timer_raw(void)
-{
-	ulong now = READ_TIMER;
-
-	if (now >= lastinc) {
-		/* normal mode */
-		timestamp += now - lastinc;
-	} else {
-		/* overflow ... */
-		timestamp += now + TIMER_LOAD_VAL - lastinc;
-	}
-	lastinc = now;
-	return timestamp;
-}
-
-ulong get_timer_masked(void)
-{
-	return(get_timer_raw() / TIMER_LOAD_VAL);
-}
-
-void udelay_masked(unsigned long usec)
 {
 	ulong tmo;
 	ulong endtime;
 	signed long diff;
 
-	tmo = CFG_HZ_CLOCK / 1000;
-	tmo *= usec;
-	tmo /= 1000;
+	if (usec >= 1000) {
+		tmo = usec / 1000;
+		tmo *= CFG_HZ;
+		tmo /= 1000;
+	} else {
+		tmo = usec * CFG_HZ;
+		tmo /= (1000*1000);
+	}
 
-	endtime = get_timer_raw() + tmo;
+	endtime = timer->tim34 + tmo;
 
 	do {
-		ulong now = get_timer_raw();
+		ulong now = timer->tim34;
 		diff = endtime - now;
 	} while (diff >= 0);
 }
@@ -149,7 +118,7 @@ void udelay_masked(unsigned long usec)
  */
 unsigned long long get_ticks(void)
 {
-	return(get_timer(0));
+	return timer->tim34;
 }
 
 /*
@@ -158,8 +127,5 @@ unsigned long long get_ticks(void)
  */
 ulong get_tbclk(void)
 {
-	ulong tbclk;
-
-	tbclk = CFG_HZ;
-	return(tbclk);
+	return CFG_HZ;
 }
