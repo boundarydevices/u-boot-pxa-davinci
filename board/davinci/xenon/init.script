@@ -12,6 +12,7 @@ if fatload mmc 0 80800000 uImage ; then
                 set bootargs $bootargs "mtdparts=nand_davinci.0:2048k(bootloader),-(yaffs)"
 		set bootargs $bootargs "eth=$ethaddr"
                 set bootargs $bootargs "mmc=bits:4"
+                set bootargs $bootargs "pic16F616-ts=pudelay=0"
 		bootm 80800000 81000000
 	fi
         lecho 'failed to load initrd' ;
