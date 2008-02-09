@@ -132,7 +132,7 @@ unsigned char* mmc_reset(void)
 	unsigned char *resp;
 	int i=0;
 	do {
-		resp = mmc_cmd(0, 0, MMC_CMDAT_INIT|0);	//reset
+		resp = mmc_cmd(0, 0, MMC_CMDAT_INIT);	//reset
 		if (resp) break;
 		printf( "mmc_reset error\n" );
 		i++;
@@ -260,6 +260,7 @@ static void set_clock( unsigned hz )
 	 */
 	clkrt = (clock/(2*hz))-1 ;
 	pmmc->MMCCLK = (pmmc->MMCCLK & ~0xFF) | clkrt ;
+	printf( "Selecting %u clock\n", clock/((clkrt+1)<<1) );
 }
 
 static void mmc_setblklen( ulong blklen )
@@ -279,11 +280,11 @@ static void mmc_setblklen( ulong blklen )
 static unsigned mmc_ReadFifo(unsigned int* pDst,ulong len)
 {
 	unsigned numRead = 0 ;
-	unsigned long prevStat0 = 0xDEADBEEF ;
 	unsigned long prevStat1 = 0xDEADBEEF ;
 	//depth flag 0 == 128 bits == 16 bytes == 4 longwords
 	//depth flag 1 == 256 bits == 32 bytes == 8 longwords
 	unsigned fifoDepth = (pmmc->MMCFIFOCTL&4)? 8 : 4;
+	unsigned long volatile* pFifo = &pmmc->MMCDRR;
 	DPRINT( "reading %lu longwords from fifo\n", len );
 	while( len ){
 		unsigned long stat0, stat1 ;
@@ -308,40 +309,55 @@ static unsigned mmc_ReadFifo(unsigned int* pDst,ulong len)
 			}
 		}
       
-		stat0 = pmmc->MMCST0 ;
-		stat1 = pmmc->MMCST1 ;
-		if (stat0 & MMCSD_EVENT_READ) { /* Is Fifo to Interrupt level or end of transfer? */
+		do {
+			stat0 = pmmc->MMCST0 ;
+			if( stat0 & MMCSD_EVENT_ERROR ){
+				DPRINT( "FIFO Error %08x\n", stat0 );
+			}
+			if ((stat0 & MMCSD_EVENT_READ)==0) break;
+			/* Is Fifo to Interrupt level or end of transfer? */
 			if (len >= fifoDepth) {
-	            *pDst++ = pmmc->MMCDRR ;
-	            *pDst++ = pmmc->MMCDRR ;
-	            *pDst++ = pmmc->MMCDRR ;
-	            *pDst++ = pmmc->MMCDRR ;
-	            if (fifoDepth==8) {
-		            *pDst++ = pmmc->MMCDRR ;
-		            *pDst++ = pmmc->MMCDRR ;
-		            *pDst++ = pmmc->MMCDRR ;
-		            *pDst++ = pmmc->MMCDRR ;
-	            }
-	            len -= fifoDepth;
-	            numRead+= fifoDepth;
+
+#define ReadFifo(pDst,pFifo) asm ( \
+	"ldr\tr0,[%1]\n" \
+	"ldr\tr1,[%1]\n" \
+	"ldr\tr2,[%1]\n" \
+	"ldr\tr3,[%1]\n" \
+	"stmia\t%0!,{r0,r1,r2,r3}\n" \
+		 : "+r"(pDst) : "r"(pFifo) : "r0","r1","r2","r3" );
+				
+#if 1
+				ReadFifo(pDst,pFifo);
+				if (fifoDepth==8) {
+					ReadFifo(pDst,pFifo);
+				}
+#else
+				*pDst++ = *pFifo;
+				*pDst++ = *pFifo;
+				*pDst++ = *pFifo;
+				*pDst++ = *pFifo;
+				if (fifoDepth==8) {
+					*pDst++ = *pFifo;
+					*pDst++ = *pFifo;
+					*pDst++ = *pFifo;
+					*pDst++ = *pFifo;
+				}
+#endif
+				len -= fifoDepth;
+				numRead+= fifoDepth;
 			} else {
 				numRead+= len;
 				while ( len ){
-					*pDst++ = pmmc->MMCDRR ;
+					*pDst++ = *pFifo;
 					len-- ;
 					DPRINT( "%08lx\n", pDst[-1] );
 				}
+				break;
 			}
-		} else {
-			if( stat1 & (1<<3) )
-				DPRINT( "DRFULL\n" );
-		}
-		if( stat0 & MMCSD_EVENT_ERROR ){
-			DPRINT( "FIFO Error %08x\n", stat0 );
-		}
-		if( stat0 != prevStat0 ){
-			DPRINT( "stat0: %08lx\n", stat0 );
-			prevStat0 = stat0 ;
+		} while (1);
+		stat1 = pmmc->MMCST1 ;
+		if( stat1 & (1<<3) ) {
+			DPRINT( "DRFULL\n" );
 		}
 		if( stat1 != prevStat1 ){
 			DPRINT( "stat1: %08lx\n", stat1 );
@@ -438,7 +454,7 @@ int mmc_init(int verbose)
 
 	/* Send clock cycles, poll completion */
 	pmmc->MMCARGHL = 0x0;
-	pmmc->MMCCMD   = 0x4000;
+	pmmc->MMCCMD   = MMC_CMDAT_INIT;
 	status = 0;
 	prevStat = 0x01234 ;
 	while (!(status & (MMCSD_EVENT_EOFCMD))) {
@@ -455,7 +471,7 @@ int mmc_init(int verbose)
 
 	/* Send SD_SEND_IF_COND command to set voltage ?? */
 	pmmc->MMCARGHL = 0x01AA ;
-	pmmc->MMCCMD   = 0x0608 ;
+	pmmc->MMCCMD   = MMC_CMDAT_R3|8;	/* R7 and R3 responses are same length */
 	status = 0 ;
 	prevStat = 0x01234 ;
 	while (!(status & (MMCSD_EVENT_EOFCMD|MMCSD_EVENT_ERROR))) {

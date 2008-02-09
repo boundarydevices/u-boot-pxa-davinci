@@ -134,6 +134,13 @@
 #define CONFIG_SETUP_MEMORY_TAGS 1
 #define CONFIG_INITRD_TAG	 1
 
+
+#if (PLATFORM_TYPE==NEON)||(PLATFORM_TYPE==NEONB)
+//These don't use the built-in pxa lcd controller
+#else
+#define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
+#endif
+
 /*
  * High Level Configuration Options
  * (easy to change)

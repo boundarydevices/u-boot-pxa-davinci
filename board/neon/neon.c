@@ -124,7 +124,9 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
       if( 0 == num_lcd ){
          init_sm501_lcd(rval);
       } else if( 1 == num_lcd ){
+#ifdef CONFIG_PXALCD
          init_pxa_fb(rval);
+#endif
       } else {
          printf( "Only two LCD panels are supported on Neon!\n" );
          free(rval); rval = 0 ;
