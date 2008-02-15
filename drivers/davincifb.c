@@ -146,8 +146,12 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	int gbit;
 	unsigned fbBytes = info->xres*info->yres ;
 	struct lcd_t *lcd = (struct lcd_t *)malloc(sizeof(struct lcd_t));
+	
+        DECLARE_GLOBAL_DATA_PTR;
 	memcpy(&lcd->info, info,sizeof(lcd->info));
-	lcd->fbAddr = malloc(fbBytes);
+	lcd->fbAddr = (void *)( gd->bd->bi_dram[0].start + gd->bd->bi_dram[0].size - fbBytes );
+        memset(lcd->fbAddr,0,fbBytes);
+
 	lcd->fg = 0 ;
 	lcd->bg = 255 ;
 	lcd->x = lcd->y = 0 ;
