@@ -395,8 +395,8 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
                lcd = newPanel(panel);
                if( lcd ){
                   char *panelName ; 
-                  disablePanels();
                   addPanel(lcd);
+                  setCurrentPanel(0);
                   panelName = build_panel_name(panel);
                   setenv( "panel", panelName );
                }
