@@ -49,7 +49,7 @@
 #endif
 	.equiv	BM_SA1111_mask, 0		//(1<<12)
 	.equiv	BM_DRI_cnt,  (((99530*64)>>BM_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
-	.equiv	BM_MDCNFG_VAL, 1+((BM_numColumnAddrBits-8)<<3)+((BM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(BM_SA1111_mask)+BM_LARGE_MAP_ENABLE	//DLATCH0, latch return data with return clock
+	.equiv	BM_MDCNFG_VAL, ((BM_numColumnAddrBits-8)<<3)+((BM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(BM_SA1111_mask)+BM_LARGE_MAP_ENABLE	//DLATCH0, latch return data with return clock
 	.equiv	BM_MDREFR_VAL, (1<<16)+(1<<15)+(BM_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
 //	.equiv	BM_MDREFR_VAL, (1<<20)+(1<<16)+(1<<15)+(BM_DRI_cnt&0xfff)		//20: APD, bit 16: K1RUN, 15:E1PIN
 //			 13		9		  2	       2 (4bytes per address)=2**26=64 MB
@@ -58,7 +58,7 @@
 //SM small memory option
 	.equiv	SM_SA1111_mask, 0
 	.equiv	SM_DRI_cnt,  (((99530*64)>>SM_numRowAddrBits)>>5)	//(# of cycles/ms  * # of ms for entire refresh period)/ # of rows/refresh period /32
-	.equiv	SM_MDCNFG_VAL, 1+((SM_numColumnAddrBits-8)<<3)+((SM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(SM_SA1111_mask)+SM_LARGE_MAP_ENABLE	//DLATCH0, latch return data with return clock
+	.equiv	SM_MDCNFG_VAL, ((SM_numColumnAddrBits-8)<<3)+((SM_numRowAddrBits-11)<<5)+((numBankAddrBits-1)<<7)+(ClkSelect<<8)+(1<<11)+(SM_SA1111_mask)+SM_LARGE_MAP_ENABLE	//DLATCH0, latch return data with return clock
 	.equiv	SM_MDREFR_VAL, (1<<16)+(1<<15)+(SM_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
 //			 12		9		  2	       2 (4bytes per address)=2**25=32 MB
 	.equiv	SM_MEM_SIZE, (1<<(2+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
@@ -68,13 +68,13 @@
 // or if 16 bit mode
 //    c-0 try 32meg, c-1 try 16meg
 //Out: z-0 if 16 bit mode if RomWidthIsRamWidth
-.macro InitRam	rBase,rTemp
+.macro InitRam	rBase,rTemp,rTemp2
 	BigMov	\rBase,MEMORY_CONTROL_BASE
 	.if RomWidthIsRamWidth
 	ldr	\rTemp,[\rBase,#BOOT_DEF]
 	tst	\rTemp,#1			//bit 0 - 1 means 16 bit mode
 	.endif
-	BigMov	\rTemp,SM_MDCNFG_VAL
+	BigMov	\rTemp,SM_MDCNFG_VAL|1
 	BigEor2Cc \rTemp,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
 	.if RomWidthIsRamWidth
 	BigOrr2Ne \rTemp,(1<<2)			//select 16 bit width
@@ -196,7 +196,7 @@
 #endif
 
 1:
-	InitRam \rBase, \rTemp		//out: \rBase - MEMORY_CONTROL_BASE
+	InitRam \rBase, \rTemp,\rTemp2		//out: \rBase - MEMORY_CONTROL_BASE
 
 #if (PLATFORM_TYPE==BOUNDARY_OLD_BOARD)
 	.equiv	CHIP_MODE, 0		//don't use VIO_READY
@@ -301,11 +301,19 @@
 #endif
 
 	.ifndef __ENABLED_BTUART_MASK
-	.equiv	__ENABLED_BTUART_MASK, 0
+		.ifndef __ENABLE_BTUART
+			.equiv	__ENABLED_BTUART_MASK, 0
+		.else
+			.equiv	__ENABLED_BTUART_MASK, (1<<CKEN_BTUART)
+		.endif
 	.endif
 
 	.ifndef __ENABLED_STUART_MASK
-	.equiv	__ENABLED_STUART_MASK, 0
+		.ifndef __ENABLE_STUART
+			.equiv	__ENABLED_STUART_MASK, 0
+		.else
+			.equiv	__ENABLED_STUART_MASK, (1<<CKEN_STUART)
+		.endif
 	.endif
 
 	.ifndef __ENABLED_LCD_MASK
