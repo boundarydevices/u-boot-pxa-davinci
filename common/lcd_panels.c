@@ -283,6 +283,21 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
    /* unsigned char     active       */    , 1
    /* unsigned char     crt          */    , 1 }
 
+   /* char const       *name         */ , { "gvision_10.4"
+   /* unsigned long     pixclock     */    , 56000000
+   /* unsigned short    xres         */    , 800
+   /* unsigned short    yres         */    , 600
+   /* unsigned char     pclk_redg    */    , 1 
+   /* unsigned char     hsyn_acth    */    , 1
+   /* unsigned char     vsyn_acth    */    , 1
+   /* unsigned char     hsync_len    */    , 64
+   /* unsigned char     left_margin  */    , 32       
+   /* unsigned char     right_margin */    , 16       
+   /* unsigned char     vsync_len    */    , 8
+   /* unsigned char     upper_margin */    , 3       
+   /* unsigned char     lower_margin */    , 2       
+   /* unsigned char     active       */    , 1
+   /* unsigned char     crt          */    , 1 }
 , { "lcd_svga", 56000000, 800, 600, 1 , 1, 1,
 		64, 32, 152,
 		3, 1, 27,

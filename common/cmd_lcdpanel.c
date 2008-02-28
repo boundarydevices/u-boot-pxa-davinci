@@ -299,6 +299,7 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
          if( parse_panel_info( argv[1], newPanel ) ){
             print_panel_info( newPanel );
             set_lcd_panel( newPanel );
+            setenv( "panel", build_panel_name(panel));
          }
          else {
             printf( "Error parsing panel\n" );
@@ -393,8 +394,14 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
                print_panel_info( panel );
                lcd = newPanel(panel);
                if( lcd ){
+                  char *panelName ; 
                   addPanel(lcd);
+                  setCurrentPanel(0);
+                  panelName = build_panel_name(panel);
+                  setenv( "panel", panelName );
                }
+               else
+                  printf( "error from newPanel()\n" );
             }
             else {
                printf( "Error parsing panel\n" );
