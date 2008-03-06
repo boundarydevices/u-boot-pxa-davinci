@@ -9,7 +9,7 @@ if fatload mmc 0 80800000 uImage ; then
                 set bootargs "mem=64M console=ttyS0,115200n8 root=/dev/ram0 "
                 set bootargs $bootargs "video=dm64xxfb:output=lcd:fbMemBase=64M "
                 set bootargs $bootargs "dav-dma=pool=0x400000"
-                set bootargs $bootargs "mtdparts=nand_davinci.0:2048k(bootloader),-(yaffs)"
+                set bootargs $bootargs "mtdparts=davinci_nand.0:2048k(bootloader),-(yaffs)"
 		set bootargs $bootargs "eth=$ethaddr"
                 set bootargs $bootargs "mmc=bits:4"
                 set bootargs $bootargs "pic-ts=pudelay:$pudelay"
