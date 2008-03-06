@@ -2283,7 +2283,7 @@ neon_config	:	unconfig
 
 neonb_config	:	unconfig
 	@./mkconfig neon arm pxa neon
-	./Configure --PLATFORM_TYPE=NEONB --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=DA640X240
+	./Configure --PLATFORM_TYPE=NEONB --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=hitiachi_hvga
 
 bd2003_config	:	unconfig
 	@./mkconfig $(@:_config=) arm pxa bd2003
@@ -2303,7 +2303,7 @@ oxygen_config	:	unconfig
 
 neon270_config	:	unconfig
 	@./mkconfig neon arm pxa neon
-	./Configure --PLATFORM_TYPE=NEON270 --DISPLAY_TYPE=DA640X240
+	./Configure --PLATFORM_TYPE=NEON270 --DISPLAY_TYPE=hitachi_hvga
 
 xaeniax_config	:	unconfig
 	@$(MKCONFIG) $(@:_config=) arm pxa xaeniax
