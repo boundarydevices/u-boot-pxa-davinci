@@ -221,6 +221,7 @@
 #endif
 
 #define CONFIG_CMD_FAT
+#define CONFIG_SUPPORT_VFAT
 #define CONFIG_MMC
 #define CONFIG_CMD_MMC
 #define CONFIG_DOS_PARTITION
