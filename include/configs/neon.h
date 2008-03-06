@@ -195,6 +195,7 @@
 
 #include "bdCommands.h"
 #define CMD_I2CTEST 1
+#define CMD_XMODEM 1
 
 #ifndef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTDELAY	3
