@@ -855,4 +855,30 @@ void init_sm501_crt( struct lcd_t *lcd )
 }
 #endif
 
+#include <command.h>
+static int sm502_clkreg(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+   if( 4 == argc ){
+      unsigned long reg, mask, value, oldval ;
+      reg = simple_strtoul(argv[1],0,0);
+      mask = simple_strtoul(argv[2],0,0);
+      value = simple_strtoul(argv[3],0,0);
+      printf( "0x%lx, 0x%lx, 0x%lx\n", reg, mask, value );
+      oldval = READREG(reg) & ~mask ;
+      oldval |= (value & mask);
+      setClockReg( reg, oldval );
+      return 0 ;
+   }
+   else {
+      printf( "Usage: sm502_clkreg regNum mask value\n" );
+      return -1 ;
+   }
+}
+
+U_BOOT_CMD(
+	sm502_clkreg,	10,	0,	sm502_clkreg,
+	"setclkreg register mask value\n"
+   , NULL
+);
+
 #endif /* CONFIG_SM501 */
