@@ -78,8 +78,8 @@ int do_gunzip(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 }
 
 U_BOOT_CMD(
-	gunzip,	5,	1,	do_gunzip,
-	"gunzip     - unzip compressed data\n",
-	"gunzip srcaddr srclen destaddr destlen\n"
+	unzip,	5,	1,	do_gunzip,
+	"unzip     - unzip compressed data\n",
+	"unzip srcaddr srclen destaddr destlen\n"
 );
 #endif /* defined(CONFIG_CMD_BMP) */
