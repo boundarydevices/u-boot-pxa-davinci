@@ -36,6 +36,7 @@ extern void	timer_init(void);
 extern int	eth_hw_init(void);
 extern phy_t	phy;
 
+#define MAC_VARIABLE "ethaddr"
 
 /* Works on Always On power domain only (no PD argument) */
 void lpsc_on(unsigned int id)
@@ -172,16 +173,10 @@ int misc_init_r (void)
 	printf ("ARM Clock : %dMHz\n", ((REG(PLL1_PLLM) + 1) * 27 ) / 2);
 	printf ("DDR Clock : %dMHz\n", (clk / 2));
 
-	if( getenv("ethaddr") == NULL ){
-#ifdef CONFIG_ETHADDR
-#define str(s) #s
-#define xstr(s) str(s)
-		static const char tmp[] = xstr(CONFIG_ETHADDR);
-#else
-		static const char tmp[] = "00:19:b8:00:de:ad";
-#endif
-		setenv("ethaddr", (char*)tmp);
-	}
+	if( NULL != ( s = getenv(MAC_VARIABLE) ) )
+		printf( "Mac address %s\n", s );
+	else
+		printf( "No mac address assigned\n" );
 
 	if (!eth_hw_init()) {
 		printf("ethernet init failed!\n");
@@ -211,14 +206,31 @@ int dram_init(void)
 	return(0);
 }
 
+extern int parse_mac
+   ( char const *macString, // input
+     char       *macaddr ); // output: not NULL-terminated
+extern void dm644x_eth_set_mac_addr(const u_int8_t *addr);
+
 int get_rom_mac (char *v_rom_mac)
 {
+   char *cmac ;
+   if( NULL != ( cmac = getenv(MAC_VARIABLE) ) ){
+      if( 0 == parse_mac(cmac,v_rom_mac) ){
+         dm644x_eth_set_mac_addr(v_rom_mac);
+         return 0 ;
+      }
+   }
    return -1 ;
 }
 
 int set_rom_mac (char const *v_rom_mac)
 {
-   return -1 ;
+   char cMac[20];
+   sprintf( cMac, "%02x:%02x:%02x:%02x:%02x:%02x",
+            v_rom_mac[0], v_rom_mac[1], v_rom_mac[2],
+            v_rom_mac[3], v_rom_mac[4], v_rom_mac[5] );
+   setenv(MAC_VARIABLE, cMac);
+   return saveenv();
 }
 
 
