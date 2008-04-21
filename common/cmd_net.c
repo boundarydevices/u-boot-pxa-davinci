@@ -70,8 +70,8 @@ static int hexValue( char c )
 }
 
 // returns non-zero to indicate success
-static int parse_mac( char const *macString, // input
-                      char       *macaddr )  // output: not NULL-terminated
+int parse_mac( char const *macString, // input
+               char       *macaddr )  // output: not NULL-terminated
 {
 	int i ;
 	for( i = 0 ; i < 6 ; i++ )
