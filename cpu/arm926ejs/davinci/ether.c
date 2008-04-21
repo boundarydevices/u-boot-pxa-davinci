@@ -95,7 +95,7 @@ void eth_mdio_enable(void)
 /* End of wrappers */
 
 
-static u_int8_t dm644x_eth_mac_addr[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+static u_int8_t dm644x_eth_mac_addr[] __attribute__ ((aligned (4))) = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 /*
  * This function must be called before emac_open() if you want to override
@@ -386,27 +386,15 @@ static int dm644x_eth_open(void)
 	/* Set MAC Addresses & Init multicast Hash to 0 (disable any multicast receive) */
 	/* Using channel 0 only - other channels are disabled */
 	adap_emac->MACINDEX = 0;
-	adap_emac->MACADDRHI =
-		(dm644x_eth_mac_addr[3] << 24) |
-		(dm644x_eth_mac_addr[2] << 16) |
-		(dm644x_eth_mac_addr[1] << 8)  |
-		(dm644x_eth_mac_addr[0]);
-	adap_emac->MACADDRLO =
-		(dm644x_eth_mac_addr[5] << 8) |
-		(dm644x_eth_mac_addr[4]);
+	adap_emac->MACADDRHI = *((unsigned int*)dm644x_eth_mac_addr);
+	adap_emac->MACADDRLO = *((unsigned short*)(dm644x_eth_mac_addr+4));
 
 	adap_emac->MACHASH1 = 0;
 	adap_emac->MACHASH2 = 0;
 
 	/* Set source MAC address - REQUIRED */
-	adap_emac->MACSRCADDRHI =
-		(dm644x_eth_mac_addr[3] << 24) |
-		(dm644x_eth_mac_addr[2] << 16) |
-		(dm644x_eth_mac_addr[1] << 8)  |
-		(dm644x_eth_mac_addr[0]);
-	adap_emac->MACSRCADDRLO =
-		(dm644x_eth_mac_addr[4] << 8) |
-		(dm644x_eth_mac_addr[5]);
+	adap_emac->MACSRCADDRHI = *((unsigned int*)dm644x_eth_mac_addr);
+	adap_emac->MACSRCADDRLO = *((unsigned short*)(dm644x_eth_mac_addr+4));
 
 	/* Set DMA 8 TX / 8 RX Head pointers to 0 */
 	addr = &adap_emac->TX0HDP;
@@ -523,7 +511,11 @@ static int dm644x_eth_close(void)
 
 	/* Reset EMAC module and disable interrupts in wrapper */
 	adap_emac->SOFTRESET = 1;
+	while (adap_emac->SOFTRESET != 0) {;}
 	adap_ewrap->EWCTL = 0;
+	/* Set source MAC address - REQUIRED */
+	adap_emac->MACSRCADDRHI = *((unsigned int*)dm644x_eth_mac_addr);
+	adap_emac->MACSRCADDRLO = *((unsigned short*)(dm644x_eth_mac_addr+4));
 
 	debug_emac("- emac_close\n");
 	return(1);
