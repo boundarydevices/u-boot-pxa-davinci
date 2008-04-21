@@ -37,5 +37,5 @@
 
 #Provide at least 16MB spacing between us and the Linux Kernel image
 #TEXT_BASE = 0x81080000
-TEXT_BASE = 0x80700000
+TEXT_BASE = 0x87000000
 
