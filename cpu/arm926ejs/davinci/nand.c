@@ -124,16 +124,9 @@ static void nand_davinci_select_chip(struct mtd_info *mtd, int chip)
 static struct nand_oobinfo davinci_nand_oobinfo = {
 	.useecc = MTD_NANDECC_AUTOPLACE,
 	.eccbytes = 12,
-#if 1
-	.eccpos = {8, 9, 10, 24, 25, 26, 40, 41, 42, 56, 57, 58},
+	.eccpos = {52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63},
 	/* The 1st two bytes of spare are reserved for factory bad block markers */
-	.oobfree = { {2, 6}, {11, 13}, {27, 13}, {43, 13}, {59, 5} }
-#else
-	/* I would prefer this format, or the software format with 8 eccs in 256 byte groups (nand_oob_64 in nand_base), what do you think? */
-	.eccpos = {2,3,4,  5,6,7,  8,9,10, 11,12,13},
-	/* The 1st two bytes of spare are reserved for factory bad block markers */
-	.oobfree = { {14, 50} }
-#endif
+	.oobfree = { {2, 50}}
 };
 #elif defined(CFG_NAND_SMALLPAGE)
 static struct nand_oobinfo davinci_nand_oobinfo = {
