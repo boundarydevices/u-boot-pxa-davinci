@@ -149,7 +149,9 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	
         DECLARE_GLOBAL_DATA_PTR;
 	memcpy(&lcd->info, info,sizeof(lcd->info));
-	lcd->fbAddr = (void *)( gd->bd->bi_dram[0].start + gd->bd->bi_dram[0].size - fbBytes );
+	i = gd->bd->bi_dram[0].size;
+	if (i > (128<<20)) i = (128<<20);
+	lcd->fbAddr = (void *)( gd->bd->bi_dram[0].start + i - fbBytes );
         memset(lcd->fbAddr,0,fbBytes);
 
 	lcd->fg = 0 ;
