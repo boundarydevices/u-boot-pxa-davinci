@@ -447,7 +447,7 @@ static int dm644x_eth_open(void)
 	clkdiv = (EMAC_MDIO_BUS_FREQ / EMAC_MDIO_CLOCK_FREQ) - 1;
 	adap_mdio->CONTROL = ((clkdiv & 0xff) | MDIO_CONTROL_ENABLE | MDIO_CONTROL_FAULT);
 
-	if (!phy.get_link_speed(active_phy_addr))
+	if (!phy.auto_negotiate(active_phy_addr))
 		return(0);
 
 	/* Start receive process */
