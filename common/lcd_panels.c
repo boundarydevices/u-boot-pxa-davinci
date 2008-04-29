@@ -497,6 +497,23 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     active : 1,
     crt : 0
 }
+, {
+    name: "adap216x24",
+    pixclock: 25125000,
+    xres: 640,
+    yres: 480,
+    pclk_redg: 0,
+    hsyn_acth: 0,
+    vsyn_acth: 0,
+    hsync_len: 95,
+    left_margin: 16,
+    right_margin: 49,
+    vsync_len: 1,
+    upper_margin: 2,
+    lower_margin: 42,
+    active : 1,
+    crt : 0
+}
 };
 
 /*
