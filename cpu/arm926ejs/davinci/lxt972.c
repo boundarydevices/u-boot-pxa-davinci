@@ -117,7 +117,14 @@ int lxt972_init_phy(int phy_addr)
 int lxt972_auto_negotiate(int phy_addr)
 {
 	u_int16_t	tmp;
+	int i=0;
 
+
+	if (!dm644x_eth_phy_read(phy_addr, PHY_COMMON_AUTO_ADV, &tmp))
+		return(0);
+	tmp |= PHY_COMMON_AUTO_ADV_10BT | PHY_COMMON_AUTO_ADV_10BTFD |
+		PHY_COMMON_AUTO_ADV_100BTX | PHY_COMMON_AUTO_ADV_100BTXFD;
+	dm644x_eth_phy_write(phy_addr, PHY_COMMON_AUTO_ADV, tmp);
 
 	if (!dm644x_eth_phy_read(phy_addr, PHY_COMMON_CTRL, &tmp))
 		return(0);
@@ -127,12 +134,17 @@ int lxt972_auto_negotiate(int phy_addr)
 	dm644x_eth_phy_write(phy_addr, PHY_COMMON_CTRL, tmp);
 
 	/*check AutoNegotiate complete */
-	udelay (10000);
-	if (!dm644x_eth_phy_read(phy_addr, PHY_COMMON_STAT, &tmp))
-		return(0);
-
-	if (!(tmp & PHY_COMMON_STAT_AN_COMP))
-		return(0);
+	do {
+		i++;
+		udelay (10000);
+		if (!dm644x_eth_phy_read(phy_addr, PHY_COMMON_STAT, &tmp))
+			continue;
+		if (tmp & PHY_COMMON_STAT_AN_COMP) break;
+		if (i>1000) {
+			printf("lxt972_auto_negotiate failed status=0x%4x\n",tmp);
+			return 0;
+		}
+	} while (1);
 
 	return (lxt972_get_link_speed(phy_addr));
 }
