@@ -587,12 +587,439 @@ struct lcd_panel_info_t const *find_lcd_panel( char const * name )
    return 0 ;
 }
 
+#define MARGIN_PERCENT    1.8   /* % of active vertical image                */
+#define CELL_GRAN         8.0   /* assumed character cell granularity        */
+#define MIN_PORCH         1     /* minimum front porch                       */
+#define V_SYNC_RQD        3     /* width of vsync in lines                   */
+#define H_SYNC_PERCENT    8.0   /* width of hsync as % of total line         */
+#define MIN_VSYNC_PLUS_BP 550.0 /* min time of vsync + back porch (microsec) */
+#define M                 600.0 /* blanking formula gradient                 */
+#define C                 40.0  /* blanking formula offset                   */
+#define K                 128.0 /* blanking formula scaling factor           */
+#define J                 20.0  /* blanking formula scaling factor           */
+
+/* C' and M' are part of the Blanking Duty Cycle computation */
+
+#define C_PRIME           (((C - J) * K/256.0) + J)
+#define M_PRIME           (K/256.0 * M)
+
+typedef struct __mode
+{
+    int hr, hss, hse, hfl;
+    int vr, vss, vse, vfl;
+    float pclk, h_freq;
+    int v_freq;
+} mode;
+
+#define rint(__f) ((int)(__f))
+inline void print_value(int n, char *name, float val){}
+
+/*
+ * vert_refresh() - as defined by the GTF Timing Standard, compute the
+ * Stage 1 Parameters using the vertical refresh frequency.  In other
+ * words: input a desired resolution and desired refresh rate, and
+ * output the GTF mode timings.
+ *
+ * XXX All the code is in place to compute interlaced modes, but I don't
+ * feel like testing it right now.
+ *
+ * XXX margin computations are implemented but not tested (nor used by
+ * XFree86 of fbset mode descriptions, from what I can tell).
+ */
+
+static void vert_refresh( mode *m )
+{
+    float h_pixels_rnd;
+    float v_lines_rnd;
+    float v_field_rate_rqd;
+    float top_margin;
+    float bottom_margin;
+    float interlace;
+    float h_period_est;
+    float vsync_plus_bp;
+    float v_back_porch;
+    float total_v_lines;
+    float v_field_rate_est;
+    float h_period;
+    float v_field_rate;
+    float v_frame_rate;
+    float left_margin;
+    float right_margin;
+    float total_active_pixels;
+    float ideal_duty_cycle;
+    float h_blank;
+    float total_pixels;
+    float pixel_freq;
+    float h_freq;
+
+    float h_sync;
+    float h_front_porch;
+    float v_odd_front_porch_lines;
+   
+    /*  1. In order to give correct results, the number of horizontal
+     *  pixels requested is first processed to ensure that it is divisible
+     *  by the character size, by rounding it to the nearest character
+     *  cell boundary:
+     *
+     *  [H PIXELS RND] = ((ROUND([H PIXELS]/[CELL GRAN RND],0))*[CELLGRAN RND])
+     */
+    
+    h_pixels_rnd = rint((float) m->hr / CELL_GRAN) * CELL_GRAN;
+    
+    print_value(1, "[H PIXELS RND]", h_pixels_rnd);
+
+    
+    /*  2. If interlace is requested, the number of vertical lines assumed
+     *  by the calculation must be halved, as the computation calculates
+     *  the number of vertical lines per field. In either case, the
+     *  number of lines is rounded to the nearest integer.
+     *   
+     *  [V LINES RND] = IF([INT RQD?]="y", ROUND([V LINES]/2,0),
+     *                                     ROUND([V LINES],0))
+     */
+
+    v_lines_rnd = rint((float) m->vr);
+    
+    print_value(2, "[V LINES RND]", v_lines_rnd);
+    
+    
+    /*  3. Find the frame rate required:
+     *
+     *  [V FIELD RATE RQD] = IF([INT RQD?]="y", [I/P FREQ RQD]*2,
+     *                                          [I/P FREQ RQD])
+     */
+
+    v_field_rate_rqd = ((float)m->v_freq);
+
+    print_value(3, "[V FIELD RATE RQD]", v_field_rate_rqd);
+    
+
+    /*  4. Find number of lines in Top margin:
+     *
+     *  [TOP MARGIN (LINES)] = IF([MARGINS RQD?]="Y",
+     *          ROUND(([MARGIN%]/100*[V LINES RND]),0),
+     *          0)
+     */
+
+    top_margin = (0.0);
+
+    print_value(4, "[TOP MARGIN (LINES)]", top_margin);
+    
+
+    /*  5. Find number of lines in Bottom margin:
+     *
+     *  [BOT MARGIN (LINES)] = IF([MARGINS RQD?]="Y",
+     *          ROUND(([MARGIN%]/100*[V LINES RND]),0),
+     *          0)
+     */
+
+    bottom_margin = (0.0);
+
+    print_value(5, "[BOT MARGIN (LINES)]", bottom_margin);
+
+    
+    /*  6. If interlace is required, then set variable [INTERLACE]=0.5:
+     *   
+     *  [INTERLACE]=(IF([INT RQD?]="y",0.5,0))
+     */
+
+    interlace = 0.0;
+
+    print_value(6, "[INTERLACE]", interlace);
+    
+
+    /*  7. Estimate the Horizontal period
+     *
+     *  [H PERIOD EST] = ((1/[V FIELD RATE RQD]) - [MIN VSYNC+BP]/1000000) /
+     *                    ([V LINES RND] + (2*[TOP MARGIN (LINES)]) +
+     *                     [MIN PORCH RND]+[INTERLACE]) * 1000000
+     */
+
+    h_period_est = (((1.0/v_field_rate_rqd) - (MIN_VSYNC_PLUS_BP/1000000.0))
+                    / (v_lines_rnd + (2*top_margin) + MIN_PORCH + interlace)
+                    * 1000000.0);
+
+    print_value(7, "[H PERIOD EST]", h_period_est);
+    
+
+    /*  8. Find the number of lines in V sync + back porch:
+     *
+     *  [V SYNC+BP] = ROUND(([MIN VSYNC+BP]/[H PERIOD EST]),0)
+     */
+
+    vsync_plus_bp = rint(MIN_VSYNC_PLUS_BP/h_period_est);
+
+    print_value(8, "[V SYNC+BP]", vsync_plus_bp);
+    
+    
+    /*  9. Find the number of lines in V back porch alone:
+     *
+     *  [V BACK PORCH] = [V SYNC+BP] - [V SYNC RND]
+     *
+     *  XXX is "[V SYNC RND]" a typo? should be [V SYNC RQD]?
+     */
+    
+    v_back_porch = vsync_plus_bp - V_SYNC_RQD;
+    
+    print_value(9, "[V BACK PORCH]", v_back_porch);
+    
+
+    /*  10. Find the total number of lines in Vertical field period:
+     *
+     *  [TOTAL V LINES] = [V LINES RND] + [TOP MARGIN (LINES)] +
+     *                    [BOT MARGIN (LINES)] + [V SYNC+BP] + [INTERLACE] +
+     *                    [MIN PORCH RND]
+     */
+
+    total_v_lines = v_lines_rnd + top_margin + bottom_margin + vsync_plus_bp +
+        interlace + MIN_PORCH;
+    
+    print_value(10, "[TOTAL V LINES]", total_v_lines);
+    
+
+    /*  11. Estimate the Vertical field frequency:
+     *
+     *  [V FIELD RATE EST] = 1 / [H PERIOD EST] / [TOTAL V LINES] * 1000000
+     */
+
+    v_field_rate_est = 1.0 / h_period_est / total_v_lines * 1000000.0;
+    
+    print_value(11, "[V FIELD RATE EST]", v_field_rate_est);
+    
+
+    /*  12. Find the actual horizontal period:
+     *
+     *  [H PERIOD] = [H PERIOD EST] / ([V FIELD RATE RQD] / [V FIELD RATE EST])
+     */
+
+    h_period = h_period_est / (v_field_rate_rqd / v_field_rate_est);
+    
+    print_value(12, "[H PERIOD]", h_period);
+    
+
+    /*  13. Find the actual Vertical field frequency:
+     *
+     *  [V FIELD RATE] = 1 / [H PERIOD] / [TOTAL V LINES] * 1000000
+     */
+
+    v_field_rate = 1.0 / h_period / total_v_lines * 1000000.0;
+
+    print_value(13, "[V FIELD RATE]", v_field_rate);
+    
+
+    /*  14. Find the Vertical frame frequency:
+     *
+     *  [V FRAME RATE] = (IF([INT RQD?]="y", [V FIELD RATE]/2, [V FIELD RATE]))
+     */
+
+    v_frame_rate = v_field_rate;
+
+    print_value(14, "[V FRAME RATE]", v_frame_rate);
+    
+
+    /*  15. Find number of pixels in left margin:
+     *
+     *  [LEFT MARGIN (PIXELS)] = (IF( [MARGINS RQD?]="Y",
+     *          (ROUND( ([H PIXELS RND] * [MARGIN%] / 100 /
+     *                   [CELL GRAN RND]),0)) * [CELL GRAN RND],
+     *          0))
+     */
+
+    left_margin = 0.0;
+    
+    print_value(15, "[LEFT MARGIN (PIXELS)]", left_margin);
+    
+
+    /*  16. Find number of pixels in right margin:
+     *
+     *  [RIGHT MARGIN (PIXELS)] = (IF( [MARGINS RQD?]="Y",
+     *          (ROUND( ([H PIXELS RND] * [MARGIN%] / 100 /
+     *                   [CELL GRAN RND]),0)) * [CELL GRAN RND],
+     *          0))
+     */
+    
+    right_margin = 0.0;
+    
+    print_value(16, "[RIGHT MARGIN (PIXELS)]", right_margin);
+    
+
+    /*  17. Find total number of active pixels in image and left and right
+     *  margins:
+     *
+     *  [TOTAL ACTIVE PIXELS] = [H PIXELS RND] + [LEFT MARGIN (PIXELS)] +
+     *                          [RIGHT MARGIN (PIXELS)]
+     */
+
+    total_active_pixels = h_pixels_rnd + left_margin + right_margin;
+    
+    print_value(17, "[TOTAL ACTIVE PIXELS]", total_active_pixels);
+    
+    
+    /*  18. Find the ideal blanking duty cycle from the blanking duty cycle
+     *  equation:
+     *
+     *  [IDEAL DUTY CYCLE] = [C'] - ([M']*[H PERIOD]/1000)
+     */
+
+    ideal_duty_cycle = C_PRIME - (M_PRIME * h_period / 1000.0);
+    
+    print_value(18, "[IDEAL DUTY CYCLE]", ideal_duty_cycle);
+    
+
+    /*  19. Find the number of pixels in the blanking time to the nearest
+     *  double character cell:
+     *
+     *  [H BLANK (PIXELS)] = (ROUND(([TOTAL ACTIVE PIXELS] *
+     *                               [IDEAL DUTY CYCLE] /
+     *                               (100-[IDEAL DUTY CYCLE]) /
+     *                               (2*[CELL GRAN RND])), 0))
+     *                       * (2*[CELL GRAN RND])
+     */
+
+    h_blank = rint(total_active_pixels *
+                   ideal_duty_cycle /
+                   (100.0 - ideal_duty_cycle) /
+                   (2.0 * CELL_GRAN)) * (2.0 * CELL_GRAN);
+    
+    print_value(19, "[H BLANK (PIXELS)]", h_blank);
+    
+
+    /*  20. Find total number of pixels:
+     *
+     *  [TOTAL PIXELS] = [TOTAL ACTIVE PIXELS] + [H BLANK (PIXELS)]
+     */
+
+    total_pixels = total_active_pixels + h_blank;
+    
+    print_value(20, "[TOTAL PIXELS]", total_pixels);
+    
+
+    /*  21. Find pixel clock frequency:
+     *
+     *  [PIXEL FREQ] = [TOTAL PIXELS] / [H PERIOD]
+     */
+    
+    pixel_freq = total_pixels / h_period;
+    
+    print_value(21, "[PIXEL FREQ]", pixel_freq);
+    
+
+    /*  22. Find horizontal frequency:
+     *
+     *  [H FREQ] = 1000 / [H PERIOD]
+     */
+
+    h_freq = 1000.0 / h_period;
+    
+    print_value(22, "[H FREQ]", h_freq);
+    
+
+
+    /* Stage 1 computations are now complete; I should really pass
+       the results to another function and do the Stage 2
+       computations, but I only need a few more values so I'll just
+       append the computations here for now */
+
+    
+
+    /*  17. Find the number of pixels in the horizontal sync period:
+     *
+     *  [H SYNC (PIXELS)] =(ROUND(([H SYNC%] / 100 * [TOTAL PIXELS] /
+     *                             [CELL GRAN RND]),0))*[CELL GRAN RND]
+     */
+
+    h_sync = rint(H_SYNC_PERCENT/100.0 * total_pixels / CELL_GRAN) * CELL_GRAN;
+
+    print_value(17, "[H SYNC (PIXELS)]", h_sync);
+    
+
+    /*  18. Find the number of pixels in the horizontal front porch period:
+     *
+     *  [H FRONT PORCH (PIXELS)] = ([H BLANK (PIXELS)]/2)-[H SYNC (PIXELS)]
+     */
+
+    h_front_porch = (h_blank / 2.0) - h_sync;
+
+    print_value(18, "[H FRONT PORCH (PIXELS)]", h_front_porch);
+    
+    
+    /*  36. Find the number of lines in the odd front porch period:
+     *
+     *  [V ODD FRONT PORCH(LINES)]=([MIN PORCH RND]+[INTERLACE])
+     */
+    
+    v_odd_front_porch_lines = MIN_PORCH + interlace;
+    
+    print_value(36, "[V ODD FRONT PORCH(LINES)]", v_odd_front_porch_lines);
+    
+
+    /* finally, pack the results in the mode struct */
+    
+    m->hss = (int) (h_pixels_rnd + h_front_porch);
+    m->hse = (int) (h_pixels_rnd + h_front_porch + h_sync);
+    m->hfl = (int) (total_pixels);
+
+    m->vss = (int) (v_lines_rnd + v_odd_front_porch_lines);
+    m->vse = (int) (int) (v_lines_rnd + v_odd_front_porch_lines + V_SYNC_RQD);
+    m->vfl = (int) (total_v_lines);
+
+    m->pclk   = pixel_freq;
+    m->h_freq = h_freq;
+
+} // vert_refresh()
+
+#define UPCASE(c) ((c)&~0x20)
+
 int parse_panel_info( char const              *panelInfo, // input
                       struct lcd_panel_info_t *panel )    // output
 {
    memset( panel, 0, sizeof(*panel));
    char const *nameEnd=strchr(panelInfo,':');
-   if( nameEnd && *nameEnd ){
+   if( ('V' == UPCASE(*panelInfo))
+       &&
+       (nameEnd == panelInfo+4) ){
+      // Use VESA GTF
+      char temp[40];
+      char *term ;
+      strcpy(temp,nameEnd+1);
+      char *nextIn ;
+      mode m ;
+      nameEnd++ ;
+      term = strchr(temp, 'x');
+      if( !term )
+         goto bail ;
+      *term++ = 0 ;
+      m.hr = simple_strtoul(temp,0,0);
+      nextIn = term ;
+      term = strchr(term,'@');
+      if( !term )
+         goto bail ;
+      *term++ = 0 ;
+      m.vr = simple_strtoul(nextIn,0,0);
+      printf( "hz string == %s\n", term );
+      m.v_freq = simple_strtoul(term,&term,0);
+      
+      printf( "VESA: %ux%u at %u Hz\n", m.hr, m.vr, m.v_freq );
+      vert_refresh(&m);
+      
+      panel->name = "vesafb" ; // don't call it VESA!
+      panel->pixclock = (unsigned)(m.pclk*1000000);
+      panel->xres = m.hr ;
+      panel->yres = m.vr ;
+      panel->pclk_redg= 1;
+      panel->hsyn_acth= 0;
+      panel->vsyn_acth= 1;
+      panel->hsync_len = m.hse - m.hss;
+      panel->left_margin = m.hss - m.hr;
+      panel->right_margin = m.hfl - m.hse ;
+      panel->vsync_len = m.vse - m.vss;
+      panel->upper_margin = m.vss - m.vr;
+      panel->lower_margin = m.vfl - m.vse;
+      panel->active = 1 ;
+      panel->crt = term && ('C' == UPCASE(*term));
+      panel->rotation = 0 ;
+      return 1 ;
+   } else if( nameEnd && *nameEnd ){
       char const *nextIn = nameEnd+1 ;
       unsigned const numValues = 14 ;
       unsigned long values[numValues];
@@ -628,10 +1055,13 @@ int parse_panel_info( char const              *panelInfo, // input
          panel->rotation = 0 ;
          return 1 ;
       }
-   }
+   } 
+bail:
    
                         //   0      1    2     3         4         5         6           7           8           9         10           11        12    13 
-   printf( "Usage: myPanel:freqHz,xres,yres,pclk_redg,hsyn_acth,vsyn_acth,hsync_len,left_margin,right_margin,vsync_len,top_margin,bottom_margin,active,crt\n" );
+   printf( "Usage: myPanel:pixclock,xres,yres,...\n" 
+           " | vesa:WxH@Hz[C]\n" 
+           );
    return 0 ;
 }
 
