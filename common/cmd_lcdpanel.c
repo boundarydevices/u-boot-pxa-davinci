@@ -405,7 +405,7 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
             }
             else {
                printf( "Error parsing panel\n" );
-               free(newPanel);
+               free(panel);
             }
          }
          else {
