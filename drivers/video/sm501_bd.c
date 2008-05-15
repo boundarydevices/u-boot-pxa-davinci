@@ -32,7 +32,7 @@
 #define SLOWCLOCK2 0x0A1A0A09
 #define SLOWCLOCK3 0x00090900
 
-#if 1
+#if 0
 #define SM501_BASE PXA_CS3_PHYS			// Neon, Neon-270 Enc
 #else
 #define SM501_BASE PXA_CS1_PHYS			// Neon-270
@@ -685,7 +685,7 @@ static unsigned long const bwPalette[] = {
 
 void lcd_init_fb( struct lcd_t *lcd )
 {
-   lcd->set_palette(bwPalette,sizeof(bwPalette)/sizeof(bwPalette[0]));
+   lcd->set_palette((void *)bwPalette,sizeof(bwPalette)/sizeof(bwPalette[0]));
    memset(lcd->fbAddr,0,lcd->fbMemSize);
    lcd->fg = 1 ;
    lcd->bg = 0 ;
@@ -789,7 +789,7 @@ static void sm501_crt_disable(void)
    STUFFREG( crtctrlReg, reg );
 }
 
-void init_sm501_crt( struct lcd_t *lcd )
+void init_sm501_crt_separate( struct lcd_t *lcd )
 {
    struct lcd_panel_info_t *panel = &lcd->info ;
    unsigned long reg ;
@@ -853,6 +853,26 @@ void init_sm501_crt( struct lcd_t *lcd )
    lcd->disable = sm501_crt_disable ;
    lcd_init_fb(lcd);
 }
+
+void init_sm501_crt_shared( struct lcd_t *lcd )
+{
+   unsigned long reg ;
+   void *lcd_fbaddr ;
+   init_sm501_lcd(lcd);
+   lcd_fbaddr = lcd->fbAddr ;
+   printf( "lcd fbaddr == %p\n", lcd_fbaddr );
+
+   init_sm501_crt_separate(lcd);
+   printf( "crt fbaddr == %p\n", lcd->fbAddr );
+
+   reg = READREG( crtctrlReg );
+   reg &= ~4 ;
+   STUFFREG( crtctrlReg, reg );    // disable
+   reg &= ~0x200 ; // use panel data, not CRT
+   STUFFREG( crtctrlReg, reg );
+   lcd->fbAddr = lcd_fbaddr ;
+}
+
 #endif
 
 #include <command.h>

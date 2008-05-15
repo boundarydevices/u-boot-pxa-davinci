@@ -20,7 +20,8 @@
 void disable_sm501( void );
 
 void init_sm501_lcd( struct lcd_t *lcd );
-void init_sm501_crt( struct lcd_t *info );
+void init_sm501_crt_shared( struct lcd_t *info );
+void init_sm501_crt_separate( struct lcd_t *info );
 
 #endif
 
