@@ -80,6 +80,7 @@ void lpsc_on(unsigned int id)
 	while ((*mdstat & 0x1f) != 0x03) {;}	/* Probably an overkill... */
 }
 
+#ifdef POWERUP_DSP
 void dsp_on(void)
 {
 	int	i;
@@ -112,7 +113,7 @@ void dsp_on(void)
 
 	REG(PSC_GBLCTL) &= ~0x1f;
 }
-
+#endif
 
 int board_init(void)
 {
@@ -139,10 +140,10 @@ int board_init(void)
 
 	lpsc_on(DAVINCI_LPSC_VPSSMSTR);
 	lpsc_on(DAVINCI_LPSC_VPSSSLV);
-
+#ifdef POWERUP_DSP
 	/* Powerup the DSP */
 	dsp_on();
-
+#endif
 	/* Bringup UART0 out of reset */
 	REG(UART0_PWREMU_MGMT) = 0x0000e003;
 
