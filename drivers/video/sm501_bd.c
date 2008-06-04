@@ -32,7 +32,7 @@
 #define SLOWCLOCK2 0x0A1A0A09
 #define SLOWCLOCK3 0x00090900
 
-#if 0
+#if 1
 #define SM501_BASE PXA_CS3_PHYS			// Neon, Neon-270 Enc
 #else
 #define SM501_BASE PXA_CS1_PHYS			// Neon-270
