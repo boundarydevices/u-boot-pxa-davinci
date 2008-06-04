@@ -166,6 +166,7 @@ int board_init(void)
 	return(0);
 }
 
+extern char version_string[];
 int misc_init_r (void)
 {
 	char *s ;
@@ -188,6 +189,7 @@ int misc_init_r (void)
 	i2c_read (0x39, 0x00, 1, (u_int8_t *)&i, 1);
 	setenv ("videostd", ((i  & 0x80) ? "pal" : "ntsc"));
 #endif
+	setenv ("version", version_string );
 	return(0);
 }
 
