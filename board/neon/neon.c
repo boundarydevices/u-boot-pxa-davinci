@@ -67,10 +67,13 @@ int board_init (void)
 	return 0;
 }
 
+extern char version_string[];
 int board_late_init(void)
 {
 	setenv("stdout", "serial");
 	setenv("stderr", "serial");
+	setenv("version", version_string);
+
 	return 0;
 }
 
