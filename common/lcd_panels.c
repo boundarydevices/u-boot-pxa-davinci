@@ -823,8 +823,8 @@ static void fb_cvt_convert_to_mode(struct fb_cvt_data *cvt,
 {
 	mode->refresh = cvt->f_refresh;
 	mode->pixclock = cvt->pixclock ;
-	mode->left_margin = cvt->h_back_porch;
-	mode->right_margin = cvt->h_front_porch;
+	mode->left_margin = cvt->h_front_porch;
+	mode->right_margin = cvt->h_back_porch;
 	mode->hsync_len = cvt->hsync;
 	mode->upper_margin = cvt->v_back_porch;
 	mode->lower_margin = cvt->v_front_porch;
