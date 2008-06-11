@@ -34,7 +34,12 @@ int xmodem_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	printf ("## Ready for binary (xmodem) download to 0x%08lX\n",loadAddress);
 	rcode = load_xmodem(loadAddress,&endAddress);
 	if (rcode==0) {
+		char buf [12];
 		printf("\nOK %08lX-%08lX\n",loadAddress,endAddress);
+		sprintf(buf, "%lX", (long)(endAddress-loadAddress));
+		setenv("filesize", buf);
+		sprintf(buf, "%p", loadAddress);
+		setenv("loadaddr", buf);
 	} else {
 		printf("\nError\n");
 	}
