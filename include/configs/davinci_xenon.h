@@ -169,7 +169,7 @@
 #define CFG_MAXARGS		16		/* max number of command args */
 #define CFG_BARGSIZE		CFG_CBSIZE	/* Boot Argument Buffer Size */
 #define CFG_LOAD_ADDR		0x81000000	/* default Linux kernel load address */
-#define CONFIG_VERSION_VARIABLE
+#undef CONFIG_VERSION_VARIABLE
 #define CONFIG_AUTO_COMPLETE		/* Won't work with hush so far, may be later */
 #define CFG_HUSH_PARSER
 #define CFG_PROMPT_HUSH_PS2	"> "
