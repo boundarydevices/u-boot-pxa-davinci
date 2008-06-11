@@ -11,7 +11,7 @@ if fatload mmc 0 80008000 u-boot-xenon*.bin ; then
                         lecho "U-Boot versions match" ;
                 else
                         lecho "U-Boot versions mismatch!!!" ;
-                        lecho "Auto-upgrade in 10 seconds...\n" ;
+                        lecho "Auto-upgrade in 10 seconds..." ;
                         for n in 10 9 8 7 6 5 4 3 2 1 ; do 
                                 lecho \\\\c "$n" ; 
                                 sleep 1 ; 
