@@ -42,3 +42,9 @@ else
 	echo "No Linux kernel" ;
 fi
 
+lecho 'No Linux, try CE'
+if fatload mmc 0 80010000 nk*.nb0 ; then
+	go 80010000 ;
+else
+	echo "No WinCE image" ;
+fi
