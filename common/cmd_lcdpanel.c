@@ -331,15 +331,42 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
       }
       printf( "%u panel(s) defined\n", count );
 	}
+   else if( '+' == *argv[1] ) {
+      struct lcd_panel_info_t const *panel = prompt_for_panel();
+      if( panel )
+      {
+         struct lcd_t *lcd ;
+         print_panel_info( panel );
+         lcd = newPanel(panel);
+         if( lcd ){
+            addPanel(lcd);
+            setenv( "panel", build_panel_name(panel) );
+         }
+      }
+   }
+   else if( '?' == *argv[1] )
+   {
+      int i ; 
+      for( i = 0 ; i < num_lcd_panels ; i++ )
+         print_panel_info( lcd_panels+i );
+   }
+   else if( '*' == *argv[1] )
+   {
+      int i ; 
+      printf( "xres\tyres\tCRT\tname\n" );
+   
+      for( i = 0 ; i < num_lcd_panels ; i++ )
+         short_panel_info( lcd_panels+i );
+   }
    else {
       unsigned matched = 0 ;
       char *next = argv[1];
       disablePanels();
 
       do {
-         struct lcd_panel_info_t const *panel ;
+         struct lcd_panel_info_t *panel ;
          char *cur = next ;
-         next = strchr(next,',');
+         next = strchr(next,'&');
          if( 0 != next )
             *next = '\0' ;
          panel = find_lcd_panel( cur );
@@ -352,44 +379,10 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
                matched++ ;
             }
          }
-         else
-            printf( "panel %s not found\n", cur );
-         if( next )
-            *next++ = ',' ;
-      } while( next );
-
-      if( 0 == matched ){
-         if( '+' == *argv[1] ) {
-            struct lcd_panel_info_t const *panel = prompt_for_panel();
-            if( panel )
-            {
-               struct lcd_t *lcd ;
-               print_panel_info( panel );
-               lcd = newPanel(panel);
-               if( lcd ){
-                  addPanel(lcd);
-                  setenv( "panel", build_panel_name(panel) );
-               }
-            }
-         }
-         else if( '?' == *argv[1] )
-         {
-            int i ; 
-            for( i = 0 ; i < num_lcd_panels ; i++ )
-               print_panel_info( lcd_panels+i );
-         }
-         else if( '*' == *argv[1] )
-         {
-            int i ; 
-            printf( "xres\tyres\tCRT\tname\n" );
-         
-            for( i = 0 ; i < num_lcd_panels ; i++ )
-               short_panel_info( lcd_panels+i );
-         }
-         else if( strchr( argv[1], ':' ) ){
-            printf( "parse LCD panel <%s> here\n", argv[1] );
-            struct lcd_panel_info_t *const panel = (struct lcd_panel_info_t *)malloc( sizeof(struct lcd_panel_info_t) );
-            if( parse_panel_info( argv[1], panel ) ){
+         else if( strchr( cur, ':' ) ){
+            printf( "parse LCD panel <%s> here\n", cur );
+            panel = (struct lcd_panel_info_t *)malloc( sizeof(struct lcd_panel_info_t) );
+            if( parse_panel_info( cur, panel ) ){
                struct lcd_t *lcd ;
                print_panel_info( panel );
                lcd = newPanel(panel);
@@ -409,9 +402,14 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
             }
          }
          else {
-            char const *rv = strchr( argv[1], ':' );
-            printf( "panel <%s> not found (%p)\n", argv[1], rv );
+            char const *rv = strchr( cur, ':' );
+            printf( "panel <%s> not found (%p)\n", cur, rv );
          }
+         if( next )
+            *next++ = '&' ;
+      } while( next );
+
+      if( 0 == matched ){
       } // nothing matched
       else {
          setenv( "panel", argv[1] );

@@ -67,10 +67,13 @@ int board_init (void)
 	return 0;
 }
 
+extern char version_string[];
 int board_late_init(void)
 {
 	setenv("stdout", "serial");
 	setenv("stderr", "serial");
+	setenv("version", version_string);
+
 	return 0;
 }
 
@@ -114,7 +117,11 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
    
    if( info->crt ){
       if( 0 == num_crt ){
-         init_sm501_crt(rval);
+         int lcd_for_crt = (0 == num_lcd) && (0==getenv("separate_crt"));
+         if( lcd_for_crt )
+            init_sm501_crt_shared(rval);
+         else
+            init_sm501_crt_separate(rval);
       }
       else {
          printf( "Only one CRT is supported on Neon!\n" );

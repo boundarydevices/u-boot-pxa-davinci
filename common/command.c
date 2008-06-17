@@ -92,7 +92,7 @@ do_lecho (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		char *p = argv[i], c;
 
 		if (i > 1)
-			putc(' ');
+			lcd_putc(' ');
 		while ((c = *p++) != '\0') {
 			if (c == '\\' && *p == 'c') {
 				putnl = 0;
