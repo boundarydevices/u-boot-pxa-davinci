@@ -130,7 +130,7 @@ int lxt972_auto_negotiate(int phy_addr)
 		return(0);
 
 	/* Restart Auto_negotiation  */
-	tmp |= PHY_COMMON_CTRL_RES_AUTO;
+	tmp |= PHY_COMMON_CTRL_RES_AUTO | PHY_COMMON_CTRL_AUTO_NEG;
 	dm644x_eth_phy_write(phy_addr, PHY_COMMON_CTRL, tmp);
 
 	/*check AutoNegotiate complete */
