@@ -3190,6 +3190,8 @@ Burn_Rtn16:
 	cmp	r2,#0x16
 	cmpne	r2,#0x17
 	cmpne	r2,#0x18
+	eorne		r2,r2,#0x8800
+	cmpne		r2,#0x21
 	beq	98f
 //(PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)
 	BurnRtn strh,ldrh,  0xffff,0,1,4,1		//the plait version (a1 jumpered to a high address line)

@@ -62,6 +62,16 @@
 	.equiv	SM_MDREFR_VAL, (1<<16)+(1<<15)+(SM_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
 //			 12		9		  2	       2 (4bytes per address)=2**25=32 MB
 	.equiv	SM_MEM_SIZE, (1<<(2+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
+
+	.equiv	MDREF_K1RUN, (1<<16)
+	.equiv	MDREF_K1DB2, (1<<17)
+	.equiv	MDREF_SLFRSH, (1<<22)
+	.equiv	MDREF_K1FREE, (1<<24)
+//playing weird games to avoid ms assembler bugs
+	.equiv	MDREF_K1FREE_K1DB2, MDREF_K1FREE|MDREF_K1DB2
+	.equiv	MDREF_K1FREE_K1DB2_SLFRSH, MDREF_K1FREE_K1DB2|MDREF_SLFRSH
+	.equiv	MDREF_K1FREE_K1DB2_K1RUN, MDREF_K1FREE_K1DB2|MDREF_K1RUN
+
 // *******************************************************************************************
 
 //In: c-0 try 64meg, c-1 try 32meg
@@ -75,12 +85,13 @@
 	tst	\rTemp,#1			//bit 0 - 1 means 16 bit mode
 	.endif
 
-	BigMov	\rTemp,((BM_MDREFR_VAL)&0xfff)|(1<<24)|(1>>22)|(1<<17)		//k1free, slfrsh,k1db2
+	BigMov	\rTemp,((BM_MDREFR_VAL)&0xfff)|MDREF_K1FREE_K1DB2_SLFRSH
 	BigEor2Cs \rTemp,((BM_MDREFR_VAL)^(SM_MDREFR_VAL))&0xfff
 	str	\rTemp,[\rBase,#MDREFR]
 	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
 
-	BigEor2	\rTemp,(1<<24)|(1<<17)|(1<<16)		//disable k1free,disable k1db2, enable K1RUN
+//disable k1free,disable k1db2, enable K1RUN
+	BigEor2	\rTemp,MDREF_K1FREE_K1DB2_K1RUN
 	str	\rTemp,[\rBase,#MDREFR]
 	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
 
