@@ -641,16 +641,12 @@ void lcd_SetPalette(unsigned long* palette,unsigned colors);
  */
 int lcd_display_bitmap(ulong bmp_image, int x, int y)
 {
-#if !defined(CONFIG_MCC200)
-	ushort *cmap;
-#endif
 	ushort i, j;
 	uchar *fb;
 	bmp_image_t *bmp=(bmp_image_t *)bmp_image;
 	uchar *bmap;
 	ushort padded_line;
 	unsigned long width, height;
-	unsigned long pwidth = panel_info.vl_col;
 	unsigned colors,bpix;
 	unsigned long compression;
 	int     maxLum = 0 ;
@@ -730,7 +726,6 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	{
 		width = ((width + 7) & ~7) >> 3;
 		x     = ((x + 7) & ~7) >> 3;
-		pwidth= ((pwidth + 7) & ~7) >> 3;
 	}
 #endif
 
