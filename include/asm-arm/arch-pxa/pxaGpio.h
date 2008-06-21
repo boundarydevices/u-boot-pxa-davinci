@@ -133,14 +133,10 @@ SPEC_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
 #define ALT_LCD 2
 #include "pxaGpio25x.h"
 #else
-#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)||(PLATFORM_TYPE==OXYGEN)
+#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)
 #define ALT_LCD 2
 #include "pxaGpio27x.h"
 #else
-#if (PLATFORM_TYPE==GAME_WITH_SMC)||(PLATFORM_TYPE==GAME_CONTROLLER)
 #include "pxaGpioGame.h"
-#else
-error Unsupplorted PLATFORM_TYPE
-#endif
 #endif
 #endif
