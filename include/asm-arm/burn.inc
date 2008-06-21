@@ -13,6 +13,10 @@
 	.equiv	FLASH_READ_CMD,		((0x00FF<<16) + 0x00FF)			//Read Array/Reset
 	.equiv	FLASH_ERASE_CMD,	((0x0020<<16) + 0x0020)			//Block Erase
 	.equiv	FLASH_CONFIRM_CMD,	((0x00D0<<16) + 0x00D0)			//Block Erase and Program Resume
+
+	.equiv	FLASH_UNLOCK_CMD,	((0x0060<<16) + 0x0060)
+	.equiv	FLASH_UNLOCK_CONFIRM_CMD, ((0x00D0<<16) + 0x00D0)
+
 //	.equiv	FLASH_WRITE_CMD,	((0x0040<<16) + 0x0040)			//Program word
 	.equiv	FLASH_WRITE_TO_BUFFER_CMD,	((0x00E8<<16) + 0x00E8)			//Program word
 
@@ -33,6 +37,10 @@
 	.equiv	f128j3a_devCode,	((0x0018<<16) + 0x0018)
 	.equiv	f128j3a_NUM_SECTORS, 128		//for 32M flash
 	.equiv	f128j3a_SIZE,		(f128j3a_NUM_SECTORS*SECT_SIZE)
+
+	.equiv	INTEL_ID_28F128P33B,	((0x8821<<16) + 0x8821)
+	.equiv	f128P33B_NUM_SECTORS, (4+127)		//for 32M flash, (16 meg on 16 bit board)
+	.equiv	f128P33B_SIZE,		( (127*SECT_SIZE)+((4*32*2)<<10) )
 // *****************************
 	.equiv	MANCODE, 0
 	.equiv	DEVCODE, 4
@@ -156,12 +164,18 @@ FlashGpioWaitForIdle:
 	mov	r0,#f320j3a_SIZE>>\sizeShift
 	cmp	r3,r5
 
+	BigMovNe r5,f640j3a_devCode&\mask
+	movne	r0,#f640j3a_SIZE>>\sizeShift
+	cmpne	r3,r5
+
 	BigMovNe r5,f128j3a_devCode&\mask
 	movne	r0,#f128j3a_SIZE>>\sizeShift
 	cmpne	r3,r5
 
-	BigMovNe r5,f640j3a_devCode&\mask
-	movne	r0,#f640j3a_SIZE>>\sizeShift
+//keep this one last
+	BigMovNe r5,INTEL_ID_28F128P33B&\mask
+//these are the same, so no instruction generated
+	BigEor2Ne r0,((f128P33B_SIZE>>\sizeShift)^(f128j3a_SIZE>>\sizeShift))
 	cmpne	r3,r5
 
 //	movne	r0,#0		//if no device codes match, then unknown size
@@ -194,16 +208,26 @@ FlashGpioWaitForIdle:
 	cmp	r1,r0
 	movhi	pc,lr			//return if trying to write too much
 
-	ldrb	r5,[rDBG,#DBG_TEMP]
-	cmp	r5,#CMD_BURNALL
-	streq	r0,[rDBG,#DBG_TEMP]	//r0 is size of flash
+	ldrb	r2,[rDBG,#DBG_TEMP]
+	cmp	r2,#CMD_BURNALL
+	movne	r0,#0			//if not BURNALL, zero the flash size
+	moveq	r0,r0,LSL #1	//low bit is INTEL_ID_28F128P33B flag
+	cmp	r3,r5
+	orreq	r0,r0,#1		//set if this is an INTEL_ID_28F128P33B
+	str	r0,[rDBG,#DBG_TEMP]
 
 	FLASH_GPIO_WAIT_FOR_IDLE
 1:
 	bl	PrintSector
 
 //Now see if block needs erased
-	add	rRamSectorEnd,rRamSector,#SECT_SIZE>>\shift
+	sub	r2,rFlashSector,rFlashBase
+	mov	r5,#SECT_SIZE>>\shift
+	cmp	r2,r5
+	ldrlob	r2,[rDBG,#DBG_TEMP]
+	tst	r2,#1
+	movne	r5,r5,LSR #2
+	add	rRamSectorEnd,rRamSector,r5
 	cmp	rRamSectorEnd,rRamEnd
 	movhi	rRamSectorEnd,rRamEnd
 	b	3f
@@ -218,9 +242,9 @@ FlashGpioWaitForIdle:
 
 
 	ldr	r2,[rDBG,#DBG_TEMP]
-	movs	r2,r2
+	movs	r2,r2,LSR #1
 	beq	20f
-	add	r0,rFlashSector,#SECT_SIZE>>\shift
+	add	r0,rFlashSector,r5
 	b	62f
 61:
 	ldr	r2,[r1],#4	//read flash
@@ -239,6 +263,11 @@ FlashGpioWaitForIdle:
 	and	r4,r3,r2
 	cmp	r4,r2
 	beq	3b		//br if (we signal) glitch caused a spurious status register read
+
+	BigMov	r0,FLASH_UNLOCK_CMD&\mask
+	\istr	r0,[rFlashSector]
+	BigMov	r0,FLASH_UNLOCK_CONFIRM_CMD&\mask
+	\istr	r0,[rFlashSector]
 
 	BigMov	r0,FLASH_ERASE_CMD&\mask
 	\istr	r0,[rFlashSector]
@@ -354,13 +383,20 @@ FlashGpioWaitForIdle:
 32:	cmp	r0,rRamSectorEnd
 	blo	31b
 42:
-	add	rRamSector,rRamSector,#SECT_SIZE>>\shift
-	add	rFlashSector,rFlashSector,#SECT_SIZE>>\shift
+	sub	r2,rFlashSector,rFlashBase
+	mov	r5,#SECT_SIZE>>\shift
+	cmp	r2,r5
+	ldrlob	r2,[rDBG,#DBG_TEMP]
+	tst	r2,#1
+	movne	r5,r5,LSR #2
+
+	add	rRamSector,rRamSector,r5
+	add	rFlashSector,rFlashSector,r5
 	cmp	rRamSector,rRamEnd
 	blo	1b		//goto next sector
 
 	ldr	r2,[rDBG,#DBG_TEMP]
-	add	r2,r2,rFlashBase
+	add	r2,rFlashBase,r2,LSR #1
 	cmp	rFlashSector,r2
 	blo	1b
 
