@@ -12,7 +12,7 @@
 #define ARGON						10
 #define NEON270						11
 #define MERCURY						12
-#define OXYGEN						13
+#define HYDROGEN					13
 
 #if (PLATFORM_TYPE==NEONB)
 #define PHYS_FLASH_BASE 0x04000000

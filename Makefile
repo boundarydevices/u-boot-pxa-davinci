@@ -2666,6 +2666,10 @@ halogen_config	:	unconfig
 	@./mkconfig $(@:_config=) arm pxa halogen
 	./Configure --PLATFORM_TYPE=HALOGEN
 
+hydrogen_config	:	unconfig
+	@./mkconfig halogen arm pxa halogen
+	./Configure --PLATFORM_TYPE=HYDROGEN --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=okaya_480x272
+
 argon_config	:	unconfig
 	@./mkconfig halogen arm pxa halogen
 	./Configure --PLATFORM_TYPE=ARGON

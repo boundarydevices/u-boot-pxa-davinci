@@ -40,7 +40,7 @@ flash_info_t flash_info[CFG_MAX_FLASH_BANKS];	/* info for FLASH chips    */
 #endif
 #endif
 
-#if (PLATFORM_TYPE==ARGON)
+#if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==HYDROGEN)
 #define FLASH_PORT_WIDTH16 1
 #endif
 
