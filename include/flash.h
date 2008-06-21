@@ -311,6 +311,9 @@ extern int jedec_flash_match(flash_info_t *info, ulong base);
 #define INTEL_ID_28F256P30T 0x88198819	/* 256M = 128K x 255 + 32k x 4 */
 #define INTEL_ID_28F256P30B 0x881C881C	/* 256M = 128K x 255 + 32k x 4 */
 
+#define INTEL_ID_28F128P33T 0x881E881E	/* 128M = 128K x 127 +  32K x   4 */
+#define INTEL_ID_28F128P33B 0x88218821	/* 128M =  32K x   4 + 128K x 127 */
+
 #define INTEL_ID_28F160S3   0x00D000D0	/*  16M = 512K x  32 (64kB x 32)	*/
 #define INTEL_ID_28F320S3   0x00D400D4	/*  32M = 512K x  64 (64kB x 64)	*/
 
@@ -441,6 +444,9 @@ extern int jedec_flash_match(flash_info_t *info, ulong base);
 #define FLASH_28F640J3A 0x00C2		/* INTEL 28F640J3A ( 64M = 128K x  64)	*/
 #define FLASH_28F128J3A 0x00C4		/* INTEL 28F128J3A (128M = 128K x 128)	*/
 #define FLASH_28F256J3A 0x00C6		/* INTEL 28F256J3A (256M = 128K x 256)	*/
+
+#define FLASH_28F128P33T 0x00C8
+#define FLASH_28F128P33B 0x00C9
 
 #define FLASH_FUJLV650	0x00D0		/* Fujitsu MBM 29LV650UE/651UE		*/
 #define FLASH_MT28S4M16LC 0x00E1	/* Micron MT28S4M16LC			*/

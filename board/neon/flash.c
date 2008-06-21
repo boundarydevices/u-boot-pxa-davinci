@@ -44,6 +44,10 @@ flash_info_t flash_info[CFG_MAX_FLASH_BANKS];	/* info for FLASH chips    */
 #define FLASH_PORT_WIDTH16 1
 #endif
 
+#if (PLATFORM_TYPE==OXYGEN)
+#define FLASH_PORT_WIDTH16 1
+#endif
+
 #ifdef FLASH_PORT_WIDTH16
 #define FLASH_PORT_WIDTH		ushort
 #define FLASH_PORT_WIDTHV		vu_short
@@ -83,7 +87,7 @@ unsigned long flash_init (void)
 	ulong size = 0;
 	ulong base;
 
-   while (i < CFG_MAX_FLASH_BANKS) {
+	while (i < CFG_MAX_FLASH_BANKS) {
 		base = bases[j++];
 		flash_info[i].start[0] = 0;
 		if (base & 1) break;
@@ -91,10 +95,9 @@ unsigned long flash_init (void)
 			flash_get_offsets (base, &flash_info[i]);
 			size += flash_info[i].size;
 			i++;
+		} else {
+			printf( "error reading flash size\n" );
 		}
-      else {
-printf( "error reading flash size\n" );
-      }
 	}
 	if (size>0) {
 		base = flash_info[0].start[0];
@@ -117,15 +120,24 @@ printf( "error reading flash size\n" );
 static void flash_get_offsets (ulong base, flash_info_t *info)
 {
 	int i;
-
 	if (info->flash_id == FLASH_UNKNOWN) {
 		return;
 	}
-
 	if ((info->flash_id & FLASH_VENDMASK) == FLASH_MAN_INTEL) {
+		ulong ssize = SECTOR_SIZE_PER_CHIP * FLASH_CHIP_CNT;
+		ulong nsize = ssize;
+		ulong nchange = 0x10000;
+		if ((info->flash_id & 0xffff) == FLASH_28F128P33B) {
+			ssize = (32<<10)*FLASH_CHIP_CNT;
+			nchange = 4;
+		}
 		for (i = 0; i < info->sector_count; i++) {
-			info->start[i] = base + (i * (SECTOR_SIZE_PER_CHIP*FLASH_CHIP_CNT));
+			if (i>=nchange) {
+				ssize = nsize;
+			}
+			info->start[i] = base;
 			info->protect[i] = 0;
+			base += ssize;
 		}
 	}
 }
@@ -234,17 +246,21 @@ static ulong flash_get_size (volatile FPW *addr, flash_info_t *info)
 		info->sector_count = 128;
 		info->size = info->sector_count*(SECTOR_SIZE_PER_CHIP*FLASH_CHIP_CNT);
 		break;				/* => 16 MB x 2  */
-   case (FPW) INTEL_ID_28F320J3A:
+	case (FPW) INTEL_ID_28F128P33B:
+		info->flash_id += FLASH_28F128P33B;
+		info->sector_count = 4+127;
+		info->size = (((4*32)+(127*128))<<10) *FLASH_CHIP_CNT;
+		break;
+	case (FPW) INTEL_ID_28F320J3A:
 		info->flash_id += FLASH_28F320J3A;
 		info->sector_count = 32;
 		info->size = info->sector_count*(SECTOR_SIZE_PER_CHIP*FLASH_CHIP_CNT);
 		break;				/* => 4 MB x 2 */
-   case (FPW) INTEL_ID_28F640J3A:
+	case (FPW) INTEL_ID_28F640J3A:
 		info->flash_id += FLASH_28F640J3A;
 		info->sector_count = 64;
 		info->size = info->sector_count*(SECTOR_SIZE_PER_CHIP*FLASH_CHIP_CNT);
 		break;				/* => 8 MB  */
-
 	default:
 		printf( "Unknown flash device %x,%x\n", manVal,devVal );
 		info->flash_id = FLASH_UNKNOWN;

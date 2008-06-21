@@ -28,8 +28,11 @@
 #if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)
 #define CONFIG_PXA270		1	/* This is a PXA270 CPU    */
 #define CONFIG_PXA27X		1	/* Which is a PXA27X */
+#define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
 #else
 #define CONFIG_PXA250		1	/* This is an PXA250 CPU    */
+#define CONFIG_NEON		1	/* on a Neon Board	    */
+#define CONFIG_SM501		1
 #endif
 
 #define CONFIG_SETUP_MEMORY_TAGS 1
@@ -39,11 +42,8 @@
  * High Level Configuration Options
  * (easy to change)
  */
-#define CONFIG_NEON		1	/* on a Neon Board	    */
-#define CONFIG_SM501		1
-#define PXALCD          1     /* Allow PXA display controller as well */
-// #define CONFIG_LCD		1
 #define CONFIG_LCD_MULTI 1
+#define CONFIG_LCD		1
 
 #define CONFIG_MMC		1
 #define BOARD_LATE_INIT		1
@@ -237,7 +237,7 @@
  * FLASH and environment organization
  */
 #define CFG_MAX_FLASH_BANKS	1	/* max number of memory banks		*/
-#define CFG_MAX_FLASH_SECT	128  /* max number of sectors on one chip    */
+#define CFG_MAX_FLASH_SECT	(127+4)  /* max number of sectors on one chip    */
 
 /* timeout values are in ticks */
 #define CFG_FLASH_ERASE_TOUT	(25*CFG_HZ) /* Timeout for Flash Erase */
