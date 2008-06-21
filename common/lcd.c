@@ -677,18 +677,12 @@ void lcd_SetPalette(unsigned long* palette,unsigned colors);
  */
 int lcd_display_bitmap(ulong bmp_image, int x, int y)
 {
-#ifdef CONFIG_ATMEL_LCD
-	uint *cmap;
-#elif !defined(CONFIG_MCC200)
-	ushort *cmap;
-#endif
 	ushort i, j;
 	uchar *fb;
 	bmp_image_t *bmp=(bmp_image_t *)bmp_image;
 	uchar *bmap;
 	ushort padded_line;
 	unsigned long width, height;
-	unsigned long pwidth = panel_info.vl_col;
 	unsigned colors,bpix;
 	unsigned long compression;
 	int     maxLum = 0 ;
@@ -728,15 +722,8 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 #if !defined(CONFIG_MCC200)
 	/* MCC200 LCD doesn't need CMAP, supports 1bpp b&w only */
 	if (bpix==8) {
-#if defined(CONFIG_PXA250)
-		cmap = (ushort *)fbi->palette;
-#elif defined(CONFIG_MPC823)
-		cmap = (ushort *)&(cp->lcd_cmap[255*sizeof(ushort)]);
-#elif defined(CONFIG_ATMEL_LCD)
-		cmap = (uint *) (panel_info.mmio + ATMEL_LCDC_LUT(0));
-#else
-# error "Don't know location of color map"
-#endif
+		unsigned long palette[256];
+		unsigned long* cmap = palette;
 
 		/* Set color map */
 		for (i=0; i<colors; ++i) {
@@ -775,7 +762,6 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	{
 		width = ((width + 7) & ~7) >> 3;
 		x     = ((x + 7) & ~7) >> 3;
-		pwidth= ((pwidth + 7) & ~7) >> 3;
 	}
 #endif
 
@@ -793,10 +779,14 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	for (i = 0; i < height; ++i) {
 		WATCHDOG_RESET();
 		for (j = 0; j < width ; j++)
-#if defined(CONFIG_MPC823) || defined(CONFIG_MCC200)
-			*(fb++)=255-*(bmap++);
+#if defined(CONFIG_MPC823)
+			*fb++=255-*bmap++;
 #else
 			*fb++=*bmap++;
+#if defined(CONFIG_PXA250)
+			*(fb++)=*(bmap++);
+#elif defined(CONFIG_MPC823) || defined(CONFIG_MCC200)
+			*(fb++)=255-*(bmap++);
 #endif
 		bmap += (padded_line-width);
 		fb   -= (width + panel_info.vl_lcd_line_length);
