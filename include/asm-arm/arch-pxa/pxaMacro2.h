@@ -84,55 +84,64 @@
 	ldr	\rTemp,[\rBase,#BOOT_DEF]
 	tst	\rTemp,#1			//bit 0 - 1 means 16 bit mode
 	.endif
+	mrs	\rTemp2,CPSR			//save flags
+//don't write to memory controller on the 1st pass
+//get all instruction in cache on 1st pass
+	orr	\rTemp2,\rTemp2,#1<<31		//Set N bit
+90:	msr	CPSR_f,\rTemp2
 
 	BigMov	\rTemp,((BM_MDREFR_VAL)&0xfff)|MDREF_K1FREE_K1DB2_SLFRSH
 	BigEor2Cs \rTemp,((BM_MDREFR_VAL)^(SM_MDREFR_VAL))&0xfff
-	str	\rTemp,[\rBase,#MDREFR]
-	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+	strpl	\rTemp,[\rBase,#MDREFR]
+	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
 //disable k1free,disable k1db2, enable K1RUN
 	BigEor2	\rTemp,MDREF_K1FREE_K1DB2_K1RUN
-	str	\rTemp,[\rBase,#MDREFR]
-	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+	strpl	\rTemp,[\rBase,#MDREFR]
+	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
 	bic	\rTemp,\rTemp,#(1<<22)				//disable slfrsh
-	str	\rTemp,[\rBase,#MDREFR]
-	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+	strpl	\rTemp,[\rBase,#MDREFR]
+	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
 	orr	\rTemp,\rTemp,#(1<<15)		//Enable E1PIN
-	str	\rTemp,[\rBase,#MDREFR]
-	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+	strpl	\rTemp,[\rBase,#MDREFR]
+	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
-	BigMov	\rTemp2,SM_MDCNFG_VAL
-	BigEor2Cc \rTemp2,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
+	BigMov	\rTemp,SM_MDCNFG_VAL
+	BigEor2Cc \rTemp,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
 	.if RomWidthIsRamWidth
-	BigOrr2Ne \rTemp2,(1<<2)			//select 16 bit width
+	BigOrr2Ne \rTemp,(1<<2)			//select 16 bit width
 	.endif
-	str	\rTemp2,[\rBase,#MDCNFG]		//Configure, but don't enable
-	ldr	\rTemp,[\rBase,#MDCNFG]		//wait for completion
-	mov	\rTemp,#0x10000
-	mrs	\rTemp2,CPSR			//save flags
-90:	subs	\rTemp,\rTemp,#1
-	bne		90b
-
-	mov		\rTemp,#8
+	strpl	\rTemp,[\rBase,#MDCNFG]		//Configure, but don't enable
+	ldrpl	\rTemp,[\rBase,#MDCNFG]		//wait for completion
+	movpl	\rTemp,#0x10000
+	bmi	92f
+91:	subs	\rTemp,\rTemp,#1
+	bne	91b
+92:
+	mov	\rTemp,#8
 	BigMov	\rBase,MEM_START
-91:	str		\rTemp,[\rBase]			//8 refresh cycles
+	bmi	94f
+93:	str	\rTemp,[\rBase]			//8 refresh cycles
 	subs	\rTemp,\rTemp,#1
-	bne		91b
-	msr		CPSR_f,\rTemp2			//restore flags
+	bne	93b
+94:
+	msr	CPSR_f,\rTemp2			//restore flags
 
-	BigMov	\rTemp2,SM_MDCNFG_VAL|1
-	BigEor2Cc \rTemp2,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
+	BigMov	\rTemp,SM_MDCNFG_VAL|1
+	BigEor2Cc \rTemp,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
 	.if RomWidthIsRamWidth
-	BigOrr2Ne \rTemp2,(1<<2)			//select 16 bit width
+	BigOrr2Ne \rTemp,(1<<2)			//select 16 bit width
 	.endif
 
 	BigMov	\rBase,MEMORY_CONTROL_BASE
-	str		\rTemp2,[\rBase,#MDCNFG]		//enable
+	strpl	\rTemp,[\rBase,#MDCNFG]		//enable
 
 	mov	\rTemp,#0
-	str	\rTemp,[\rBase,#MDMRS]
+	strpl	\rTemp,[\rBase,#MDMRS]
+	bicmi	\rTemp2,\rTemp2,#1<<31		//Clear N bit
+	bmi	90b
 .endm
 
 
@@ -224,7 +233,7 @@
 
 .macro InitMemory	rBase,rTemp,rTemp2
 	cmp	pc,#MEM_START
-	bhs	92f		//exit if running from ram
+	bhs	99f		//exit if running from ram
 #if 0	//1 to force smaller memory
 	subs	\rTemp,\rTemp,\rTemp	//set carry flag
 #endif
@@ -299,7 +308,7 @@
 	CheckRam \rBase, \rTemp, \rTemp2
 	cmpne	\rTemp,#0x0		//set carry flag, keep z-0 (memory size!=0)
 	bne	1b
-92:
+99:
 .endm
 
 // *******************************************************************************************
