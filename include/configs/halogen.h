@@ -60,10 +60,16 @@
 /*
  * Hardware drivers
  */
+#if (PLATFORM_TYPE==HYDROGEN)
+#define CONFIG_DRIVER_NE2000
+#define CONFIG_DRIVER_NE2000_BASE 0x04000000
+#define CONFIG_MII
+#define CONFIG_CMD_MII
+#else
 #define CONFIG_DRIVER_SMC91111
 #define CONFIG_SMC91111_BASE 0x10000300
 #define CONFIG_SMC_USE_32_BIT
-
+#endif
 /************************************************************
  * USB support
  ************************************************************/
