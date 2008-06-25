@@ -1020,7 +1020,9 @@ int set_rom_mac (char const *mac)
 	int status = 1;
 	unsigned short buf[6];
 	dp83902a_priv_data_t *dp = &nic;
-	cyg_uint8 *base = dp->base;
+	cyg_uint8 *base;
+	dp->base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
+	base = dp->base;
 	int i;
 	DP_OUT(base, DP_CR, DP_CR_NODMA + DP_CR_PAGE1 + DP_CR_STOP); /* 0x61 */
 	for (i = 0; i < 6; i++) {
@@ -1055,9 +1057,11 @@ int set_rom_mac (char const *mac)
 }
 int get_rom_mac (uchar *newMac)
 {
-	dp83902a_priv_data_t *dp = &nic;
-	cyg_uint8 *base = dp->base;
 	int cnt;
+	dp83902a_priv_data_t *dp = &nic;
+	cyg_uint8 *base;
+	dp->base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
+	base = dp->base;
 
 	DP_OUT(base, DP_CR, DP_CR_NODMA+DP_CR_PAGE3+DP_CR_STOP);
 	DP_OUT(base, DP_P3_RELOAD, 1);
