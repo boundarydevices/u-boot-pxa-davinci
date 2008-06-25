@@ -42,7 +42,7 @@ are GPL, so this is, of course, GPL.
  this file might be covered by the GNU General Public License.
 
  Alternative licenses for eCos may be arranged by contacting Red Hat, Inc.
- at http://sources.redhat.com/ecos/ecos-license/ */
+ at http://sources.redhat.com/ecos/ecos-license/
  -------------------------------------------
 ####ECOSGPLCOPYRIGHTEND####
 ####BSDCOPYRIGHTBEGIN####
@@ -151,6 +151,7 @@ static void dp83902a_poll(void);
 #define DP_MISSED      0x0f
 #define DP_IMR         0x0f             /* write */
 #define DP_DATAPORT    0x10             /* "eprom" data port */
+#define DP_MEMR	       0x14
 
 #define DP_P1_CR       0x00
 #define DP_P1_PAR0     0x01
@@ -184,6 +185,8 @@ static void dp83902a_poll(void);
 #define DP_P2_DCR      0x0e
 #define DP_P2_IMR      0x0f
 
+#define DP_P3_RELOAD	0x0c
+
 /* Command register - common to all pages */
 
 #define DP_CR_STOP    0x01   /* Stop: software reset */
@@ -196,6 +199,8 @@ static void dp83902a_poll(void);
 #define DP_CR_PAGE0   0x00   /* Page select */
 #define DP_CR_PAGE1   0x40
 #define DP_CR_PAGE2   0x80
+#define DP_CR_PAGE3   0xc0
+
 #define DP_CR_PAGEMSK 0x3F   /* Used to mask out page bits */
 
 /* Data configuration register */
@@ -211,7 +216,7 @@ static void dp83902a_poll(void);
 #define DP_DCR_FIFO_6 0x60
 
 #define DP_DCR_INIT   (DP_DCR_LS|DP_DCR_FIFO_4)
-
+//#define DP_DCR_INIT   (DP_DCR_LS|DP_DCR_FIFO_4|DP_DCR_WTS)
 /* Interrupt status register */
 
 #define DP_ISR_RxP    0x01   /* Packet received */

@@ -215,9 +215,13 @@
 #if (PLATFORM_TYPE==NEON270)
 	.equiv	CS1_MSC, (1<<15)+   (1<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//SM501
 #else
+#if (PLATFORM_TYPE==HYDROGEN)
+	.equiv	CS1_MSC, (1<<15)+   (4<<12)+            (4<<8)+            ((5-1)<<4)+        (1<<3) +       1		//AX88796B, SRAM interface
+#else
 	.equiv	CS1_MSC, (1<<15)+   (3<<12)+            (2<<8)+             ((3-1)<<4)+        (1<<3) +       4		//SMC chip
 #endif
 //	.equiv	CS1_MSC, (1<<15)+   (6<<12)+           ((11-1)<<8)+        ((4-1)<<4)+        (1<<3) +       4		//SMC chip
+#endif
 #endif
 
 .macro InitCS0_CS1	rBase,rTemp

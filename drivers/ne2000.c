@@ -730,52 +730,59 @@ static hw_info_t hw_info[] = {
 
 static hw_info_t default_info = { 0, 0, 0, 0, 0 };
 
-unsigned char dev_addr[6];
-
 #define PCNET_CMD	0x00
 #define PCNET_DATAPORT	0x10	/* NatSemi-defined port window offset. */
 #define PCNET_RESET	0x1f	/* Issue a read to reset, a write to clear. */
 #define PCNET_MISC	0x18	/* For IBM CCAE and Socket EA cards */
 
-unsigned long nic_base;
-
 static void pcnet_reset_8390(void)
 {
-	int i, r;
+	dp83902a_priv_data_t *dp = &nic;
+	cyg_uint8 *base = dp->base;
+	int i;
+	char c;
 
-	PRINTK("nic base is %lx\n", nic_base);
+	PRINTK("nic base is %lx\n", (unsigned int)base);
 
 #if 1
-	n2k_outb(E8390_NODMA+E8390_PAGE0+E8390_STOP, E8390_CMD);
-	PRINTK("cmd (at %lx) is %x\n", nic_base+ E8390_CMD, n2k_inb(E8390_CMD));
-	n2k_outb(E8390_NODMA+E8390_PAGE1+E8390_STOP, E8390_CMD);
-	PRINTK("cmd (at %lx) is %x\n", nic_base+ E8390_CMD, n2k_inb(E8390_CMD));
-	n2k_outb(E8390_NODMA+E8390_PAGE0+E8390_STOP, E8390_CMD);
-	PRINTK("cmd (at %lx) is %x\n", nic_base+ E8390_CMD, n2k_inb(E8390_CMD));
+	DP_OUT(base, DP_CR, DP_CR_NODMA+DP_CR_PAGE0+DP_CR_STOP);
+	DP_IN(base, DP_CR, c);
+	PRINTK("cmd (at %lx) is %x\n", (unsigned int)base+DP_CR, c);
+	DP_OUT(base, DP_CR, DP_CR_NODMA+DP_CR_PAGE1+DP_CR_STOP);
+	DP_IN(base, DP_CR, c);
+	PRINTK("cmd (at %lx) is %x\n", (unsigned int)base+DP_CR, c);
+	DP_OUT(base, DP_CR, DP_CR_NODMA+DP_CR_PAGE0+DP_CR_STOP);
+	DP_IN(base, DP_CR, c);
+	PRINTK("cmd (at %lx) is %x\n", (unsigned int)base+DP_CR, c);
 #endif
-	n2k_outb(E8390_NODMA+E8390_PAGE0+E8390_STOP, E8390_CMD);
+	DP_OUT(base, DP_CR, DP_CR_NODMA+DP_CR_PAGE0+DP_CR_STOP);
 
-	n2k_outb(n2k_inb(nic_base + PCNET_RESET), PCNET_RESET);
+	DP_IN(base, PCNET_RESET, c);
+//	DP_OUT(base, PCNET_RESET, c);
 
 	for (i = 0; i < 100; i++) {
-		if ((r = (n2k_inb(EN0_ISR) & ENISR_RESET)) != 0)
+		DP_IN(base, DP_ISR, c);
+		if ((c & DP_ISR_RESET) != 0)
 			break;
-		PRINTK("got %x in reset\n", r);
+		PRINTK("got %x in reset\n", c);
 		my_udelay(100);
 	}
-	n2k_outb(ENISR_RESET, EN0_ISR); /* Ack intr. */
+	DP_OUT(base, DP_ISR, DP_ISR_RESET); /* Ack intr. */
 
 	if (i == 100)
 		printf("pcnet_reset_8390() did not complete.\n");
+	DP_OUT(base, DP_DCR, DP_DCR_INIT);
 } /* pcnet_reset_8390 */
 
-static hw_info_t * get_prom(void ) {
+static hw_info_t * get_prom(char* mac) {
+	dp83902a_priv_data_t *dp = &nic;
+	cyg_uint8 *base = dp->base;
 	unsigned char prom[32];
 	int i, j;
 	struct {
 		u_char value, offset;
 	} program_seq[] = {
-		{E8390_NODMA+E8390_PAGE0+E8390_STOP, E8390_CMD}, /* Select page 0*/
+		{DP_CR_NODMA+DP_CR_PAGE0+DP_CR_STOP, DP_CR}, /* Select page 0*/
 		{0x48,	EN0_DCFG},	/* Set byte-wide (0x48) access. */
 		{0x00,	EN0_RCNTLO},	/* Clear the count regs. */
 		{0x00,	EN0_RCNTHI},
@@ -787,7 +794,7 @@ static hw_info_t * get_prom(void ) {
 		{0x00,	EN0_RCNTHI},
 		{0x00,	EN0_RSARLO},	/* DMA starting at 0x0000. */
 		{0x00,	EN0_RSARHI},
-		{E8390_RREAD+E8390_START, E8390_CMD},
+		{E8390_RREAD+E8390_START, DP_CR},
 	};
 
 	PRINTK("trying to get MAC via prom reading\n");
@@ -797,13 +804,14 @@ static hw_info_t * get_prom(void ) {
 	mdelay(10);
 
 	for (i = 0; i < sizeof(program_seq)/sizeof(program_seq[0]); i++)
-		n2k_outb(program_seq[i].value, program_seq[i].offset);
+		DP_OUT(base, program_seq[i].offset, program_seq[i].value);
 
 	PRINTK("PROM:");
 	for (i = 0; i < 32; i++) {
-		prom[i] = n2k_inb(PCNET_DATAPORT);
+		DP_IN(base, PCNET_DATAPORT, prom[i]);
 		PRINTK(" %02x", prom[i]);
 	}
+	DP_OUT(base, DP_DCR, DP_DCR_INIT); //back to word mode if selected
 	PRINTK("\n");
 	for (i = 0; i < NR_INFO; i++) {
 		if ((prom[0] == hw_info[i].a0) &&
@@ -815,10 +823,10 @@ static hw_info_t * get_prom(void ) {
 	}
 	if ((i < NR_INFO) || ((prom[28] == 0x57) && (prom[30] == 0x57))) {
 		for (j = 0; j < 6; j++)
-			dev_addr[j] = prom[j<<1];
+			mac[j] = prom[j<<1];
 		PRINTK("on exit i is %d/%ld\n", i, NR_INFO);
 		PRINTK("MAC address is %02x:%02x:%02x:%02x:%02x:%02x\n",
-		       dev_addr[0],dev_addr[1],dev_addr[2],dev_addr[3],dev_addr[4],dev_addr[5]);
+		       mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
 		return (i < NR_INFO) ? hw_info+i : &default_info;
 	}
 	return NULL;
@@ -857,6 +865,7 @@ void uboot_push_tx_done(int key, int val) {
 int eth_init(bd_t *bd) {
 	static hw_info_t * r;
 	char ethaddr[20];
+	unsigned char mac[6];
 
 	PRINTK("### eth_init\n");
 
@@ -878,17 +887,16 @@ int eth_init(bd_t *bd) {
 	}
 #endif
 
-	nic_base = CONFIG_DRIVER_NE2000_BASE;
 	nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
 
-	r = get_prom();
+	r = get_prom(mac);
 	if (!r)
 		return -1;
 
 	sprintf (ethaddr, "%02X:%02X:%02X:%02X:%02X:%02X",
-		 dev_addr[0], dev_addr[1],
-		 dev_addr[2], dev_addr[3],
-		 dev_addr[4], dev_addr[5]) ;
+		 mac[0], mac[1],
+		 mac[2], mac[3],
+		 mac[4], mac[5]) ;
 	PRINTK("Set environment from HW MAC addr = \"%s\"\n", ethaddr);
 	setenv ("ethaddr", ethaddr);
 
@@ -902,7 +910,7 @@ int eth_init(bd_t *bd) {
 
 	if (dp83902a_init() == false)
 		return -1;
-	dp83902a_start(dev_addr);
+	dp83902a_start(mac);
 	return 0;
 }
 
@@ -959,5 +967,118 @@ int eth_send(volatile void *packet, int length) {
 	}
 	return 0;
 }
+#if defined(CONFIG_CMD_NET)
+#define EE_CLK	0x80
+#define EE_DI	0x40	//data input from EEPROM (read only)
+#define EE_DO	0x20	//data output to EEPROM (write only)
+#define EE_CS	0x10
+#define EE_HIZ	0x02
+
+int EEProm_Write(cyg_uint8* base,unsigned int writeVal,unsigned int len,unsigned int wait)
+{
+	unsigned char val;
+	int status = 0;
+	DP_OUT(base, DP_MEMR, EE_DO);
+	udelay(1);
+	DP_OUT(base, DP_MEMR, EE_DO|EE_CS);
+	udelay(1);
+	while (len) {
+		len--;
+		val = (writeVal & (1<<len))? EE_DO : 0;
+		DP_OUT(base, DP_MEMR, val|EE_CS);
+		udelay(1);
+		DP_OUT(base, DP_MEMR, val|EE_CS|EE_CLK);
+		udelay(2);
+		DP_OUT(base, DP_MEMR, val|EE_CS);
+		udelay(1);
+	}
+	if (wait) {
+		//wait for ready
+		int cnt =0;
+		DP_OUT(base, DP_MEMR, EE_HIZ);
+		udelay(2);
+		DP_OUT(base, DP_MEMR, EE_HIZ|EE_CS);
+		do {
+			DP_IN(base, DP_MEMR, val);
+			if (val & EE_DI) break;
+			cnt++;
+			udelay(10);
+			if (cnt>1000) {
+				PRINTK("timeout on EEPROM write\n");
+				status = -1;	//max 10ms wait
+				break;
+			}
+		} while (1);
+	}
+	DP_OUT(base, DP_MEMR, 0);
+	udelay(2);
+	return status;
+}
+
+int set_rom_mac (char const *mac)
+{
+	int status = 1;
+	unsigned short buf[6];
+	dp83902a_priv_data_t *dp = &nic;
+	cyg_uint8 *base = dp->base;
+	int i;
+	DP_OUT(base, DP_CR, DP_CR_NODMA + DP_CR_PAGE1 + DP_CR_STOP); /* 0x61 */
+	for (i = 0; i < 6; i++) {
+		char c;
+		DP_OUT(base, DP_P1_PAR0+i, mac[i]);
+		DP_IN(base, DP_P1_PAR0+i, c);
+		if (c!=mac[i])
+			PRINTK("Hw. address read/write mismap\n");
+	}
+	buf[0] = 0x5aa5;
+	buf[1] = 0x0006;
+	buf[2] = 0x0004;
+	memcpy(&buf[3],mac,6);
+
+#define EEOP_WRITE_DISABLE	((0x04<<6)|0x00)		//9 bits total
+#define EEOP_WRITE_ALL(val)	((((0x04<<6)|0x10)<<16)|val)	//25 bits total
+#define EEOP_ERASE_ALL		((0x04<<6)|0x20)		//9 bits total
+#define EEOP_WRITE_ENABLE	((0x04<<6)|0x30)		//9 bits total
+#define EEOP_WRITE(addr,val)	((((0x05<<6)|addr)<<16)|val)	//25 bits total
+#define EEOP_READ(addr)		((0x06<<6)|addr)		//9 bits total
+#define EEOP_ERASE(addr)	((0x07<<6)|addr)		//9 bits total
+	
+	if (EEProm_Write(base,EEOP_WRITE_ENABLE,9,0) < 0)
+		status = 0;
+	for (i=0; i<6; i++) {
+		if (EEProm_Write(base,EEOP_WRITE(i,buf[i]),25,1) < 0)
+			status = 0;
+	}
+	if (EEProm_Write(base,EEOP_WRITE_DISABLE,9,0) < 0)
+		status = 0;
+	return status;
+}
+int get_rom_mac (uchar *newMac)
+{
+	dp83902a_priv_data_t *dp = &nic;
+	cyg_uint8 *base = dp->base;
+	int cnt;
+
+	DP_OUT(base, DP_CR, DP_CR_NODMA+DP_CR_PAGE3+DP_CR_STOP);
+	DP_OUT(base, DP_P3_RELOAD, 1);
+	cnt = 0;
+	do {
+		unsigned char val;
+		DP_IN(base, DP_P3_RELOAD, val);
+		if ((val & 1)==0) break;
+		cnt++;
+		udelay(10);
+		if (cnt>10000) {
+			//max 100ms wait
+			PRINTK("timeout on EEPROM reload\n");
+			break;
+		}
+	} while (1);
+	
+	newMac[0] = 0xff;
+	get_prom(newMac);
+	return 1;
+}
+#endif
 
 #endif
