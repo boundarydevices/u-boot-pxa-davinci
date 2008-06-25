@@ -767,6 +767,7 @@ static void pcnet_reset_8390(void)
 		PRINTK("got %x in reset\n", c);
 		my_udelay(100);
 	}
+	mdelay(10);
 	DP_OUT(base, DP_ISR, DP_ISR_RESET); /* Ack intr. */
 
 	if (i == 100)
@@ -801,7 +802,6 @@ static hw_info_t * get_prom(char* mac) {
 
 	pcnet_reset_8390();
 
-	mdelay(10);
 
 	for (i = 0; i < sizeof(program_seq)/sizeof(program_seq[0]); i++)
 		DP_OUT(base, program_seq[i].offset, program_seq[i].value);
