@@ -93,7 +93,6 @@ are GPL, so this is, of course, GPL.
 #define true 1
 
 #define CYGHWR_NS_DP83902A_PLF_BROKEN_TX_DMA 1
-#define CYGACC_CALL_IF_DELAY_US(X) my_udelay(X)
 
 typedef struct dp83902a_priv_data {
     cyg_uint8* base;

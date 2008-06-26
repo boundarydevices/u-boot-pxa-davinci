@@ -81,16 +81,9 @@ Add SNMP
 #include <malloc.h>
 
 #ifdef CONFIG_DRIVER_NE2000
+#include <miiphy.h>
 
-/* wor around udelay resetting OCR */
-static void my_udelay(long us) {
-	long tmo;
-
-	tmo = get_timer (0) + us * CFG_HZ / 1000000; /* will this be much greater than 0 ? */
-	while (get_timer (0) < tmo);
-}
-
-#define mdelay(n)       my_udelay((n)*1000)
+#define mdelay(n)       udelay((n)*1000)
 
 /* forward definition of function used for the uboot interface */
 void uboot_push_packet_len(int len);
@@ -310,7 +303,7 @@ dp83902a_send(unsigned char *data, int total_len, unsigned long key)
 #ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_TX_DMA
 	/* Stall for a bit before continuing to work around random data */
 	/* corruption problems on some platforms. */
-	CYGACC_CALL_IF_DELAY_US(1);
+	udelay(1);
 #endif
 
 	/* Send data to device buffer(s) */
@@ -351,7 +344,7 @@ dp83902a_send(unsigned char *data, int total_len, unsigned long key)
 	/* After last data write, delay for a bit before accessing the */
 	/* device again, or we may get random data corruption in the last */
 	/* datum (on some platforms). */
-	CYGACC_CALL_IF_DELAY_US(1);
+	udelay(1);
 #endif
 
 	/* Wait for DMA to complete */
@@ -420,7 +413,7 @@ dp83902a_RxEvent(void)
 		DP_OUT(base, DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
 		DP_OUT(base, DP_CR, DP_CR_RDMA | DP_CR_START);
 #ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_RX_DMA
-		CYGACC_CALL_IF_DELAY_US(10);
+		udelay(10);
 #endif
 
 		for (i = 0;  i < sizeof(rcv_hdr);) {
@@ -474,7 +467,7 @@ dp83902a_recv(unsigned char *data, int len)
 	DP_OUT(base, DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
 	DP_OUT(base, DP_CR, DP_CR_RDMA | DP_CR_START);
 #ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_RX_DMA
-	CYGACC_CALL_IF_DELAY_US(10);
+	udelay(10);
 #endif
 
 	saved = false;
@@ -571,7 +564,7 @@ dp83902a_Overflow(void)
 
 	/* Issue a stop command and wait 1.6ms for it to complete. */
 	DP_OUT(base, DP_CR, DP_CR_STOP | DP_CR_NODMA);
-	CYGACC_CALL_IF_DELAY_US(1600);
+	udelay(1600);
 
 	/* Clear the remote byte counter registers. */
 	DP_OUT(base, DP_RBCL, 0);
@@ -735,10 +728,8 @@ static hw_info_t default_info = { 0, 0, 0, 0, 0 };
 #define PCNET_RESET	0x1f	/* Issue a read to reset, a write to clear. */
 #define PCNET_MISC	0x18	/* For IBM CCAE and Socket EA cards */
 
-static void pcnet_reset_8390(void)
+static void pcnet_reset_8390(cyg_uint8 *base)
 {
-	dp83902a_priv_data_t *dp = &nic;
-	cyg_uint8 *base = dp->base;
 	int i;
 	char c;
 
@@ -758,6 +749,7 @@ static void pcnet_reset_8390(void)
 	DP_OUT(base, DP_CR, DP_CR_NODMA+DP_CR_PAGE0+DP_CR_STOP);
 
 	DP_IN(base, PCNET_RESET, c);
+	mdelay(1);
 //	DP_OUT(base, PCNET_RESET, c);
 
 	for (i = 0; i < 100; i++) {
@@ -765,7 +757,7 @@ static void pcnet_reset_8390(void)
 		if ((c & DP_ISR_RESET) != 0)
 			break;
 		PRINTK("got %x in reset\n", c);
-		my_udelay(100);
+		udelay(100);
 	}
 	mdelay(10);
 	DP_OUT(base, DP_ISR, DP_ISR_RESET); /* Ack intr. */
@@ -775,9 +767,7 @@ static void pcnet_reset_8390(void)
 	DP_OUT(base, DP_DCR, DP_DCR_INIT);
 } /* pcnet_reset_8390 */
 
-static hw_info_t * get_prom(char* mac) {
-	dp83902a_priv_data_t *dp = &nic;
-	cyg_uint8 *base = dp->base;
+static hw_info_t * get_prom(cyg_uint8 *base, char* mac) {
 	unsigned char prom[32];
 	int i, j;
 	struct {
@@ -800,7 +790,7 @@ static hw_info_t * get_prom(char* mac) {
 
 	PRINTK("trying to get MAC via prom reading\n");
 
-	pcnet_reset_8390();
+	pcnet_reset_8390(base);
 
 
 	for (i = 0; i < sizeof(program_seq)/sizeof(program_seq[0]); i++)
@@ -822,8 +812,12 @@ static hw_info_t * get_prom(char* mac) {
 		}
 	}
 	if ((i < NR_INFO) || ((prom[28] == 0x57) && (prom[30] == 0x57))) {
-		for (j = 0; j < 6; j++)
+		DP_OUT(base, DP_CR, DP_CR_NODMA | DP_CR_PAGE1 | DP_CR_STOP);  /* Select page 1 */
+		for (j = 0; j < 6; j++) {
 			mac[j] = prom[j<<1];
+			DP_OUT(base, DP_P1_PAR0+j, mac[j]);
+		}
+		DP_OUT(base, DP_CR, DP_CR_NODMA | DP_CR_PAGE0 | DP_CR_STOP);  /* Select page 0 */
 		PRINTK("on exit i is %d/%ld\n", i, NR_INFO);
 		PRINTK("MAC address is %02x:%02x:%02x:%02x:%02x:%02x\n",
 		       mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
@@ -889,7 +883,7 @@ int eth_init(bd_t *bd) {
 
 	nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
 
-	r = get_prom(mac);
+	r = get_prom(nic.base, mac);
 	if (!r)
 		return -1;
 
@@ -1020,10 +1014,9 @@ int set_rom_mac (char const *mac)
 	int i;
 	int status = 1;
 	unsigned short buf[6];
-	dp83902a_priv_data_t *dp = &nic;
 	cyg_uint8 *base;
-	base = dp->base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
-	pcnet_reset_8390();
+	base = nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
+	pcnet_reset_8390(base);
 	DP_OUT(base, DP_CR, DP_CR_NODMA + DP_CR_PAGE1 + DP_CR_STOP); /* 0x61 */
 	for (i = 0; i < 6; i++) {
 		char c;
@@ -1058,10 +1051,9 @@ int set_rom_mac (char const *mac)
 int get_rom_mac (uchar *newMac)
 {
 	int cnt;
-	dp83902a_priv_data_t *dp = &nic;
 	cyg_uint8 *base;
-	base = dp->base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
-	pcnet_reset_8390();
+	base = nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
+	pcnet_reset_8390(base);
 
 	DP_OUT(base, DP_CR, DP_CR_NODMA+DP_CR_PAGE3+DP_CR_STOP);
 	DP_OUT(base, DP_P3_RELOAD, 1);
@@ -1078,11 +1070,93 @@ int get_rom_mac (uchar *newMac)
 			break;
 		}
 	} while (1);
-	
+	mdelay(10);
 	newMac[0] = 0xff;
-	get_prom(newMac);
+	get_prom(base, newMac);
 	return 1;
 }
-#endif
+#if defined(CONFIG_MII)
+//return 0 on success
+#define MII_OP_WRITE 0x1
+#define MII_OP_READ  0x2
+#define MII_READ(addr,reg)		    ((((((((0x3f<<2)|1)<<2)|MII_OP_READ )<<5)|addr)<<5)|reg)
+//bits for field				       6     2           2             5         5       2       16
+#define MII_WRITE(addr,reg,value)	((((((((((((0x3f<<2)|1)<<2)|MII_OP_WRITE)<<5)|addr)<<5)|reg)<<2)|2)<<16)|value)
+
+#define MII_MDO 8
+#define MII_MDI 4
+#define MII_HIGHZ 2
+#define MII_CLK 1
+void ShiftMII(cyg_uint8 *base, unsigned int writeVal, int len)
+{
+	unsigned char val;
+	while (len) {
+		len--;
+		val = (writeVal & (1<<len))? MII_MDO : 0;
+		DP_OUT(base, DP_MEMR, val);
+		udelay(1);
+		DP_OUT(base, DP_MEMR, val|MII_CLK);
+		udelay(1);
+		DP_OUT(base, DP_MEMR, val);
+		udelay(1);
+	}
+	DP_OUT(base, DP_MEMR, MII_HIGHZ);
+	udelay(1);
+	DP_OUT(base, DP_MEMR, MII_HIGHZ|MII_CLK);
+	udelay(1);
+	DP_OUT(base, DP_MEMR, MII_HIGHZ);
+}
+//internal phy is fixed at 0x10 for addr
+static int AX88796B_miiphy_read(char *devname, unsigned char addr, unsigned char reg, unsigned short *value)
+{
+	cyg_uint8 *base;
+	base = nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
+	unsigned int readVal = MII_READ(addr,reg);
+	int len = (6 + 2 + 2 + 5 + 5);
+	unsigned char val;
+	ShiftMII(base,readVal,len);
+	udelay(1);
+	DP_OUT(base, DP_MEMR, MII_HIGHZ|MII_CLK);	//2nd turnaround bit
+	udelay(1);
+	DP_OUT(base, DP_MEMR, MII_HIGHZ);
+	udelay(1);
+	len = 16;
+	readVal = 0;
+	while (len) {
+		len--;
+		DP_OUT(base, DP_MEMR, MII_HIGHZ|MII_CLK);	//data can only change when clk is low
+		udelay(1);
+		DP_IN(base, DP_MEMR, val);
+		if (val & MII_MDI)
+			readVal |= (1<<len);
+		DP_OUT(base, DP_MEMR, MII_HIGHZ);
+		udelay(1);
+	}
+	udelay(1);
+	DP_OUT(base, DP_MEMR, MII_HIGHZ|MII_CLK);
+	udelay(1);
+	DP_OUT(base, DP_MEMR, MII_HIGHZ);
+	if (value)
+		*value = readVal;
+	return 0;
+}
+
+//return 0 on success
+static int AX88796B_miiphy_write(char *devname, unsigned char addr, unsigned char reg, unsigned short value)
+{
+	cyg_uint8 *base;
+	base = nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
+	unsigned int writeVal = MII_WRITE(addr,reg,value);
+	int len = (6 + 2 + 2 + 5 + 5 + 2 + 16);
+	ShiftMII(base,writeVal,len);
+	return 0;
+}
+int AX88796B_miiphy_initialize(bd_t *bis)
+{
+        miiphy_register("AX88796B", AX88796B_miiphy_read, AX88796B_miiphy_write);
+	return(1);
+}
+#endif	//CONFIG_MII
+#endif	//CONFIG_CMD_NET
 
 #endif
