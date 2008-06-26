@@ -5,13 +5,13 @@
 	GBLA	CPU_PXA270
 	GBLA	RomWidthIsRamWidth
 	.endif
-#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==OXYGEN)||(PLATFORM_TYPE==NEON270)
+#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==OXYGEN)||(PLATFORM_TYPE==NEON270)
 	.set	CPU_PXA270,1
 #else
 	.set	CPU_PXA270,0
 #endif
 
-#if (PLATFORM_TYPE==NEONB)||(PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==OXYGEN)||(PLATFORM_TYPE==NEON270)||(PLATFORM_TYPE==NEON)
+#if (PLATFORM_TYPE==NEONB)||(PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==OXYGEN)||(PLATFORM_TYPE==NEON270)||(PLATFORM_TYPE==NEON)
 	.set	RomWidthIsRamWidth,0	//use 32 bit ram always
 #else
 	.set	RomWidthIsRamWidth,1
@@ -62,6 +62,16 @@
 	.equiv	SM_MDREFR_VAL, (1<<16)+(1<<15)+(SM_DRI_cnt&0xfff)		//don't set bit 20: APD (buggy), bit 16: K1RUN, 15:E1PIN
 //			 12		9		  2	       2 (4bytes per address)=2**25=32 MB
 	.equiv	SM_MEM_SIZE, (1<<(2+SM_numColumnAddrBits+SM_numRowAddrBits+numBankAddrBits))
+
+	.equiv	MDREF_K1RUN, (1<<16)
+	.equiv	MDREF_K1DB2, (1<<17)
+	.equiv	MDREF_SLFRSH, (1<<22)
+	.equiv	MDREF_K1FREE, (1<<24)
+//playing weird games to avoid ms assembler bugs
+	.equiv	MDREF_K1FREE_K1DB2, MDREF_K1FREE|MDREF_K1DB2
+	.equiv	MDREF_K1FREE_K1DB2_SLFRSH, MDREF_K1FREE_K1DB2|MDREF_SLFRSH
+	.equiv	MDREF_K1FREE_K1DB2_K1RUN, MDREF_K1FREE_K1DB2|MDREF_K1RUN
+
 // *******************************************************************************************
 
 //In: c-0 try 64meg, c-1 try 32meg
@@ -74,54 +84,64 @@
 	ldr	\rTemp,[\rBase,#BOOT_DEF]
 	tst	\rTemp,#1			//bit 0 - 1 means 16 bit mode
 	.endif
+	mrs	\rTemp2,CPSR			//save flags
+//don't write to memory controller on the 1st pass
+//get all instruction in cache on 1st pass
+	orr	\rTemp2,\rTemp2,#1<<31		//Set N bit
+90:	msr	CPSR_f,\rTemp2
 
-	BigMov	\rTemp,((BM_MDREFR_VAL)&0xfff)|(1<<24)|(1>>22)|(1<<17)		//k1free, slfrsh,k1db2
+	BigMov	\rTemp,((BM_MDREFR_VAL)&0xfff)|MDREF_K1FREE_K1DB2_SLFRSH
 	BigEor2Cs \rTemp,((BM_MDREFR_VAL)^(SM_MDREFR_VAL))&0xfff
-	str	\rTemp,[\rBase,#MDREFR]
-	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+	strpl	\rTemp,[\rBase,#MDREFR]
+	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
-	BigEor2	\rTemp,(1<<24)|(1<<17)|(1<<16)		//disable k1free,disable k1db2, enable K1RUN
-	str	\rTemp,[\rBase,#MDREFR]
-	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+//disable k1free,disable k1db2, enable K1RUN
+	BigEor2	\rTemp,MDREF_K1FREE_K1DB2_K1RUN
+	strpl	\rTemp,[\rBase,#MDREFR]
+	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
 	bic	\rTemp,\rTemp,#(1<<22)				//disable slfrsh
-	str	\rTemp,[\rBase,#MDREFR]
-	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+	strpl	\rTemp,[\rBase,#MDREFR]
+	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
 	orr	\rTemp,\rTemp,#(1<<15)		//Enable E1PIN
-	str	\rTemp,[\rBase,#MDREFR]
-	ldr \rTemp,[\rBase,#MDREFR]		//wait for completion
+	strpl	\rTemp,[\rBase,#MDREFR]
+	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
-	BigMov	\rTemp2,SM_MDCNFG_VAL
-	BigEor2Cc \rTemp2,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
+	BigMov	\rTemp,SM_MDCNFG_VAL
+	BigEor2Cc \rTemp,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
 	.if RomWidthIsRamWidth
-	BigOrr2Ne \rTemp2,(1<<2)			//select 16 bit width
+	BigOrr2Ne \rTemp,(1<<2)			//select 16 bit width
 	.endif
-	str	\rTemp2,[\rBase,#MDCNFG]		//Configure, but don't enable
-	ldr	\rTemp,[\rBase,#MDCNFG]		//wait for completion
-	mov	\rTemp,#0x10000
-	mrs	\rTemp2,CPSR			//save flags
-90:	subs	\rTemp,\rTemp,#1
-	bne		90b
-
-	mov		\rTemp,#8
+	strpl	\rTemp,[\rBase,#MDCNFG]		//Configure, but don't enable
+	ldrpl	\rTemp,[\rBase,#MDCNFG]		//wait for completion
+	movpl	\rTemp,#0x10000
+	bmi	92f
+91:	subs	\rTemp,\rTemp,#1
+	bne	91b
+92:
+	mov	\rTemp,#8
 	BigMov	\rBase,MEM_START
-91:	str		\rTemp,[\rBase]			//8 refresh cycles
+	bmi	94f
+93:	str	\rTemp,[\rBase]			//8 refresh cycles
 	subs	\rTemp,\rTemp,#1
-	bne		91b
-	msr		CPSR_f,\rTemp2			//restore flags
+	bne	93b
+94:
+	msr	CPSR_f,\rTemp2			//restore flags
 
-	BigMov	\rTemp2,SM_MDCNFG_VAL|1
-	BigEor2Cc \rTemp2,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
+	BigMov	\rTemp,SM_MDCNFG_VAL|1
+	BigEor2Cc \rTemp,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
 	.if RomWidthIsRamWidth
-	BigOrr2Ne \rTemp2,(1<<2)			//select 16 bit width
+	BigOrr2Ne \rTemp,(1<<2)			//select 16 bit width
 	.endif
 
 	BigMov	\rBase,MEMORY_CONTROL_BASE
-	str		\rTemp2,[\rBase,#MDCNFG]		//enable
+	strpl	\rTemp,[\rBase,#MDCNFG]		//enable
 
 	mov	\rTemp,#0
-	str	\rTemp,[\rBase,#MDMRS] 
+	strpl	\rTemp,[\rBase,#MDMRS]
+	bicmi	\rTemp2,\rTemp2,#1<<31		//Clear N bit
+	bmi	90b
 .endm
 
 
@@ -195,9 +215,13 @@
 #if (PLATFORM_TYPE==NEON270)
 	.equiv	CS1_MSC, (1<<15)+   (1<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//SM501
 #else
+#if (PLATFORM_TYPE==HYDROGEN)
+	.equiv	CS1_MSC, (1<<15)+   (4<<12)+            (4<<8)+            ((5-1)<<4)+        (1<<3) +       1		//AX88796B, SRAM interface
+#else
 	.equiv	CS1_MSC, (1<<15)+   (3<<12)+            (2<<8)+             ((3-1)<<4)+        (1<<3) +       4		//SMC chip
 #endif
 //	.equiv	CS1_MSC, (1<<15)+   (6<<12)+           ((11-1)<<8)+        ((4-1)<<4)+        (1<<3) +       4		//SMC chip
+#endif
 #endif
 
 .macro InitCS0_CS1	rBase,rTemp
@@ -213,7 +237,7 @@
 
 .macro InitMemory	rBase,rTemp,rTemp2
 	cmp	pc,#MEM_START
-	bhs	92f		//exit if running from ram
+	bhs	99f		//exit if running from ram
 #if 0	//1 to force smaller memory
 	subs	\rTemp,\rTemp,\rTemp	//set carry flag
 #endif
@@ -288,7 +312,7 @@
 	CheckRam \rBase, \rTemp, \rTemp2
 	cmpne	\rTemp,#0x0		//set carry flag, keep z-0 (memory size!=0)
 	bne	1b
-92:
+99:
 .endm
 
 // *******************************************************************************************
@@ -319,7 +343,7 @@
 	.equiv	__ENABLED_STUART_MASK, (1<<CKEN_STUART)
 	.endif
 
-#if (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER) || (PLATFORM_TYPE==HALOGEN)|| (PLATFORM_TYPE==ARGON) || (PLATFORM_TYPE==OXYGEN) || (PLATFORM_TYPE==NEON270)
+#if (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER) || (PLATFORM_TYPE==HALOGEN) || (PLATFORM_TYPE==HYDROGEN) || (PLATFORM_TYPE==ARGON) || (PLATFORM_TYPE==OXYGEN) || (PLATFORM_TYPE==NEON270)
 	.equiv	__ENABLED_LCD_MASK, (1<<CKEN_LCD)
 #endif
 

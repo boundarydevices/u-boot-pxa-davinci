@@ -534,6 +534,11 @@ int eth_initialize(bd_t *bis)
 #if defined(CONFIG_DRIVER_TI_EMAC)
 	dm644x_eth_miiphy_initialize(bis);
 #endif
+#if defined(CONFIG_DRIVER_NE2000)
+#ifdef CONFIG_MII
+	AX88796B_miiphy_initialize(bis);
+#endif
+#endif
 	return 0;
 }
 #endif
