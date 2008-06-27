@@ -124,10 +124,10 @@ void uboot_push_tx_done(int key, int val);
 #define PRINTK(args...)
 #endif
 
+int get_mac_from_eeprom(cyg_uint8 *base, uchar *newMac);
 static dp83902a_priv_data_t nic; /* just one instance of the card supported */
 
-static bool
-dp83902a_init(void)
+static bool dp83902a_init(unsigned char* mac)
 {
 	dp83902a_priv_data_t *dp = &nic;
 	cyg_uint8* base;
@@ -144,18 +144,21 @@ dp83902a_init(void)
 	DP_OUT(base, DP_CR, DP_CR_NODMA | DP_CR_PAGE1);  /* Select page 1 */
 	/* Use the address from the serial EEPROM */
 	for (i = 0; i < 6; i++)
+		DP_OUT(base, DP_P1_PAR0+i, mac[i]);
+	for (i = 0; i < 6; i++)
 		DP_IN(base, DP_P1_PAR0+i, dp->esa[i]);
 	DP_OUT(base, DP_CR, DP_CR_NODMA | DP_CR_PAGE0);  /* Select page 0 */
 
-	printf("NE2000 - %s ESA: %02x:%02x:%02x:%02x:%02x:%02x\n",
-	       "eeprom",
-	       dp->esa[0],
-	       dp->esa[1],
-	       dp->esa[2],
-	       dp->esa[3],
-	       dp->esa[4],
-	       dp->esa[5] );
-
+	for (i = 0; i < 6; i++) {
+		if (dp->esa[i] != mac[i])
+			break;
+	}
+	printf("NE2000 - eeprom ESA: %02x:%02x:%02x:%02x:%02x:%02x\n",
+		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	if (i!=6) {
+		printf("error setting mac, read: %02x:%02x:%02x:%02x:%02x:%02x\n",
+			dp->esa[0], dp->esa[1], dp->esa[2], dp->esa[3], dp->esa[4], dp->esa[5] );
+	}
 	return true;
 }
 
@@ -857,7 +860,6 @@ void uboot_push_tx_done(int key, int val) {
 }
 
 int eth_init(bd_t *bd) {
-	static hw_info_t * r;
 	char ethaddr[20];
 	unsigned char mac[6];
 
@@ -883,8 +885,12 @@ int eth_init(bd_t *bd) {
 
 	nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
 
-	r = get_prom(nic.base, mac);
-	if (!r)
+#if defined(CONFIG_CMD_NET)
+#define GET_MAC get_mac_from_eeprom
+#else
+#define GET_MAC get_prom
+#endif
+	if (!GET_MAC(nic.base, mac))
 		return -1;
 
 	sprintf (ethaddr, "%02X:%02X:%02X:%02X:%02X:%02X",
@@ -902,7 +908,7 @@ int eth_init(bd_t *bd) {
 	nic.rx_buf_start = 0x50;
 	nic.rx_buf_end = 0x80;
 
-	if (dp83902a_init() == false)
+	if (dp83902a_init(mac) == false)
 		return -1;
 	dp83902a_start(mac);
 	return 0;
@@ -1048,11 +1054,9 @@ int set_rom_mac (char const *mac)
 		status = 0;
 	return status;
 }
-int get_rom_mac (uchar *newMac)
+int get_mac_from_eeprom(cyg_uint8 *base, uchar *newMac)
 {
 	int cnt;
-	cyg_uint8 *base;
-	base = nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
 	pcnet_reset_8390(base);
 
 	DP_OUT(base, DP_CR, DP_CR_NODMA+DP_CR_PAGE3+DP_CR_STOP);
@@ -1072,8 +1076,14 @@ int get_rom_mac (uchar *newMac)
 	} while (1);
 	mdelay(10);
 	newMac[0] = 0xff;
-	get_prom(base, newMac);
+	if (!get_prom(base, newMac))
+		return 0;
 	return 1;
+}
+int get_rom_mac(uchar *newMac)
+{
+	nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
+	get_mac_from_eeprom(nic.base, newMac);
 }
 #if defined(CONFIG_MII)
 //return 0 on success
