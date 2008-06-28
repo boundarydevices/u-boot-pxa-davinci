@@ -6,21 +6,20 @@ lecho && lecho $version
 
 if fatload mmc 0 80008000 u-boot-xenon*.bin ; then
         echo "u-boot loaded from $filename: $filesize bytes\n" ;
-        if nand read.seq 0x80108000 c0000 0x$filesize ; then
-                if cmp.b 0x80008000 0x80108000 $filesize ; then
-                        lecho "U-Boot versions match" ;
-                else
-                        lecho "U-Boot versions mismatch!!!" ;
-                        lecho "Auto-upgrade in 10 seconds..." ;
-                        for n in 10 9 8 7 6 5 4 3 2 1 ; do 
-                                lecho \\\\c "$n" ; 
-                                sleep 1 ; 
-                        done
-                        nand erase c0000 $filesize ;
-                        nand write.seq 80008000 c0000 $filesize ;
-                        lecho "Programmed $filesize bytes" ;
-                        reset
-                fi
+        if nand read.seq 0x80108000 c0000 0x$filesize &&
+           cmp.b 0x80008000 0x80108000 $filesize ; then
+                lecho "U-Boot versions match" ;
+        else
+                lecho "U-Boot versions mismatch!!!" ;
+                lecho "Auto-upgrade in 10 seconds..." ;
+                for n in 10 9 8 7 6 5 4 3 2 1 ; do 
+                        lecho \\\\c "$n" ; 
+                        sleep 1 ; 
+                done
+                nand erase c0000 $filesize ;
+                nand write.seq 80008000 c0000 $filesize ;
+                lecho "Programmed $filesize bytes" ;
+                reset
         fi
 fi
 
