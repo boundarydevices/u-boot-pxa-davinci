@@ -478,7 +478,7 @@ unconfig:
 	@rm -f $(obj)include/config.h $(obj)include/config.mk \
 		$(obj)board/*/config.tmp $(obj)board/*/*/config.tmp \
 		$(obj)include/autoconf.mk $(obj)include/autoconf.mk.dep \
-		select.mk include/configs/select.h
+		include/configs/select.h select.mk select.log
 
 #========================================================================
 # PowerPC
