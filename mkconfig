@@ -83,5 +83,7 @@ else
 fi
 echo "/* Automatically generated - do not edit */" >>config.h
 echo "#include <configs/$1.h>" >>config.h
+x=" - ${BOARD_NAME}.$2.$3"
+echo "#define CONFIG_IDENT_STRING \"$x\"" >> config.h
 
 exit 0
