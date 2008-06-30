@@ -144,7 +144,7 @@ static int calc_divisor (NS16550_t port)
 #else
 #define MODE_X_DIV 16
 #endif
-	return (CFG_NS16550_CLK / MODE_X_DIV / gd->baudrate);
+	return (((CFG_NS16550_CLK / MODE_X_DIV)+(gd->baudrate>>1)) / gd->baudrate);
 
 }
 

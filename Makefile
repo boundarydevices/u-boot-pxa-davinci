@@ -362,7 +362,7 @@ CHANGELOG:
 
 unconfig:
 	@rm -f $(obj)include/config.h $(obj)include/config.mk \
-		$(obj)board/*/config.tmp $(obj)board/*/*/config.tmp
+		$(obj)board/*/config.tmp $(obj)board/*/*/config.tmp select.mk select.log
 
 #========================================================================
 # PowerPC
