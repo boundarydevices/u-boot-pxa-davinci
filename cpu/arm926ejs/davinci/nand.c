@@ -268,7 +268,7 @@ static int nand_davinci_correct_data(struct mtd_info *mtd, u_char *dat, u_char *
 				DEBUG (MTD_DEBUG_LEVEL0, "ECC UNCORRECTED_ERROR, illegal byte # %d\n",diff>>(12+3));
 				return(-1);
 			}
-		} else if ((diff & (-diff))==diff) {
+		} else if (!(diff & (diff-1))) {
 			DEBUG (MTD_DEBUG_LEVEL0, "Single bit ECC error in the ECC itself, nothing to fix\n");
 		} else {
 			/* Uncorrectable error */
