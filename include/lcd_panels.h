@@ -48,24 +48,24 @@
  */
 
 struct lcd_panel_info_t {
-   char const       *name ;
-	unsigned long		pixclock;
+	char const	*name ;
+	unsigned long	pixclock;
 
-	unsigned short		xres;
-	unsigned short		yres;
-
-	unsigned     		pclk_redg ;     // pixel clock is active high
-	unsigned     		hsyn_acth ;     // hsync is active high
-	unsigned     		vsyn_acth ;     // vsync is active high
-	unsigned     		hsync_len;
-	unsigned     		left_margin;
-	unsigned     		right_margin;
-	unsigned     		vsync_len;
-	unsigned     		upper_margin;
-	unsigned     		lower_margin;
-   unsigned          active ;       // active matrix (TFT) LCD
-   unsigned          crt ;          // 1 == CRT, not LCD
-   unsigned          rotation ;
+	unsigned short	xres;
+	unsigned short	yres;
+	unsigned char	pclk_redg;     // pixel clock is active high
+	unsigned char	hsyn_acth;     // hsync is active high
+	unsigned char	vsyn_acth;     // vsync is active high
+	unsigned char	oepol_actl;
+	unsigned short	hsync_len;
+	unsigned short	left_margin;
+	unsigned short	right_margin;
+	unsigned short	vsync_len;
+	unsigned short	upper_margin;
+	unsigned short	lower_margin;
+	unsigned char	active;       // active matrix (TFT) LCD
+	unsigned char	crt;          // 1 == CRT, not LCD
+	unsigned char	rotation;
 };
 
 #ifdef __cplusplus

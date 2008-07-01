@@ -118,10 +118,6 @@ static unsigned const crtFbVSynReg   = 0x00080218 ;
 #define DISPCRTL_ENABLE 4
 #define CRTCRTL_ENABLE 4
 
-#define CLOCK_ACTIVEHIGH 0
-#define CLOCK_ACTIVELOW  (1<<14)
-#define CLOCK_ACTIVEMASK (1<<14)
-
 #define LCDTYPE_TFT    0
 #define LCDTYPE_STN12  (3<<18)
 #define LCDTYPE_MASK   (3<<18)
@@ -433,7 +429,15 @@ static void useFastRAM(void)
 //   STUFFREG( pm0ClockReg, READREG(pm0ClockReg)|0x10 ); // use 336 MHz input
 }
 
-
+#define POLARITY_MASK ((1<<26)|(1<<12)|(1<<13)|(1<<14))
+unsigned long GetPolarities(struct lcd_panel_info_t const *panel)
+{
+	unsigned long val = 0;
+	if (panel->oepol_actl) val |= (1<<26);	//output enable polarity
+	if (!panel->hsyn_acth) val |= (1<<12);	//horizontal sync polarity
+	if (!panel->vsyn_acth) val |= (1<<13);	//vertical sync polarity
+	if (!panel->pclk_redg) val |= (1<<14);	//pixel clock polarity
+}
 #ifdef CONFIG_LCD
 
 static void updateCRT( unsigned long const           *freq,
@@ -441,7 +445,8 @@ static void updateCRT( unsigned long const           *freq,
 {
    unsigned long reg ;
    unsigned long crtCtrl = 0x00010000 ; // FIFO 3 or more, disable CRT Timing - use lcd panel timings
-   if ( !panel->pclk_redg ) crtCtrl |= (3<<14);     // horizontal and vertical phase
+   crtCtrl |= GetPolarities(panel);
+	   //and vertical phase
    STUFFREG( crtFbAddrReg, 0 );
    STUFFREG( crtFbOffsReg, ((panel->xres)<<16)+(panel->xres) );
    STUFFREG( crtFbHTotReg, (( panel->left_margin
@@ -466,8 +471,8 @@ static void updateCRT( unsigned long const           *freq,
 void set_lcd_panel( struct lcd_panel_info_t const *panel )
 {
    unsigned long dispctrl = READREG( dispctrlReg );
-   dispctrl &= ~(CLOCK_ACTIVEMASK|LCDTYPE_MASK|LCD_SIGNAL_ENABLE|3);
-   if( !panel->pclk_redg ) dispctrl |= CLOCK_ACTIVELOW ;
+   dispctrl &= ~(POLARITY_MASK|LCDTYPE_MASK|LCD_SIGNAL_ENABLE|3);
+   dispctrl |= GetPolarities(panel);
 
    if( !panel->active ) dispctrl |= LCDTYPE_STN12 ;
    if (!panel->crt) dispctrl |= LCD_SIGNAL_ENABLE;
@@ -700,8 +705,8 @@ void init_sm501_lcd( struct lcd_t *lcd )
       lcd_ctrl_init();
 
    reg_value = READREG( dispctrlReg );
-   reg_value &= ~(CLOCK_ACTIVEMASK|LCDTYPE_MASK|LCD_SIGNAL_ENABLE|3);
-   if( !panel->pclk_redg ) reg_value |= CLOCK_ACTIVELOW ;
+   reg_value &= ~(POLARITY_MASK|LCDTYPE_MASK|LCD_SIGNAL_ENABLE|3);
+   reg_value |= GetPolarities(panel);
    if( !panel->active ) reg_value |= LCDTYPE_STN12 ;
    if (!panel->crt) reg_value |= LCD_SIGNAL_ENABLE;
    reg_value |= 4;
@@ -800,7 +805,7 @@ void init_sm501_crt_separate( struct lcd_t *lcd )
       lcd_ctrl_init();
 
    printf( "Initialize SM-501 CRT to %ux%u here\n", lcd->info.xres, lcd->info.yres );
-   if ( !panel->pclk_redg ) crtCtrl |= (3<<14);     // horizontal and vertical phase
+   crtCtrl |= GetPolarities(panel);
    STUFFREG( crtFbAddrReg, 0 );
    STUFFREG( crtFbOffsReg, ((panel->xres)<<16)+(panel->xres) );
    STUFFREG( crtFbHTotReg, (( panel->left_margin

@@ -1,8 +1,8 @@
 /*
  * Module cmd_lcdpanel.cpp
  *
- * This module defines the "lcdpanel" command for use in 
- * defining the set of displays (LCD panels) attached to a 
+ * This module defines the "lcdpanel" command for use in
+ * defining the set of displays (LCD panels) attached to a
  * board.
  *
  * Change History : 
@@ -88,6 +88,7 @@ void print_panel_info( struct lcd_panel_info_t const *panel )
    printf( "pclk_redg      : %u\n", panel->pclk_redg );
    printf( "hsyn_acth      : %u\n", panel->hsyn_acth );
    printf( "vsyn_acth      : %u\n", panel->vsyn_acth );
+   printf( "oepol_actl     : %u\n", panel->oepol_actl );
    printf( "hsync_len      : %u\n", panel->hsync_len );
    printf( "left_margin    : %u\n", panel->left_margin );
    printf( "right_margin   : %u\n", panel->right_margin );
@@ -105,132 +106,92 @@ static void short_panel_info( struct lcd_panel_info_t const *panel )
            panel->crt ? 'Y' : 'N',
            panel->name );
 }
+struct FieldData
+{
+	char* name;
+	unsigned offset;
+#define TYPE_UNSIGNED_NOT_ZERO 0
+#define TYPE_UNSIGNED 1
+#define TYPE_FLAG 2
+#define TYPE_STRING 3
+	unsigned char type;
+};
+#define OFFSETOF(a) ((unsigned)(&((struct lcd_panel_info_t*)NULL)->a))
+
+struct FieldData fields[] = {
+	{"name",	OFFSETOF(name),		TYPE_STRING},
+	{"pixclock",	OFFSETOF(pixclock),	TYPE_UNSIGNED},
+	{"xres",	OFFSETOF(xres),		TYPE_UNSIGNED_NOT_ZERO},
+	{"yres",	OFFSETOF(yres),		TYPE_UNSIGNED_NOT_ZERO},
+	{"pclk_redg",	OFFSETOF(pclk_redg),	TYPE_FLAG},
+	{"hsyn_acth",	OFFSETOF(hsyn_acth),	TYPE_FLAG},
+	{"vsyn_acth",	OFFSETOF(vsyn_acth),	TYPE_FLAG},
+	{"oepol_actl",	OFFSETOF(oepol_actl),	TYPE_FLAG},
+	{"hsync_len",	OFFSETOF(hsync_len),	TYPE_UNSIGNED_NOT_ZERO},
+	{"left_margin",	OFFSETOF(left_margin),	TYPE_UNSIGNED},
+	{"right_margin",OFFSETOF(right_margin),	TYPE_UNSIGNED},
+	{"vsync_len",	OFFSETOF(vsync_len),	TYPE_UNSIGNED},
+	{"upper_margin",OFFSETOF(upper_margin),	TYPE_UNSIGNED},
+	{"lower_margin",OFFSETOF(lower_margin),	TYPE_UNSIGNED},
+	{"active (0|1)",OFFSETOF(active),	TYPE_FLAG},
+	{"crt (0|1)",	OFFSETOF(crt),		TYPE_FLAG},
+	{NULL, 0, 0},
+};
 
 static struct lcd_panel_info_t const *prompt_for_panel( void )
 {
-   struct lcd_panel_info_t *panel = (struct lcd_panel_info_t *)malloc(sizeof(struct lcd_panel_info_t));
-   int bytesRead ;
+	struct lcd_panel_info_t *panel = (struct lcd_panel_info_t *)malloc(sizeof(struct lcd_panel_info_t));
+	unsigned char * panel_byte = (unsigned char *)panel;
+	int bytesRead ;
+	struct FieldData* pF = fields;
+	memset( panel, 0, sizeof(*panel));
 
-   memset( panel, 0, sizeof(*panel));
-
-   bytesRead = readline( "name: " );
-   if( 0 < bytesRead )
-   {
-      panel->name = strdup( console_buffer );
-      bytesRead = readline( "pixclock: " );
-      if( 0 < bytesRead )
-      {
-         char *endp;
-         ulong value = simple_strtoul( console_buffer, &endp, 0 );
-         if( endp > console_buffer )
-         {
-            panel->pixclock = value ;
-            bytesRead = readline( "xres: " );
-            if( ( 0 < bytesRead ) 
-                && ( 0 != ( value = simple_strtoul( console_buffer, &endp, 0 ) ) ) 
-                && ( endp > console_buffer ) )
-            {
-               panel->xres = value ;
-               bytesRead = readline( "yres: " );
-               if( ( 0 < bytesRead ) 
-                   && ( 0 != ( value = simple_strtoul( console_buffer, &endp, 0 ) ) )
-                   && ( endp > console_buffer ) )
-               {
-                  panel->yres = value ;
-                  bytesRead = readline( "pclk_redg: " );
-                  if( ( 0 < bytesRead ) 
-                      && ( 1 >= ( value = simple_strtoul( console_buffer, &endp, 0 ) ) )
-                      && ( endp > console_buffer ) )
-                  {
-                     panel->pclk_redg = value ;
-                     bytesRead = readline( "hsyn_acth: " );
-                     if( ( 0 < bytesRead ) 
-                         && ( 1 >= ( value = simple_strtoul( console_buffer, &endp, 0 ) ) )
-                         && ( endp > console_buffer ) )
-                     {
-                        panel->hsyn_acth = value ;
-                        bytesRead = readline( "vsyn_acth: " );
-                        if( ( 0 < bytesRead ) 
-                            && ( 1 >= ( value = simple_strtoul( console_buffer, &endp, 0 ) ) )
-                            && ( endp > console_buffer ) )
-                        {
-                           panel->vsyn_acth = value ;
-		                   bytesRead = readline( "hsync_len: " );
-        		           if( ( 0 < bytesRead ) 
-	                           && ( 0 != ( value = simple_strtoul( console_buffer, &endp, 0 ) ) )
-      		                   && ( endp > console_buffer ) )
-            		       {
-                    		  panel->hsync_len = value ;
-                        	  bytesRead = readline( "left_margin: " );
-	                          value = simple_strtoul( console_buffer, &endp, 0 );
-        		              if( ( 0 < bytesRead ) 
-                	              && ( endp > console_buffer ) )
-                      		  {
-		                         panel->left_margin = value ;
-        		                 bytesRead = readline( "right_margin: " );
-                	             value = simple_strtoul( console_buffer, &endp, 0 );
-                      		     if( ( 0 < bytesRead ) 
-                            		 && ( endp > console_buffer ) )
-		                         {
-        		                    panel->right_margin = value ;
-		                            bytesRead = readline( "vsync_len: " );
-		                            value = simple_strtoul( console_buffer, &endp, 0 );
-		                            if( ( 0 < bytesRead ) 
-		                                && ( endp > console_buffer ) )
-		                            {
-		                               panel->vsync_len = value ;
-		                               bytesRead = readline( "upper_margin: " );
-		                               value = simple_strtoul( console_buffer, &endp, 0 );
-		                               if( ( 0 < bytesRead ) 
-		                                   && ( endp > console_buffer ) )
-		                               {
-		                                  panel->upper_margin = value ;
-		                                  bytesRead = readline( "lower_margin: " );
-		                                  value = simple_strtoul( console_buffer, &endp, 0 );
-		                                  if( ( 0 < bytesRead ) 
-		                                      && ( endp > console_buffer ) )
-		                                  {
-		                                     panel->lower_margin = value ;
-		                                     bytesRead = readline( "active (0|1) : " );
-		                       		         value = simple_strtoul( console_buffer, &endp, 0 );
-		                                     if( ( 0 < bytesRead ) && ( endp > console_buffer ) )
-		                                     {
-		                                        panel->active = value ;
-		                                        bytesRead = readline( "crt (0|1) : " );
-    		                                    value = simple_strtoul( console_buffer, &endp, 0 );
-		                                        if( ( 0 < bytesRead ) 
-		                                            && 
-		                                            ( endp > console_buffer ) )
-		                                        {
-		                                           panel->crt = value ;
-		                                           print_panel_info( panel );
-		                                           return panel ;
-		                                        }
-		                                     }
-                                          }
-                                       }
-                                    }
-                                 }
-                              }
-                           }
-                        }
-                     }
-                  }
-               }
-            }
-         }
-      }
-   }
-
-   free( panel );
-
-   return 0 ;
+	while (pF->name) {
+		printf("%s",pF->name);
+		bytesRead = readline( ": " );
+		if (0 < bytesRead) {
+			if (pF->type==TYPE_STRING) {
+				*((const char**)(panel_byte+pF->offset)) = strdup(console_buffer);
+			} else {
+				char *endp;
+				ulong value = simple_strtoul( console_buffer, &endp, 0 );
+				if (endp <= console_buffer) {
+					printf("%s is not an integer\n",pF->name);
+					continue;
+				}
+				if (pF->type==TYPE_UNSIGNED_NOT_ZERO){
+					if (value==0) {
+						printf("%s cannot be 0\n",pF->name);
+						continue;
+					}
+				}
+				if ((pF->type==TYPE_UNSIGNED_NOT_ZERO)||(pF->type==TYPE_UNSIGNED)) {
+					if (value>=0x10000) {
+						printf("%s value %i is too big\n",pF->name,value);
+						continue;
+					}
+					*((unsigned short*)(panel_byte+pF->offset)) = value ;
+				} else if (pF->type==TYPE_FLAG) {
+					if (value > 1) {
+						printf("%s can only be 0 or 1\n",pF->name);
+						continue;
+					}
+					*((unsigned char*)(panel_byte+pF->offset)) = value;
+				}
+			}
+			pF++;
+		} else {
+			free(panel);
+			return 0 ;
+		}
+	}
+	return panel ;
 }
 
 static char *build_panel_name(struct lcd_panel_info_t const *panel)
 {
    char tempBuf[512];
-   sprintf( tempBuf, "%s:%lu,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u"
+   sprintf( tempBuf, "%s:%lu,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u"
            , panel->name
            , panel->pixclock
            , panel->xres
@@ -238,6 +199,7 @@ static char *build_panel_name(struct lcd_panel_info_t const *panel)
            , panel->pclk_redg
            , panel->hsyn_acth
            , panel->vsyn_acth
+           , panel->oepol_actl
            , panel->hsync_len
            , panel->left_margin
            , panel->right_margin
@@ -253,169 +215,141 @@ static char *build_panel_name(struct lcd_panel_info_t const *panel)
 static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	if ( 1 == argc ) {
-      if( cur_lcd_panel )
-         print_panel_info( cur_lcd_panel );
-      else
-         printf( "no panel defined\n" );
+		if( cur_lcd_panel )
+			print_panel_info( cur_lcd_panel );
+		else
+			printf( "no panel defined\n" );
+	} else {
+		struct lcd_panel_info_t const *panel = find_lcd_panel( argv[1] );
+		if( panel ) {
+			printf( "found panel %s\n", panel->name );
+			set_lcd_panel( panel );
+			setenv( "panel", (char*)panel->name );
+		} else if( '+' == *argv[1] ) {
+			panel = prompt_for_panel();
+			if( panel ) {
+				print_panel_info( panel );
+				set_lcd_panel( panel );
+				setenv( "panel", build_panel_name(panel) );
+			}
+		} else if( '?' == *argv[1] ) {
+			int i ; 
+			for( i = 0 ; i < num_lcd_panels ; i++ )
+				print_panel_info( lcd_panels+i );
+		} else if( '*' == *argv[1] ) {
+			int i ; 
+			printf( "xres\tyres\tCRT\tname\n" );
+			for( i = 0 ; i < num_lcd_panels ; i++ )
+				short_panel_info( lcd_panels+i );
+		} else if( '-' == *argv[1] ) {
+			disable_lcd_panel();
+			printf( "panel disabled\n" );
+		} else if( strchr( argv[1], ':' ) ) {
+			printf( "parse LCD panel <%s> here\n", argv[1] );
+			struct lcd_panel_info_t *const newPanel = (struct lcd_panel_info_t *)malloc( sizeof(struct lcd_panel_info_t) );
+			if( parse_panel_info( argv[1], newPanel ) ){
+				print_panel_info( newPanel );
+				set_lcd_panel( newPanel );
+				setenv( "panel", build_panel_name(panel));
+			} else {
+				printf( "Error parsing panel\n" );
+				free(newPanel);
+			}
+		} else {
+			char const *rv = strchr( argv[1], ':' );
+			printf( "panel <%s> not found (%p)\n", argv[1], rv );
+		}
 	}
-   else {
-      struct lcd_panel_info_t const *panel = find_lcd_panel( argv[1] );
-      if( panel ) {
-         printf( "found panel %s\n", panel->name );
-         set_lcd_panel( panel );
-         setenv( "panel", (char*)panel->name );
-      }
-      else if( '+' == *argv[1] ) {
-         panel = prompt_for_panel();
-         if( panel )
-         {
-            print_panel_info( panel );
-            set_lcd_panel( panel );
-            setenv( "panel", build_panel_name(panel) );
-         }
-      }
-      else if( '?' == *argv[1] )
-      {
-         int i ; 
-         for( i = 0 ; i < num_lcd_panels ; i++ )
-            print_panel_info( lcd_panels+i );
-      }
-      else if( '*' == *argv[1] )
-      {
-         int i ; 
-         printf( "xres\tyres\tCRT\tname\n" );
-      
-         for( i = 0 ; i < num_lcd_panels ; i++ )
-            short_panel_info( lcd_panels+i );
-      }
-      else if( '-' == *argv[1] )
-      {
-         disable_lcd_panel();
-         printf( "panel disabled\n" );
-      }
-      else if( strchr( argv[1], ':' ) ){
-         printf( "parse LCD panel <%s> here\n", argv[1] );
-         struct lcd_panel_info_t *const newPanel = (struct lcd_panel_info_t *)malloc( sizeof(struct lcd_panel_info_t) );
-         if( parse_panel_info( argv[1], newPanel ) ){
-            print_panel_info( newPanel );
-            set_lcd_panel( newPanel );
-            setenv( "panel", build_panel_name(panel));
-         }
-         else {
-            printf( "Error parsing panel\n" );
-            free(newPanel);
-         }
-      }
-      else {
-         char const *rv = strchr( argv[1], ':' );
-         printf( "panel <%s> not found (%p)\n", argv[1], rv );
-      }
-   }
-   
 	return 0;
 }
 #elif defined(CONFIG_LCD_MULTI)
 
 static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-   printf( "handle Multi-panel lcdpanel command here\n" );
+	printf( "handle Multi-panel lcdpanel command here\n" );
 	if ( 1 == argc ) {
-      unsigned count = 0 ;
-      unsigned i ;
-      for( i = 0 ; i < getPanelCount(); i++ ){
-         struct lcd_t *lcd = getPanel(i);
-         if(lcd){
-            print_panel_info(&lcd->info);
-            count++ ;
-         }
-      }
-      printf( "%u panel(s) defined\n", count );
+		unsigned count = 0 ;
+		unsigned i ;
+		for( i = 0 ; i < getPanelCount(); i++ ) {
+			struct lcd_t *lcd = getPanel(i);
+			if(lcd){
+				print_panel_info(&lcd->info);
+				count++ ;
+			}
+		}
+		printf( "%u panel(s) defined\n", count );
+	} else if( '+' == *argv[1] ) {
+		struct lcd_panel_info_t const *panel = prompt_for_panel();
+		if( panel ) {
+			struct lcd_t *lcd ;
+			print_panel_info( panel );
+			lcd = newPanel(panel);
+			if( lcd ){
+				addPanel(lcd);
+				setenv( "panel", build_panel_name(panel) );
+			}
+		}
+	} else if( '?' == *argv[1] ) {
+		int i ; 
+		for( i = 0 ; i < num_lcd_panels ; i++ )
+			print_panel_info( lcd_panels+i );
+	} else if( '*' == *argv[1] ) {
+		int i ; 
+		printf( "xres\tyres\tCRT\tname\n" );
+		for( i = 0 ; i < num_lcd_panels ; i++ )
+			short_panel_info( lcd_panels+i );
+	} else {
+		unsigned matched = 0 ;
+		char *next = argv[1];
+		disablePanels();
+		do {
+			struct lcd_panel_info_t const *panel ;
+			char *cur = next ;
+			next = strchr(next,'&');
+			if( 0 != next )
+				*next = '\0' ;
+			panel = find_lcd_panel( cur );
+			if( panel ) {
+				struct lcd_t *lcd ;
+				print_panel_info( panel );
+				lcd = newPanel(panel);
+				if( lcd ){
+					addPanel(lcd);
+					matched++ ;
+				}
+			} else if( strchr( cur, ':' ) ) {
+				printf( "parse LCD panel <%s> here\n", cur );
+				panel = (struct lcd_panel_info_t *)malloc( sizeof(struct lcd_panel_info_t) );
+				if( parse_panel_info( cur, panel ) ){
+					struct lcd_t *lcd ;
+					print_panel_info( panel );
+					lcd = newPanel(panel);
+					if( lcd ){
+						char *panelName ; 
+						addPanel(lcd);
+						setCurrentPanel(0);
+						panelName = build_panel_name(panel);
+						setenv( "panel", panelName );
+					} else
+						printf( "error from newPanel()\n" );
+				} else {
+					printf( "Error parsing panel\n" );
+					free(panel);
+				}
+			} else {
+				char const *rv = strchr( cur, ':' );
+				printf( "panel <%s> not found (%p)\n", cur, rv );
+			}
+			if( next )
+				*next++ = '&' ;
+		} while( next );
+
+		if( 0 == matched ){
+			// nothing matched
+		} else {
+			setenv( "panel", argv[1] );
+		}
 	}
-   else if( '+' == *argv[1] ) {
-      struct lcd_panel_info_t const *panel = prompt_for_panel();
-      if( panel )
-      {
-         struct lcd_t *lcd ;
-         print_panel_info( panel );
-         lcd = newPanel(panel);
-         if( lcd ){
-            addPanel(lcd);
-            setenv( "panel", build_panel_name(panel) );
-         }
-      }
-   }
-   else if( '?' == *argv[1] )
-   {
-      int i ; 
-      for( i = 0 ; i < num_lcd_panels ; i++ )
-         print_panel_info( lcd_panels+i );
-   }
-   else if( '*' == *argv[1] )
-   {
-      int i ; 
-      printf( "xres\tyres\tCRT\tname\n" );
-   
-      for( i = 0 ; i < num_lcd_panels ; i++ )
-         short_panel_info( lcd_panels+i );
-   }
-   else {
-      unsigned matched = 0 ;
-      char *next = argv[1];
-      disablePanels();
-
-      do {
-         struct lcd_panel_info_t *panel ;
-         char *cur = next ;
-         next = strchr(next,'&');
-         if( 0 != next )
-            *next = '\0' ;
-         panel = find_lcd_panel( cur );
-         if( panel ) {
-            struct lcd_t *lcd ;
-            print_panel_info( panel );
-            lcd = newPanel(panel);
-            if( lcd ){
-               addPanel(lcd);
-               matched++ ;
-            }
-         }
-         else if( strchr( cur, ':' ) ){
-            printf( "parse LCD panel <%s> here\n", cur );
-            panel = (struct lcd_panel_info_t *)malloc( sizeof(struct lcd_panel_info_t) );
-            if( parse_panel_info( cur, panel ) ){
-               struct lcd_t *lcd ;
-               print_panel_info( panel );
-               lcd = newPanel(panel);
-               if( lcd ){
-                  char *panelName ; 
-                  addPanel(lcd);
-                  setCurrentPanel(0);
-                  panelName = build_panel_name(panel);
-                  setenv( "panel", panelName );
-               }
-               else
-                  printf( "error from newPanel()\n" );
-            }
-            else {
-               printf( "Error parsing panel\n" );
-               free(panel);
-            }
-         }
-         else {
-            char const *rv = strchr( cur, ':' );
-            printf( "panel <%s> not found (%p)\n", cur, rv );
-         }
-         if( next )
-            *next++ = '&' ;
-      } while( next );
-
-      if( 0 == matched ){
-      } // nothing matched
-      else {
-         setenv( "panel", argv[1] );
-      }
-   }
-   
 	return 0;
 }
 
@@ -424,15 +358,14 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 U_BOOT_CMD(
 	lcdpanel,	10,	0,	lcdpanel,
 	"lcdpanel [panelName|?|+|-]\n"
-   "     init lcd panel with panel name\n"
-   "     ? will display the supported panels\n"
-   "     + will prompt for panel details\n"
+	"     init lcd panel with panel name\n"
+	"     ? will display the supported panels\n"
+	"     + will prompt for panel details\n"
 #ifdef CONFIG_LCD
-   "     - will disable the panel\n"
+	"     - will disable the panel\n"
 #endif
-   , NULL
+	, NULL
 );
-
 #endif	/* CONFIG_LCDPANEL */
 
 
