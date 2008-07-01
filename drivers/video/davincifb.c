@@ -105,7 +105,6 @@ static void disable(void)
 {
 }
 
-#define OEPOL 0
 #define NUM_WINDOWS 4
 
 static unsigned encPerPixel = 1 ;
@@ -208,7 +207,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(VENC_VSDLY) = 0 ;
 	REGVALUE(VENC_RGBCTL) = 0 ;
 	REGVALUE(PINMUX0) = (REGVALUE(PINMUX0) & ~(1<<22)) | (3<<23);	//rgb888 and output_enable
-	REGVALUE(VENC_LCDOUT) = (OEPOL<<1)|1 ;	//enable active high on gpio0
+	REGVALUE(VENC_LCDOUT) = (info->oepol_actl<<1)|1 ;	//enable active high on gpio0
 
 	val[0] = 0;
 	val[1] = 0;

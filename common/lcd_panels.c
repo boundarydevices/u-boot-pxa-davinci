@@ -127,392 +127,425 @@ vsync   	  (LCD_VERTICAL_SYNC_PULSE_WIDTH<<16)
 */
 
 static struct lcd_panel_info_t const lcd_panels_[] = {
-
-   /* char const       *name         */   { "hitachi_qvga"
-   /* unsigned long     pixclock     */    , 0
-   /* unsigned short    xres         */    , 320
-   /* unsigned short    yres         */    , 240
-   /* unsigned char     pclk_redg    */    , 1
-   /* unsigned char     hsyn_acth    */    , 1
-   /* unsigned char     vsyn_acth    */    , 1
-   /* unsigned char     hsync_len    */    , 64
-   /* unsigned char     left_margin  */    ,  1
-   /* unsigned char     right_margin */    , 16
-   /* unsigned char     vsync_len    */    , 20
-   /* unsigned char     upper_margin */    , 8
-   /* unsigned char     lower_margin */    , 3
-   /* unsigned char     active       */    , 1
-   /* unsigned char     crt          */    , 0 }
-
-   /* char const       *name         */ , { "sharp_qvga"
-   /* unsigned long     pixclock     */    , 0
-   /* unsigned short    xres         */    , 320        /* , 320  */
-   /* unsigned short    yres         */    , 240        /* , 240  */
-   /* unsigned char     pclk_redg    */    , 1          /* , 1    */
-   /* unsigned char     hsyn_acth    */    , 1
-   /* unsigned char     vsyn_acth    */    , 1
-   /* unsigned char     hsync_len    */    , 20         /* , 8    */
-   /* unsigned char     left_margin  */    , 1          /* , 16   */
-   /* unsigned char     right_margin */    , 30         /* , 1    */
-   /* unsigned char     vsync_len    */    , 4          /* , 20   */
-   /* unsigned char     upper_margin */    , 17         /* , 17   */
-   /* unsigned char     lower_margin */    , 3          /* , 3    */
-   /* unsigned char     active       */    , 1          /* , 1    */
-   /* unsigned char     crt          */    , 0 }
-
+{
+	name: "hitachi_qvga",
+	pixclock: 0,
+	xres: 320,
+	yres: 240,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin:  1,
+	right_margin: 16,
+	vsync_len: 20,
+	upper_margin: 8,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+}, {
+	name: "sharp_qvga",
+	pixclock: 0,
+	xres: 320,
+	yres: 240,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 20,		/* 8    */
+	left_margin: 1,		/* 16   */
+	right_margin: 30,	/* 1    */
+	vsync_len: 4,		/* 20   */
+	upper_margin: 17,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+}, {
 //#define OKAYA_QVGA_P   320, 30,37, 38,	240, 3, 16, 15,	1,1,0,0,0,	1,0,0,1,120,LCD_PANEL
-   /* char const       *name         */ , { "okaya_qvga"
-   /* unsigned long     pixclock     */    , 13974000	//(320+30+37+38)*(240+3+16+15)*120 Hz = 425*274*120
-   /* unsigned short    xres         */    , 320
-   /* unsigned short    yres         */    , 240
-   /* unsigned char     pclk_redg    */    , 1
-   /* unsigned char     hsyn_acth    */    , 0
-   /* unsigned char     vsyn_acth    */    , 0
-   /* unsigned char     hsync_len    */    , 30
-   /* unsigned char     left_margin  */    , 37
-   /* unsigned char     right_margin */    , 38
-   /* unsigned char     vsync_len    */    , 3
-   /* unsigned char     upper_margin */    , 16
-   /* unsigned char     lower_margin */    , 15
-   /* unsigned char     active       */    , 1
-   /* unsigned char     crt          */    , 0 }
-
+	name: "okaya_qvga",
+	pixclock: 13974000,	//(320+30+37+38)*(240+3+16+15)*120 Hz = 425*274*120
+	xres: 320,
+	yres: 240,
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 30,
+	left_margin: 37,
+	right_margin: 38,
+	vsync_len: 3,
+	upper_margin: 16,
+	lower_margin: 15,
+	active: 1,
+	crt: 0
+}, {
 #define OKAYA_480X272_P 480, 3,20, 38,		272, 3, 5, 15,		1,1,0,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
-//name,pixclock,
-	, { "okaya_480x272", 11394080	//(480+30+20+38)*(272+3+5+15)*68 Hz = 568*295*68 = 11,394,080
-	, 480, 272, 1, 0, 0			//xres,yres,pclk_redg,hsyn_acth,vsyn_acth,
-	,  30, 20, 38				//hsync_len,left_margin,right_margin,
-	, 3, 5, 15					//vsync_len,upper_margin,lower_margin,
-    , 1, 0  					//active,crt
-	 }
-
-   /* char const       *name         */ , { "qvga_portrait"
-   /* unsigned long     pixclock     */    , 0
-   /* unsigned short    xres         */    , 240
-   /* unsigned short    yres         */    , 320
-   /* unsigned char     pclk_redg    */    , 1
-   /* unsigned char     hsyn_acth    */    , 1
-   /* unsigned char     vsyn_acth    */    , 1
-   /* unsigned char     hsync_len    */    , 64
-   /* unsigned char     left_margin  */    , 34
-   /* unsigned char     right_margin */    , 1
-   /* unsigned char     vsync_len    */    , 20
-   /* unsigned char     upper_margin */    , 8
-   /* unsigned char     lower_margin */    , 3
-   /* unsigned char     active       */    , 1
-   /* unsigned char     crt          */    , 0
-   /* unsigned          rotation     */    , 90 }
-
-   /* char const       *name         */ , { "hitachi_hvga"
-   /* unsigned long     pixclock     */    , (640+64+34+1)*(240+20+8+3)*68
-   /* unsigned short    xres         */    , 640
-   /* unsigned short    yres         */    , 240
-   /* unsigned char     pclk_redg    */    , 1
-   /* unsigned char     hsyn_acth    */    , 1
-   /* unsigned char     vsyn_acth    */    , 1
-   /* unsigned char     hsync_len    */    , 64
-   /* unsigned char     left_margin  */    , 34
-   /* unsigned char     right_margin */    , 1
-   /* unsigned char     vsync_len    */    , 20
-   /* unsigned char     upper_margin */    , 8
-   /* unsigned char     lower_margin */    , 3
-   /* unsigned char     active       */    , 1
-   /* unsigned char     crt          */    , 0 }
-
-   /* char const       *name         */ , { "sharp_vga"
-   /* unsigned long     pixclock     */    , 1
-   /* unsigned short    xres         */    , 640
-   /* unsigned short    yres         */    , 480
-   /* unsigned char     pclk_redg    */    , 1
-   /* unsigned char     hsyn_acth    */    , 1
-   /* unsigned char     vsyn_acth    */    , 1
-   /* unsigned char     hsync_len    */    , 64
-   /* unsigned char     left_margin  */    , 60		//3
-   /* unsigned char     right_margin */    , 60
-   /* unsigned char     vsync_len    */    , 20		//34
-   /* unsigned char     upper_margin */    , 34		//24
-   /* unsigned char     lower_margin */    , 3
-   /* unsigned char     active       */    , 1
-   /* unsigned char     crt          */    , 0 }
-
-   /* char const       *name         */ , { "vga_crt"
-   /* unsigned long     pixclock     */    , 1		//24000000
-   /* unsigned short    xres         */    , 640
-   /* unsigned short    yres         */    , 480
-   /* unsigned char     pclk_redg    */    , 1
-   /* unsigned char     hsyn_acth    */    , 1
-   /* unsigned char     vsyn_acth    */    , 1
-   /* unsigned char     hsync_len    */    , 64
-   /* unsigned char     left_margin  */    , 60		//3
-   /* unsigned char     right_margin */    , 60
-   /* unsigned char     vsync_len    */    , 20		//34
-   /* unsigned char     upper_margin */    , 34		//24
-   /* unsigned char     lower_margin */    , 3
-   /* unsigned char     active       */    , 1
-   /* unsigned char     crt          */    , 1 }
-
-   /* char const       *name         */ , { "hitachi_wvga"
-   /* unsigned long     pixclock     */    , 1
-   /* unsigned short    xres         */    , 800
-   /* unsigned short    yres         */    , 480
-   /* unsigned char     pclk_redg    */    , 1
-   /* unsigned char     hsyn_acth    */    , 1
-   /* unsigned char     vsyn_acth    */    , 1
-   /* unsigned char     hsync_len    */    , 64
-   /* unsigned char     left_margin  */    , 1
-   /* unsigned char     right_margin */    , 39
-   /* unsigned char     vsync_len    */    , 20
-   /* unsigned char     upper_margin */    , 8
-   /* unsigned char     lower_margin */    , 3
-   /* unsigned char     active       */    , 1
-   /* unsigned char     crt          */    , 0 }
-
-   /* char const       *name         */ , { "crt_800x600"
-   /* unsigned long     pixclock     */    , 56000000
-   /* unsigned short    xres         */    , 800
-   /* unsigned short    yres         */    , 600
-   /* unsigned char     pclk_redg    */    , 1
-   /* unsigned char     hsyn_acth    */    , 1
-   /* unsigned char     vsyn_acth    */    , 1
-   /* unsigned char     hsync_len    */    , 64
-   /* unsigned char     left_margin  */    , 32
-   /* unsigned char     right_margin */    , 152
-   /* unsigned char     vsync_len    */    , 3
-   /* unsigned char     upper_margin */    , 1
-   /* unsigned char     lower_margin */    , 27
-   /* unsigned char     active       */    , 1
-   /* unsigned char     crt          */    , 1 }
-
-   /* char const       *name         */ , { "gvision_10.4"
-   /* unsigned long     pixclock     */    , 56000000
-   /* unsigned short    xres         */    , 800
-   /* unsigned short    yres         */    , 600
-   /* unsigned char     pclk_redg    */    , 1
-   /* unsigned char     hsyn_acth    */    , 1
-   /* unsigned char     vsyn_acth    */    , 1
-   /* unsigned char     hsync_len    */    , 64
-   /* unsigned char     left_margin  */    , 32
-   /* unsigned char     right_margin */    , 16
-   /* unsigned char     vsync_len    */    , 8
-   /* unsigned char     upper_margin */    , 3
-   /* unsigned char     lower_margin */    , 2
-   /* unsigned char     active       */    , 1
-   /* unsigned char     crt          */    , 1 }
-, { "lcd_svga", 56000000, 800, 600, 1 , 1, 1,
-		64, 32, 152,
-		3, 1, 27,
-		1, 0 }
-
+	name: "okaya_480x272",
+	pixclock: 11394080,	//(480+30+20+38)*(272+3+5+15)*68 Hz = 568*295*68 = 11,394,080
+	xres: 480,
+	yres: 272,
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 30,
+	left_margin: 20,
+	right_margin: 38,
+	vsync_len: 3,
+	upper_margin: 5,
+	lower_margin: 15,
+	active: 1,
+	crt:0
+}, {
+	name: "qvga_portrait",
+	pixclock: 0,
+	xres: 240,
+	yres: 320,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 34,
+	right_margin: 1,
+	vsync_len: 20,
+	upper_margin: 8,
+	lower_margin: 3,
+	active: 1,
+	crt: 0,
+	rotation: 90
+}, {
+	name: "hitachi_hvga",
+	pixclock: (640+64+34+1)*(240+20+8+3)*68,
+	xres: 640,
+	yres: 240,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 34,
+	right_margin: 1,
+	vsync_len: 20,
+	upper_margin: 8,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+}, {
+	name: "sharp_vga",
+	pixclock: 1,
+	xres: 640,
+	yres: 480,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 60,		//3
+	right_margin: 60,
+	vsync_len: 20,		//34
+	upper_margin: 34,		//24
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+}, {
+	name: "vga_crt",
+	pixclock: 1,		//24000000
+	xres: 640,
+	yres: 480,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 60,		//3
+	right_margin: 60,
+	vsync_len: 20,		//34
+	upper_margin: 34,		//24
+	lower_margin: 3,
+	active: 1,
+	crt: 1
+}, {
+	name: "hitachi_wvga",
+	pixclock: 1,
+	xres: 800,
+	yres: 480,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 1,
+	right_margin: 39,
+	vsync_len: 20,
+	upper_margin: 8,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+}, {
+	name: "crt_800x600",
+	pixclock: 56000000,
+	xres: 800,
+	yres: 600,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 32,
+	right_margin: 152,
+	vsync_len: 3,
+	upper_margin: 1,
+	lower_margin: 27,
+	active: 1,
+	crt: 1
+}, {
+	name: "gvision_10.4",
+	pixclock: 56000000,
+	xres: 800,
+	yres: 600,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 32,
+	right_margin: 16,
+	vsync_len: 8,
+	upper_margin: 3,
+	lower_margin: 2,
+	active: 1,
+	crt: 1
+}, {
+	name: "lcd_svga",
+	pixclock: 56000000,
+	xres: 800,
+	yres: 600,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 32,
+	right_margin: 152,
+	vsync_len: 3,
+	upper_margin:1,
+	lower_margin: 27,
+	active: 1,
+	crt: 0
+}, {
 // Note that you can use the nifty tool at the
 // following location to generate these values:
 //    http://www.tkk.fi/Misc/Electronics/faq/vga2rgb/calc.html
-, {
-    name: "crt1024x768",
-    pixclock: 65000000,
-    xres: 1024,
-    yres: 768,
-    pclk_redg: 0,
-    hsyn_acth: 0,
-    vsyn_acth: 0,
-    hsync_len: 136,
-    left_margin: 24,
-    right_margin: 160,
-    vsync_len: 6,
-    upper_margin: 3,
-    lower_margin: 29,
-    active : 0,
-    crt : 1
-}
-, {
-    name: "hitachi_wxga",
-    pixclock: 1,
-    xres: 1024,
-    yres: 768,
-    pclk_redg: 1,
-    hsyn_acth: 1,
-    vsyn_acth: 1,
-    hsync_len: 64,
-    left_margin: 1,
-    right_margin: 39,
-    vsync_len: 20,
-    upper_margin: 8,
-    lower_margin: 3,
-    active : 1,
-    crt : 0
-}
-, {
+	name: "crt1024x768",
+	pixclock: 65000000,
+	xres: 1024,
+	yres: 768,
+	pclk_redg: 0,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 136,
+	left_margin: 24,
+	right_margin: 160,
+	vsync_len: 6,
+	upper_margin: 3,
+	lower_margin: 29,
+	active: 0,
+	crt: 1
+}, {
+	name: "hitachi_wxga",
+	pixclock: 1,
+	xres: 1024,
+	yres: 768,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 1,
+	right_margin: 39,
+	vsync_len: 20,
+	upper_margin: 8,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+}, {
 #define hitachi_154_P 1280,64, 24,16,	800, 20, 4, 3,	1,1,0,0,0,	1,0,0,1,62,LCD_PANEL
-    name: "hitachi_154",
-    pixclock: 72000000,
-    xres: 1280,
-    yres: 800,
-    pclk_redg: 1,
-    hsyn_acth: 1,
-    vsyn_acth: 1,
-    hsync_len: 64,
-    left_margin: 24,
-    right_margin: 16,
-    vsync_len: 20,
-    upper_margin: 8,
-    lower_margin: 3,
-    active : 1,
-    crt : 0
-}
-, {
-    name: "olevia",
-    pixclock: 65000000,
-    xres: 1024,
-    yres: 768,
-    pclk_redg: 0,
-    hsyn_acth: 0,
-    vsyn_acth: 0,
-    hsync_len: 200,
-    left_margin: 37,
-    right_margin: 228,
-    vsync_len: 6,
-    upper_margin: 3,
-    lower_margin: 29,
-    active : 0,
-    crt : 1
-}
-, {
-    name: "crt_sxga60hz",
-    pixclock: 108000000,
-    xres: 1280,
-    yres: 1024,
-    pclk_redg: 1,
-    hsyn_acth: 1,
-    vsyn_acth: 1,
-    hsync_len: 120,
-    left_margin: 64,
-    right_margin: 264,
-    vsync_len: 4,
-    upper_margin: 2,
-    lower_margin: 44,
-    active : 1,
-    crt : 1
-}
-, {
-    name: "lcd_sxga60hz",
-    pixclock: 108000000,
-    xres: 1280,
-    yres: 1024,
-    pclk_redg: 1,
-    hsyn_acth: 1,
-    vsyn_acth: 1,
-    hsync_len: 120,
-    left_margin: 64,
-    right_margin: 264,
-    vsync_len: 4,
-    upper_margin: 2,
-    lower_margin: 44,
-    active : 1,
-    crt : 0
-}
-, {
-    name: "hitachi_92",
-    pixclock: 20000000,
-    xres: 960,
-    yres: 160,
-    pclk_redg: 1,
-    hsyn_acth: 1,
-    vsyn_acth: 1,
-    hsync_len: 15,
-    left_margin: 220,
-    right_margin: 1,
-    vsync_len: 200,
-    upper_margin: 148,
-    lower_margin: 3,
-    active : 1,
-    crt : 0
-}
-, { name: "sharp_480x272",
-    pixclock: 9000000,
-    xres: 480,
-    yres: 272,
-    pclk_redg: 1,
-    hsyn_acth: 0,
-    vsyn_acth: 0,
-    hsync_len: 41,
-    left_margin: 2,
-    right_margin: 2,
-    vsync_len: 10,
-    upper_margin: 2,
-    lower_margin: 2,
-    active : 1,
-    crt : 0 }
+	name: "hitachi_154",
+	pixclock: 72000000,
+	xres: 1280,
+	yres: 800,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 24,
+	right_margin: 16,
+	vsync_len: 20,
+	upper_margin: 8,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+}, {
+	name: "olevia",
+	pixclock: 65000000,
+	xres: 1024,
+	yres: 768,
+	pclk_redg: 0,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 200,
+	left_margin: 37,
+	right_margin: 228,
+	vsync_len: 6,
+	upper_margin: 3,
+	lower_margin: 29,
+	active: 0,
+	crt: 1
+}, {
+	name: "crt_sxga60hz",
+	pixclock: 108000000,
+	xres: 1280,
+	yres: 1024,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 120,
+	left_margin: 64,
+	right_margin: 264,
+	vsync_len: 4,
+	upper_margin: 2,
+	lower_margin: 44,
+	active: 1,
+	crt: 1
+}, {
+	name: "lcd_sxga60hz",
+	pixclock: 108000000,
+	xres: 1280,
+	yres: 1024,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 120,
+	left_margin: 64,
+	right_margin: 264,
+	vsync_len: 4,
+	upper_margin: 2,
+	lower_margin: 44,
+	active: 1,
+	crt: 0
+}, {
+	name: "hitachi_92",
+	pixclock: 20000000,
+	xres: 960,
+	yres: 160,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 15,
+	left_margin: 220,
+	right_margin: 1,
+	vsync_len: 200,
+	upper_margin: 148,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+}, {
+	name: "sharp_480x272",
+	pixclock: 9000000,
+	xres: 480,
+	yres: 272,
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 41,
+	left_margin: 2,
+	right_margin: 2,
+	vsync_len: 10,
+	upper_margin: 2,
+	lower_margin: 2,
+	active: 1,
+	crt: 0
+}, {
 #if 1
 #define tovis_w_P	1024,104,56,160,	200,3,201,11,	0,0,1,0,0,	1,0,0,1,75,CRT
-, {
-    name: "tovis_w",
-    pixclock: (1024+104+56+160)*(200+3+201+11)*75,
-    xres: 1024,
-    yres: 200,
-    pclk_redg: 1,
-    hsyn_acth: 0,
-    vsyn_acth: 0,
-    hsync_len: 104,
-    left_margin: 56,
-    right_margin: 160,
-    vsync_len: 3,
-    upper_margin: 201,
-    lower_margin: 11,
-    active : 1,
-    crt : 1
-}
+	name: "tovis_w",
+	pixclock: (1024+104+56+160)*(200+3+201+11)*75,
+	xres: 1024,
+	yres: 200,
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 104,
+	left_margin: 56,
+	right_margin: 160,
+	vsync_len: 3,
+	upper_margin: 201,
+	lower_margin: 11,
+	active: 1,
+	crt: 1
 #else
 #define tovis_w_P	1024,64,1,39,		204,20,8,3,		1,1,1,0,0,	1,0,0,1,75,LCD_PANEL
-, {
-    name: "tovis_w",
-    pixclock: (1024+64+1+39)*(204+20+8+3)*75,
-    xres: 1024,
-    yres: 204,
-    pclk_redg: 1,
-    hsyn_acth: 1,
-    vsyn_acth: 1,
-    hsync_len: 64,
-    left_margin: 1,
-    right_margin: 39,
-    vsync_len: 20,
-    upper_margin: 8,
-    lower_margin: 3,
-    active : 1,
-    crt : 0
-}
+	name: "tovis_w",
+	pixclock: (1024+64+1+39)*(204+20+8+3)*75,
+	xres: 1024,
+	yres: 204,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 1,
+	right_margin: 39,
+	vsync_len: 20,
+	upper_margin: 8,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
 #endif
-, {
-    name: "samsung1600x1050",
-    pixclock: 142000000,
-    xres: 1600,
-    yres: 1050,
-    pclk_redg: 1,
-    hsyn_acth: 0,
-    vsyn_acth: 1,
-    hsync_len: 104,
-    left_margin: 128,
-    right_margin: 264,
-    vsync_len: 4,
-    upper_margin: 2,
-    lower_margin: 44,
-    active : 1,
-    crt : 0
-}
-, {
-    name: "adap216x24",
-    pixclock: 25125000,
-    xres: 640,
-    yres: 480,
-    pclk_redg: 0,
-    hsyn_acth: 0,
-    vsyn_acth: 0,
-    hsync_len: 95,
-    left_margin: 16,
-    right_margin: 49,
-    vsync_len: 1,
-    upper_margin: 2,
-    lower_margin: 42,
-    active : 1,
-    crt : 0
+}, {
+	name: "samsung1600x1050",
+	pixclock: 142000000,
+	xres: 1600,
+	yres: 1050,
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 104,
+	left_margin: 128,
+	right_margin: 264,
+	vsync_len: 4,
+	upper_margin: 2,
+	lower_margin: 44,
+	active: 1,
+	crt: 0
+}, {
+	name: "adap216x24",
+	pixclock: 25125000,
+	xres: 640,
+	yres: 480,
+	pclk_redg: 0,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 95,
+	left_margin: 16,
+	right_margin: 49,
+	vsync_len: 1,
+	upper_margin: 2,
+	lower_margin: 42,
+	active: 1,
+	crt: 0
 }
 };
 
@@ -549,13 +582,13 @@ typedef struct _mode_table_t
 mode_table_t;
 
 	// 1024 x 768
- htotal dend hsstrt hsw  hpolar    vtot vdend vdstrt vsh vpolar    pixclk    hfreq vfreq
-{ 1344, 1024, 1048, 136, NEGATIVE, 806, 768,    771,  6, NEGATIVE, 65000000, 48363, 60 },
-{ 1328, 1024, 1048, 136, NEGATIVE, 806, 768,    771,  6, NEGATIVE, 75000000, 56476, 70 },
-{ 1312, 1024, 1040,  96, POSITIVE, 800, 768,    769,  3, POSITIVE, 78750000, 60023, 75 },
-{ 1376, 1024, 1072,  96, POSITIVE, 808, 768,    769,  3, POSITIVE, 94500000, 68677, 85 },
+ htotal dend hsstrt hsw  hpolar	vtot vdend vdstrt vsh vpolar	pixclk	hfreq vfreq
+{ 1344, 1024, 1048, 136, NEGATIVE, 806, 768,	771,  6, NEGATIVE, 65000000, 48363, 60 },
+{ 1328, 1024, 1048, 136, NEGATIVE, 806, 768,	771,  6, NEGATIVE, 75000000, 56476, 70 },
+{ 1312, 1024, 1040,  96, POSITIVE, 800, 768,	769,  3, POSITIVE, 78750000, 60023, 75 },
+{ 1376, 1024, 1072,  96, POSITIVE, 808, 768,	769,  3, POSITIVE, 94500000, 68677, 85 },
 
-0FE80200/00010000 +           CRT regs
+0FE80200/00010000 +		   CRT regs
 0FE80204/00180000 +
 0FE80208/08000800 +
 0FE8020C/05D003FF +
@@ -581,28 +614,28 @@ struct lcd_panel_info_t const *find_lcd_panel( char const * name )
    unsigned i ;
    for( i = 0 ; i < num_lcd_panels ; i++ )
    {
-      if( 0 == strcmp( lcd_panels_[i].name, name ) )
-         return lcd_panels_+i ;
+	  if( 0 == strcmp( lcd_panels_[i].name, name ) )
+		 return lcd_panels_+i ;
    }
    return 0 ;
 }
 
-#define FB_CVT_CELLSIZE               8
-#define FB_CVT_GTF_C                 40
-#define FB_CVT_GTF_J                 20
-#define FB_CVT_GTF_K                128
-#define FB_CVT_GTF_M                600
-#define FB_CVT_MIN_VSYNC_BP         550
-#define FB_CVT_MIN_VPORCH             3
-#define FB_CVT_MIN_BPORCH             6
+#define FB_CVT_CELLSIZE			   8
+#define FB_CVT_GTF_C				 40
+#define FB_CVT_GTF_J				 20
+#define FB_CVT_GTF_K				128
+#define FB_CVT_GTF_M				600
+#define FB_CVT_MIN_VSYNC_BP		 550
+#define FB_CVT_MIN_VPORCH			 3
+#define FB_CVT_MIN_BPORCH			 6
 
-#define FB_CVT_RB_MIN_VBLANK        460
-#define FB_CVT_RB_HBLANK            160
-#define FB_CVT_RB_V_FPORCH            3
+#define FB_CVT_RB_MIN_VBLANK		460
+#define FB_CVT_RB_HBLANK			160
+#define FB_CVT_RB_V_FPORCH			3
 
 #define FB_CVT_FLAG_REDUCED_BLANK 1
-#define FB_CVT_FLAG_MARGINS       2
-#define FB_CVT_FLAG_INTERLACED    4
+#define FB_CVT_FLAG_MARGINS	   2
+#define FB_CVT_FLAG_INTERLACED	4
 
 #define FB_VMODE_NONINTERLACED  0	/* non interlaced */
 #define FB_VMODE_INTERLACED	1	/* interlaced	*/
@@ -610,7 +643,7 @@ struct lcd_panel_info_t const *find_lcd_panel( char const * name )
 #define FB_VMODE_ODD_FLD_FIRST	4	/* interlaced: top line first */
 #define FB_VMODE_MASK		255
 
-#define FB_VMODE_YWRAP		256	/* ywrap instead of panning     */
+#define FB_VMODE_YWRAP		256	/* ywrap instead of panning	 */
 #define FB_VMODE_SMOOTH_XPAN	512	/* smooth xpan possible (internally used) */
 #define FB_VMODE_CONUPDATE	512	/* don't update x/yoffset	*/
 
@@ -663,14 +696,14 @@ struct fb_cvt_data {
 };
 
 static const unsigned char fb_cvt_vbi_tab[] = {
-	4,        /* 4:3      */
-	5,        /* 16:9     */
-	6,        /* 16:10    */
-	7,        /* 5:4      */
-	7,        /* 15:9     */
-	8,        /* reserved */
-	9,        /* reserved */
-	10        /* custom   */
+	4,		/* 4:3	  */
+	5,		/* 16:9	 */
+	6,		/* 16:10	*/
+	7,		/* 5:4	  */
+	7,		/* 15:9	 */
+	8,		/* reserved */
+	9,		/* reserved */
+	10		/* custom   */
 };
 
 static u32 fb_cvt_aspect_ratio(struct fb_cvt_data *cvt)
@@ -691,7 +724,7 @@ static u32 fb_cvt_aspect_ratio(struct fb_cvt_data *cvt)
 		aspect = 4;
 	else {
 		printf( "fbcvt: Aspect ratio not CVT "
-		       "standard\n");
+			   "standard\n");
 		aspect = 7;
 		cvt->status = 1;
 	}
@@ -841,7 +874,7 @@ static void fb_cvt_convert_to_mode(struct fb_cvt_data *cvt,
 /*
  * fb_find_mode_cvt - calculate mode using VESA(TM) CVT
  * @mode: pointer to fb_videomode; xres, yres, refresh and vmode must be
- *        pre-filled with the desired values
+ *		pre-filled with the desired values
  * @margins: add margin to calculation (1.8% of xres and yres)
  * @rb: compute with reduced blanking (for flatpanels)
  *
@@ -860,13 +893,13 @@ int fb_find_mode_cvt(struct fb_videomode *mode, int margins, int rb)
 	memset(&cvt, 0, sizeof(cvt));
 
 	if (margins)
-	    cvt.flags |= FB_CVT_FLAG_MARGINS;
+		cvt.flags |= FB_CVT_FLAG_MARGINS;
 
 	if (rb)
-	    cvt.flags |= FB_CVT_FLAG_REDUCED_BLANK;
+		cvt.flags |= FB_CVT_FLAG_REDUCED_BLANK;
 
 	if (mode->vmode & FB_VMODE_INTERLACED)
-	    cvt.flags |= FB_CVT_FLAG_INTERLACED;
+		cvt.flags |= FB_CVT_FLAG_INTERLACED;
 
 	cvt.xres = mode->xres;
 	cvt.yres = mode->yres;
@@ -880,9 +913,9 @@ int fb_find_mode_cvt(struct fb_videomode *mode, int margins, int rb)
 	}
 
 	if (!(cvt.refresh == 50 || cvt.refresh == 60 || cvt.refresh == 70 ||
-	      cvt.refresh == 85)) {
+		  cvt.refresh == 85)) {
 		printf( "fbcvt: Refresh rate not CVT "
-		       "standard\n");
+			   "standard\n");
 		cvt.status = 1;
 	}
 
@@ -896,7 +929,7 @@ int fb_find_mode_cvt(struct fb_videomode *mode, int margins, int rb)
 	if (cvt.flags & FB_CVT_FLAG_REDUCED_BLANK) {
 		if (cvt.refresh != 60) {
 			printf( "fbcvt: 60Hz refresh rate "
-			       "advised for reduced blanking\n");
+				   "advised for reduced blanking\n");
 			cvt.status = 1;
 		}
 	}
@@ -922,110 +955,112 @@ int fb_find_mode_cvt(struct fb_videomode *mode, int margins, int rb)
 		2 * cvt.h_margin;
 	cvt.v_back_porch = 3 + cvt.v_margin;
 	cvt.v_front_porch = cvt.vtotal - cvt.yres/cvt.interlace -
-	    cvt.v_back_porch - cvt.vsync;
+		cvt.v_back_porch - cvt.vsync;
 	fb_cvt_convert_to_mode(&cvt, mode);
 
 	return 0;
 }
 
 #define UPCASE(c) ((c)&~0x20)
-int parse_panel_info( char const              *panelInfo, // input
-                      struct lcd_panel_info_t *panel )    // output
+int parse_panel_info( char const			  *panelInfo, // input
+					  struct lcd_panel_info_t *panel )	// output
 {
    memset( panel, 0, sizeof(*panel));
    char const *nameEnd=strchr(panelInfo,':');
    if( ('V' == UPCASE(*panelInfo))
-       &&
-       (nameEnd == panelInfo+4) ){
-      // Use VESA GTF
-      char temp[40];
-      char *term ;
-      strcpy(temp,nameEnd+1);
-      char *nextIn ;
-      struct fb_videomode mode ;
-      memset( &mode, 0, sizeof(mode) );
-      nameEnd++ ;
-      term = strchr(temp, 'x');
-      if( !term )
-         goto bail ;
-      *term++ = 0 ;
-      mode.xres = simple_strtoul(temp,0,0);
-      nextIn = term ;
-      term = strchr(term,'@');
-      if( !term )
-         goto bail ;
-      *term++ = 0 ;
-      mode.yres = simple_strtoul(nextIn,0,0);
-      printf( "hz string == %s\n", term );
-      mode.refresh = simple_strtoul(term,&term,0);
+	   &&
+	   (nameEnd == panelInfo+4) ){
+	  // Use VESA GTF
+	  char temp[40];
+	  char *term ;
+	  strcpy(temp,nameEnd+1);
+	  char *nextIn ;
+	  struct fb_videomode mode ;
+	  memset( &mode, 0, sizeof(mode) );
+	  nameEnd++ ;
+	  term = strchr(temp, 'x');
+	  if( !term )
+		 goto bail ;
+	  *term++ = 0 ;
+	  mode.xres = simple_strtoul(temp,0,0);
+	  nextIn = term ;
+	  term = strchr(term,'@');
+	  if( !term )
+		 goto bail ;
+	  *term++ = 0 ;
+	  mode.yres = simple_strtoul(nextIn,0,0);
+	  printf( "hz string == %s\n", term );
+	  mode.refresh = simple_strtoul(term,&term,0);
 
-      printf( "VESA: %ux%u at %u Hz\n", mode.xres, mode.yres, mode.refresh );
+	  printf( "VESA: %ux%u at %u Hz\n", mode.xres, mode.yres, mode.refresh );
 
-      if( 0 != fb_find_mode_cvt(&mode, 0, 0) ){
-         printf( "Error finding mode\n" );
+	  if( 0 != fb_find_mode_cvt(&mode, 0, 0) ){
+		 printf( "Error finding mode\n" );
 	 goto bail ;
-      }
+	  }
 
-      panel->name = "vesafb" ; // don't call it VESA!
-      panel->xres = mode.xres ;
-      panel->yres = mode.yres ;
-      panel->pixclock = mode.pixclock ;
-      panel->left_margin = mode.left_margin ;
-      panel->right_margin = mode.right_margin ;
-      panel->upper_margin = mode.upper_margin ;
-      panel->lower_margin = mode.lower_margin ;
-      panel->hsync_len    = mode.hsync_len ;
-      panel->vsync_len    = mode.vsync_len ;
-      panel->pclk_redg= 1;
-      panel->hsyn_acth= 0;
-      panel->vsyn_acth= 1;
-      panel->active = 1 ;
-      panel->crt = term && ('C' == UPCASE(*term));
-      panel->rotation = 0 ;
-      return 1 ;
+	  panel->name = "vesafb" ; // don't call it VESA!
+	  panel->xres = mode.xres ;
+	  panel->yres = mode.yres ;
+	  panel->pixclock = mode.pixclock ;
+	  panel->left_margin = mode.left_margin ;
+	  panel->right_margin = mode.right_margin ;
+	  panel->upper_margin = mode.upper_margin ;
+	  panel->lower_margin = mode.lower_margin ;
+	  panel->hsync_len	= mode.hsync_len ;
+	  panel->vsync_len	= mode.vsync_len ;
+	  panel->pclk_redg= 1;
+	  panel->hsyn_acth= 0;
+	  panel->vsyn_acth= 1;
+	  panel->oepol_actl= 0;
+	  panel->active = 1 ;
+	  panel->crt = term && ('C' == UPCASE(*term));
+	  panel->rotation = 0 ;
+	  return 1 ;
    } else if( nameEnd && *nameEnd ){
-      char const *nextIn = nameEnd+1 ;
-      unsigned const numValues = 14 ;
-      unsigned long values[numValues];
-      unsigned i ;
-      for( i = 0 ; i < numValues ; i++ ){
-         char *endptr ;
-         values[i] = simple_strtoul(nextIn, &endptr, 0 );
-         if((endptr != nextIn) && ( *endptr || (i == numValues-1))){
-            nextIn = endptr+1 ;
-         }
-         else
-            break ;
-      }
-      if( numValues == i ){
-         unsigned const nameLen = nameEnd-panelInfo;
-         panel->name = (char const *)malloc(nameLen+1);
-         memcpy( (char *)panel->name, panelInfo, nameLen );
-         ((char *)panel->name)[nameLen] = 0 ;
-         panel->pixclock = values[0];
-         panel->xres = values[1];
-         panel->yres = values[2];
-         panel->pclk_redg= values[3];
-         panel->hsyn_acth= values[4];
-         panel->vsyn_acth= values[5];
-         panel->hsync_len = values[6];
-         panel->left_margin = values[7];
-         panel->right_margin = values[8];
-         panel->vsync_len = values[9];
-         panel->upper_margin = values[10];
-         panel->lower_margin = values[11];
-         panel->active = values[12];
-         panel->crt = values[13];
-         panel->rotation = 0 ;
-         return 1 ;
-      }
+	  char const *nextIn = nameEnd+1 ;
+	  unsigned const numValues = 15 ;
+	  unsigned long values[numValues];
+	  unsigned i ;
+	  for( i = 0 ; i < numValues ; i++ ){
+		 char *endptr ;
+		 values[i] = simple_strtoul(nextIn, &endptr, 0 );
+		 if((endptr != nextIn) && ( *endptr || (i == numValues-1))){
+			nextIn = endptr+1 ;
+		 }
+		 else
+			break ;
+	  }
+	  if( numValues == i ){
+		 unsigned const nameLen = nameEnd-panelInfo;
+		 panel->name = (char const *)malloc(nameLen+1);
+		 memcpy( (char *)panel->name, panelInfo, nameLen );
+		 ((char *)panel->name)[nameLen] = 0 ;
+		 panel->pixclock = values[0];
+		 panel->xres = values[1];
+		 panel->yres = values[2];
+		 panel->pclk_redg= values[3];
+		 panel->hsyn_acth= values[4];
+		 panel->vsyn_acth= values[5];
+		 panel->oepol_actl= values[6];
+		 panel->hsync_len = values[7];
+		 panel->left_margin = values[8];
+		 panel->right_margin = values[9];
+		 panel->vsync_len = values[10];
+		 panel->upper_margin = values[11];
+		 panel->lower_margin = values[12];
+		 panel->active = values[13];
+		 panel->crt = values[14];
+		 panel->rotation = 0 ;
+		 return 1 ;
+	  }
    }
 
 bail:
-                        //   0      1    2     3         4         5         6           7           8           9         10           11        12    13
+//   0	  1	2 3 4 5 6 7 8 9 10 11 12 13 14
    printf( "Usage: myPanel:pixclock,xres,yres,...\n"
-           " | vesa:WxH@Hz[C]\n"
-           );
+		   " | vesa:WxH@Hz[C]\n"
+		   );
    return 0 ;
 }
 

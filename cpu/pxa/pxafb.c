@@ -67,9 +67,9 @@ vidinfo_t panel_info = {
 	vl_width:	640,
 	vl_height:	480,
 	vl_clkp:	CFG_HIGH,
-	vl_oep:		CFG_HIGH,
 	vl_hsp:		CFG_HIGH,
 	vl_vsp:		CFG_HIGH,
+	vl_oepol_actl:	0,
 	vl_dp:		CFG_HIGH,
 	vl_bpix:	LCD_BPP,
 	vl_lbw:		0,
@@ -101,9 +101,9 @@ vidinfo_t panel_info = {
 	vl_width:	157,
 	vl_height:	118,
 	vl_clkp:	CFG_HIGH,
-	vl_oep:		CFG_HIGH,
 	vl_hsp:		CFG_HIGH,
 	vl_vsp:		CFG_HIGH,
+	vl_oepol_actl:	0,
 	vl_dp:		CFG_HIGH,
 	vl_bpix:	LCD_BPP,
 	vl_lbw:		0,
@@ -134,9 +134,9 @@ vidinfo_t panel_info = {
 	vl_width:	167,
 	vl_height:	109,
 	vl_clkp:	CFG_HIGH,
-	vl_oep:		CFG_HIGH,
 	vl_hsp:		CFG_HIGH,
 	vl_vsp:		CFG_HIGH,
+	vl_oepol_actl:	0,
 	vl_dp:		CFG_HIGH,
 	vl_bpix:	LCD_BPP,
 	vl_lbw:		1,
@@ -167,9 +167,9 @@ vidinfo_t panel_info = {
 	vl_width:	167,
 	vl_height:	109,
 	vl_clkp:	CFG_HIGH,
-	vl_oep:		CFG_HIGH,
 	vl_hsp:		CFG_HIGH,
 	vl_vsp:		CFG_HIGH,
+	vl_oepol_actl:	0,
 	vl_dp:		CFG_HIGH,
 	vl_bpix:	LCD_BPP,
 	vl_lbw:		1,
@@ -524,6 +524,7 @@ static int pxafb_init (vidinfo_t *vid)
 	fbi->reg_lccr3 = (reg_lccr3 & ~(LCCR3_HSP | LCCR3_VSP))|
 		(vid->vl_hsp ? 0 : LCCR3_HSP) |
 		(vid->vl_vsp ? 0 : LCCR3_VSP) |
+		(vid->vl_oepol_actl ? LCCR3_OEP : 0) |
 		(vid->vl_clkp ? LCCR3_PCP : 0);
 
 
@@ -650,9 +651,9 @@ void init_pxa_fb( struct lcd_t *lcd )
    panel_info.vl_col = panel->xres ;
    panel_info.vl_row = panel->yres ;
    panel_info.vl_clkp = panel->pclk_redg ;
-   panel_info.vl_oep  = panel->pclk_redg ;
    panel_info.vl_hsp  = panel->hsyn_acth ;
    panel_info.vl_vsp  = panel->vsyn_acth ;
+   panel_info.vl_oepol_actl  = panel->oepol_actl;
    panel_info.vl_dp   = panel->pclk_redg ;
    panel_info.vl_bpix = LCD_BPP ;
    panel_info.vl_lcd_line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) >> 3;
