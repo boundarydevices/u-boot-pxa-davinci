@@ -770,7 +770,7 @@ static void pcnet_reset_8390(cyg_uint8 *base)
 	DP_OUT(base, DP_DCR, DP_DCR_INIT);
 } /* pcnet_reset_8390 */
 
-static hw_info_t * get_prom(cyg_uint8 *base, char* mac) {
+static hw_info_t * get_prom(cyg_uint8 *base, uchar* mac) {
 	unsigned char prom[32];
 	int i, j;
 	struct {
@@ -1054,6 +1054,7 @@ int set_rom_mac (char const *mac)
 		status = 0;
 	return status;
 }
+//return 1 for success, 0 for error
 int get_mac_from_eeprom(cyg_uint8 *base, uchar *newMac)
 {
 	int cnt;
@@ -1080,10 +1081,11 @@ int get_mac_from_eeprom(cyg_uint8 *base, uchar *newMac)
 		return 0;
 	return 1;
 }
+//return 1 for success, 0 for error
 int get_rom_mac(uchar *newMac)
 {
 	nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
-	get_mac_from_eeprom(nic.base, newMac);
+	return get_mac_from_eeprom(nic.base, newMac);
 }
 #if defined(CONFIG_MII)
 //return 0 on success
