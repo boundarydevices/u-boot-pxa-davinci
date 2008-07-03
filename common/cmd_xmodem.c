@@ -18,8 +18,6 @@
  * MA 02111-1307 USA
  */
 #include <common.h>
-#ifdef CMD_XMODEM
-#include <command.h>
 ulong load_xmodem(ulong loadAddress,ulong* pEndAddress);
 
 int xmodem_bin (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
@@ -51,5 +49,3 @@ U_BOOT_CMD(
 	"xmodem address - load binary file over serial line (xmodem protocol)\n",
 	"'address' is ram location of dowload\n"
 );
-
-#endif
