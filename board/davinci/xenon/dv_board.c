@@ -170,6 +170,7 @@ int board_init(void)
 extern char version_string[];
 int misc_init_r (void)
 {
+	char *s ;
 	int		clk = 0;
 	clk = ((REG(PLL2_PLLM) + 1) * 27) / ((REG(PLL2_DIV2) & 0x1f) + 1);
 	printf ("ARM Clock : %dMHz\n", ((REG(PLL1_PLLM) + 1) * 27 ) / 2);
