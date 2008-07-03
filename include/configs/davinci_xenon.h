@@ -91,13 +91,6 @@
 #define CONFIG_CONS_INDEX	1		/* use UART0 for console */
 #define CONFIG_BAUDRATE		115200		/* Default baud rate */
 #define CFG_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
-/*===================*/
-/* I2C Configuration */
-/*===================*/
-#define CONFIG_HARD_I2C
-#define CONFIG_DRIVER_DAVINCI_I2C
-#define CFG_I2C_SPEED		80000	/* 100Kbps won't work, silicon bug */
-#define CFG_I2C_SLAVE		10	/* Bogus, master-only in U-Boot */
 /*==================================*/
 /* Network & Ethernet Configuration */
 /*==================================*/
@@ -191,18 +184,22 @@
 /* U-Boot commands */
 /*=================*/
 #include <config_cmd_default.h>
-#define CMD_XMODEM 1
+
 #define CONFIG_CMD_ASKENV
 #define CONFIG_CMD_DHCP
 #define CONFIG_CMD_DIAG
-#define CONFIG_CMD_I2C
+//#define CONFIG_CMD_I2C
 #define CONFIG_CMD_MII
 #define CONFIG_CMD_PING
 #define CONFIG_CMD_SAVES
+#define CONFIG_CMD_XMODEM
+#define CONFIG_CMD_ECHO
+
 #undef CONFIG_CMD_EEPROM
 #undef CONFIG_CMD_BDI
 #undef CONFIG_CMD_FPGA
 #undef CONFIG_CMD_SETGETDCR
+
 #ifdef CFG_USE_NAND
 #undef CONFIG_CMD_FLASH
 #undef CONFIG_CMD_IMLS
@@ -211,6 +208,16 @@
 #define CONFIG_CMD_JFFS2
 #else
 #error "Either CFG_USE_NAND or CFG_USE_NOR _MUST_ be defined !!!"
+#endif
+
+/*===================*/
+/* I2C Configuration */
+/*===================*/
+#ifdef CONFIG_CMD_I2C
+#define CONFIG_HARD_I2C
+#define CONFIG_DRIVER_DAVINCI_I2C
+#define CFG_I2C_SPEED		80000	/* 100Kbps won't work, silicon bug */
+#define CFG_I2C_SLAVE		10	/* Bogus, master-only in U-Boot */
 #endif
 /*=======================*/
 /* KGDB support (if any) */
