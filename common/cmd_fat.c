@@ -32,6 +32,13 @@
 #include <part.h>
 #include <fat.h>
 
+#define CONFIG_FATLOAD_TICKS
+#define CONFIG_FATLOAD_ADLER
+
+#ifdef CONFIG_FATLOAD_ADLER
+#include <zlib.h>
+#endif
+
 int do_adler(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	char *ep;
