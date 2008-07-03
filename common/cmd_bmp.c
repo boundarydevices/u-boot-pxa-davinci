@@ -196,26 +196,12 @@ static int bmp_info(ulong addr)
  */
 static int bmp_display(ulong addr, int x, int y)
 {
-	int ret;
-	bmp_image_t *bmp = (bmp_image_t *)addr;
-	unsigned long len;
-
-	if (!((bmp->header.signature[0]=='B') &&
-	      (bmp->header.signature[1]=='M')))
-		bmp = gunzip_bmp(addr, &len);
-
-	if (!bmp) {
-		printf("There is no valid bmp file at the given address\n");
-		return 1;
-	}
-
 #if defined(CONFIG_LCD)
 	extern int lcd_display_bitmap (ulong, int, int);
-
-	ret = lcd_display_bitmap ((unsigned long)bmp, x, y);
+	return lcd_display_bitmap ((unsigned long)bmp, x, y);
 #elif defined(CONFIG_VIDEO)
 	extern int video_display_bitmap (ulong, int, int);
-	ret = video_display_bitmap ((unsigned long)bmp, x, y);
+	return video_display_bitmap ((unsigned long)bmp, x, y);
 #elif defined(CONFIG_LCD_MULTI)
 	ushort i, j;
 	uchar *fb;
@@ -229,6 +215,17 @@ static int bmp_display(ulong addr, int x, int y)
 	int     bgCol = 0 ;
 	int     minLum = 0xFFFF ;
 	int     fgCol = 0 ;
+	unsigned long len;
+
+	if (!((bmp->header.signature[0]=='B') &&
+	      (bmp->header.signature[1]=='M')))
+		bmp = gunzip_bmp(addr, &len);
+
+	if (!bmp) {
+		printf("There is no valid bmp file at the given address\n");
+		return 1;
+	}
+
 
 	if (!((bmp->header.signature[0]=='B') &&
 		(bmp->header.signature[1]=='M'))) {
@@ -313,5 +310,5 @@ printf( "current LCD: %ux%u at %p\n", lcd->info.xres, lcd->info.yres, lcd->fbAdd
 	if ((unsigned long)bmp != addr)
 		free(bmp);
 
-	return ret;
+	return 0;
 }
