@@ -13,8 +13,6 @@
  * Copyright Boundary Devices, Inc. 2007
  */
 #include <common.h>
-#ifdef CONFIG_DAVINCIFB
-
 #include "lcd_multi.h"
 #include "asm/arch/davinci_vpbe.h"
 #include "exports.h"
@@ -257,5 +255,3 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	printf( "%s: %ux%u @%p (%s)\n", __FUNCTION__, info->xres, info->yres, lcd->fbAddr, info->name );
 	return lcd ;
 }
-
-#endif
