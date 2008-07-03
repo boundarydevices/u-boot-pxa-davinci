@@ -184,13 +184,6 @@ include $(TOPDIR)/config.mk
 #########################################################################
 # U-Boot objects....order is important (i.e. start must be first)
 
-ifeq ($(CPU),arm1136)
-OBJS =
-else
-ifeq ($(CPU),pxa)
-OBJS =
-else
-
 OBJS  = cpu/$(CPU)/start.o
 ifeq ($(CPU),i386)
 OBJS += cpu/$(CPU)/start16.o
