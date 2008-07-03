@@ -75,6 +75,7 @@ COBJS-$(CONFIG_CMD_ITEST) += cmd_itest.o
 COBJS-$(CONFIG_CMD_JFFS2) += cmd_jffs2.o
 COBJS-y += cmd_load.o
 COBJS-$(CONFIG_LOGBUFFER) += cmd_log.o
+COBJS-$(CONFIG_LCDPANEL) += cmd_lcdpanel.o
 COBJS-y += cmd_mem.o
 COBJS-$(CONFIG_CMD_MII) += cmd_mii.o
 COBJS-$(CONFIG_CMD_MISC) += cmd_misc.o
