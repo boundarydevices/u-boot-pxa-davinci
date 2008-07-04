@@ -1,6 +1,5 @@
 #include <common.h>
 
-#ifdef CONFIG_SM501
 #include <config.h>
 #include <common.h>
 #include <sm501_bd.h>
@@ -40,16 +39,16 @@
 
 #define REG_BASE SM501_BASE+0x03E00000
 
-unsigned long const fbStart = SM501_BASE ;
+unsigned char* const fbStart = (unsigned char*)(SM501_BASE);
 unsigned long const fbMax   = 0x00800000 ;    //
 
-unsigned long const mmioStart  = REG_BASE ;
-unsigned long const mmioLength = 0x00200000 ;
-unsigned long const lcdPaletteRegs = REG_BASE+0x80400 ;
-unsigned long const crtPaletteRegs = REG_BASE+0x80C00 ;
+unsigned char* const mmioStart  = (unsigned char*)(REG_BASE);
+unsigned long const mmioLength = 0x00200000;
+unsigned char* const lcdPaletteRegs = (unsigned char*)(REG_BASE+0x80400);
+unsigned char* const crtPaletteRegs = (unsigned char*)(REG_BASE+0x80C00);
 
 #ifdef CONFIG_LCD
-unsigned long paletteRegs = lcdPaletteRegs ;
+unsigned char* paletteRegs = lcdPaletteRegs;
 #endif
 
 const unsigned int sm501_list1[]={
@@ -290,14 +289,6 @@ vidinfo_t panel_info = {
 	vl_lcd_line_length: (320 * NBITS(LCD_BPP) ) >> 3
 };
 
-static void SetPanelInfo(struct lcd_panel_info_t const *panel)
-{
-   panel_info.vl_col = panel->xres;
-   panel_info.vl_row = panel->yres;
-   panel_info.vl_bpix = LCD_BPP;
-   panel_info.vl_lcd_line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) >> 3;
-   printf("panel: %ix%ix%i\n",panel_info.vl_col,panel_info.vl_row,(1<<panel_info.vl_bpix));
-}
 
 static unsigned long clockRegs[] = {
    SLOWCLOCK1, SLOWCLOCK2,
@@ -437,8 +428,17 @@ unsigned long GetPolarities(struct lcd_panel_info_t const *panel)
 	if (!panel->hsyn_acth) val |= (1<<12);	//horizontal sync polarity
 	if (!panel->vsyn_acth) val |= (1<<13);	//vertical sync polarity
 	if (!panel->pclk_redg) val |= (1<<14);	//pixel clock polarity
+	return val;
 }
 #ifdef CONFIG_LCD
+static void SetPanelInfo(struct lcd_panel_info_t const *panel)
+{
+   panel_info.vl_col = panel->xres;
+   panel_info.vl_row = panel->yres;
+   panel_info.vl_bpix = LCD_BPP;
+   panel_info.vl_lcd_line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) >> 3;
+   printf("panel: %ix%ix%i\n",panel_info.vl_col,panel_info.vl_row,(1<<panel_info.vl_bpix));
+}
 
 static void updateCRT( unsigned long const           *freq,
                        struct lcd_panel_info_t const *panel )
@@ -625,7 +625,7 @@ static void sm501_lcd_set_palette(unsigned long *colors, unsigned colorCount)
 {
    if( colorCount > 256 )
       colorCount = 256 ;
-   memcpy((void *)lcdPaletteRegs,colors,colorCount*sizeof(colors[0]));
+   memcpy(lcdPaletteRegs,colors,colorCount*sizeof(colors[0]));
 }
 
 static unsigned long sm501_lcd_get_palette_color(unsigned char idx)
@@ -759,14 +759,14 @@ void init_sm501_lcd( struct lcd_t *lcd )
    /* Is CRT already enabled? */
    reg_value = READREG(crtctrlReg);
    if( 0 == ( reg_value & CRTCRTL_ENABLE ) ){
-      lcd->fbAddr = (void *)fbStart ;
+      lcd->fbAddr = fbStart ;
    } else {
       unsigned const w = crtWidth();
       unsigned const h = crtHeight();
       lcd->fbAddr = (void *)(fbStart + w*h );
    }
    printf( "SM-501 LCD at %p\n", lcd->fbAddr );
-   STUFFREG(fbAddrReg, (unsigned long)lcd->fbAddr - fbStart );
+   STUFFREG(fbAddrReg, ((unsigned long)lcd->fbAddr) - ((unsigned long)fbStart) );
    lcd->fbMemSize = panel->xres*panel->yres ;
 
    lcd->set_palette = sm501_lcd_set_palette ;
@@ -779,7 +779,7 @@ static void sm501_crt_set_palette(unsigned long *colors, unsigned colorCount)
 {
    if( colorCount > 256 )
       colorCount = 256 ;
-   memcpy((void *)crtPaletteRegs,colors,colorCount*sizeof(colors[0]));
+   memcpy(crtPaletteRegs,colors,colorCount*sizeof(colors[0]));
 }
 
 static unsigned long sm501_crt_get_palette_color(unsigned char idx)
@@ -829,14 +829,14 @@ void init_sm501_crt_separate( struct lcd_t *lcd )
    /* Is panel already enabled? */
    reg = READREG(dispctrlReg);
    if( 0 == ( reg & DISPCRTL_ENABLE ) ){
-      lcd->fbAddr = (void *)fbStart ;
+      lcd->fbAddr = fbStart ;
    } else {
       unsigned const w = READREG( fbWidthReg ) >> 16 ;
       unsigned const h = READREG( fbHeightReg ) >> 16 ;
       lcd->fbAddr = (void *)(fbStart + w*h );
    }
    printf( "SM-501 CRT at %p\n", lcd->fbAddr );
-   STUFFREG(crtFbAddrReg, (unsigned long)lcd->fbAddr - fbStart );
+   STUFFREG(crtFbAddrReg, ((unsigned long)lcd->fbAddr) - ((unsigned long)fbStart) );
 
    reg = READREG( curClockReg ) & ~(CRTCLOCKMASK);
    tableEntry = findFrequency( panel->pixclock, crtFrequencies, numCrtFrequencies );
@@ -905,5 +905,3 @@ U_BOOT_CMD(
 	"setclkreg register mask value\n"
    , NULL
 );
-
-#endif /* CONFIG_SM501 */
