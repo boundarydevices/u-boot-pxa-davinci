@@ -702,7 +702,7 @@ static void dumpResponse( uchar *resp, unsigned bytes )
    else
       debug( "NULL\n" );
 }
-unsigned char* mmc_reset()
+unsigned char* mmc_reset(void)
 {
 	unsigned char *resp;
 	int i=0;
