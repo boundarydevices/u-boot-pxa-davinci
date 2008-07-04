@@ -6,13 +6,13 @@ X86DIR  = x86emu
 
 $(shell mkdir -p $(obj)$(X86DIR))
 
-COBJS	= atibios.o biosemu.o besys.o bios.o \
-	$(X86DIR)/decode.o \
-	$(X86DIR)/ops2.o \
-	$(X86DIR)/ops.o \
-	$(X86DIR)/prim_ops.o \
-	$(X86DIR)/sys.o \
-	$(X86DIR)/debug.o
+#COBJS	= atibios.o biosemu.o besys.o bios.o \
+#	$(X86DIR)/decode.o \
+#	$(X86DIR)/ops2.o \
+#	$(X86DIR)/ops.o \
+#	$(X86DIR)/prim_ops.o \
+#	$(X86DIR)/sys.o \
+#	$(X86DIR)/debug.o
 
 SRCS	:= $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS))
