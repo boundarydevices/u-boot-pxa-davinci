@@ -3,25 +3,35 @@
 //  ************************************************************************************************
 	.ifdef __ARMASM
 	GBLA	CPU_PXA270
+	GBLA	RomWidthIsRamWidth
 	.endif
-#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==NEON270)
+#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)
 	.set	CPU_PXA270,1
 #else
 	.set	CPU_PXA270,0
 #endif
+
+#if (PLATFORM_TYPE==NEONB)||(PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)
+	.set	RomWidthIsRamWidth,0	//use 32 bit ram always
+#else
+	.set	RomWidthIsRamWidth,1
+#endif
+
 //In: c-0 try 64meg, c-1 try 32meg
 // or if 16 bit mode
 //    c-0 try 32meg, c-1 try 16meg
-//Out: z-0 if 16 bit mode
+//Out: z-0 if 16 bit mode if RomWidthIsRamWidth
 .macro InitRam	rBase,rTemp
 	BigMov	\rBase,MEMORY_CONTROL_BASE
+	.if RomWidthIsRamWidth
 	ldr	\rTemp,[\rBase,#BOOT_DEF]
 	tst	\rTemp,#1			//bit 0 - 1 means 16 bit mode
+	.endif
 	BigMov	\rTemp,M64_MDCNFG_VAL
 	BigEor2Cs \rTemp,(M64_MDCNFG_VAL)^(M32_MDCNFG_VAL)
-#if (!(PLATFORM_TYPE==NEONB)) && (!(PLATFORM_TYPE==HALOGEN))
+	.if RomWidthIsRamWidth
 	BigOrr2Ne \rTemp,(1<<2)			//select 16 bit width
-#endif
+	.endif
 //pxa270 requires the next 3 stores be in the same cache line+8 bytes??????
 	.ifdef __ARMASM
 	nop
@@ -54,9 +64,9 @@
 	ldr	\rTemp, [\rBase]
 	mov	\rTemp,#M32_MEM_SIZE
 	movcc	\rTemp,#M64_MEM_SIZE
-#if (!(PLATFORM_TYPE==NEONB)) && (!(PLATFORM_TYPE==HALOGEN))
+	.if RomWidthIsRamWidth
 	movne	\rTemp,\rTemp,LSR #1
-#endif
+	.endif
 	BigMov	\rBase,MEM_START
 #if 1
 	mov	\rTemp2,#0x24<<2	//0x24 seems to work, but keep it safe
@@ -229,7 +239,7 @@
 	.equiv	__ENABLED_STUART_MASK, (1<<CKEN_STUART)
 	.endif
 
-#if (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER) || (PLATFORM_TYPE==HALOGEN) || (PLATFORM_TYPE==NEON270)
+#if (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER) || (PLATFORM_TYPE==HALOGEN)|| (PLATFORM_TYPE==ARGON) || (PLATFORM_TYPE==NEON270)
 	.equiv	__ENABLED_LCD_MASK, (1<<CKEN_LCD)
 #endif
 
