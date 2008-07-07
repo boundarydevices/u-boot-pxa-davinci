@@ -43,7 +43,8 @@
 #endif
 
 	SPEC_GP  11,OUT,HIGH,0		//Neon270 SMSC Lan91c111 reset (high active)
-#if (PLATFORM_TYPE==NEON270)
+#if (PLATFORM_TYPE==NEON270)||(PLATFORM_TYPE==HYDROGEN)
+					//HYDROGEN AX88796B IRQ input
 	SPEC_GP  12,IN,HIGH,0		//float means USB Slave not ready to accept data
 								//out 1 means ready (D+ signal)
 #else
