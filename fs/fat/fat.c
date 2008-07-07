@@ -948,7 +948,7 @@ do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
 	    }
 	    if( haswild ){
 		char const *fn = l_name[0] ? l_name : s_name ;
-		setenv("filename", fn );
+		setenv("filename", (char*)fn );
 	    }
 
 	    if (isdir && !(dentptr->attr & ATTR_DIR))
