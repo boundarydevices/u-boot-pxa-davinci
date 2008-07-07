@@ -387,6 +387,45 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
     active : 1,
     crt : 0
 }
+#if 1
+#define tovis_w_P	1024,104,56,160,	200,3,201,11,	0,0,1,0,0,	1,0,0,1,75,CRT
+, {
+    name: "tovis_w",
+    pixclock: (1024+104+56+160)*(200+3+201+11)*75,
+    xres: 1024,
+    yres: 200,
+    pclk_redg: 1,
+    hsyn_acth: 0,
+    vsyn_acth: 0,
+    hsync_len: 104,
+    left_margin: 56,
+    right_margin: 160,
+    vsync_len: 3,
+    upper_margin: 201,
+    lower_margin: 11,
+    active : 1,
+    crt : 1
+}
+#else
+#define tovis_w_P	1024,64,1,39,		204,20,8,3,		1,1,1,0,0,	1,0,0,1,75,LCD_PANEL
+, {
+    name: "tovis_w",
+    pixclock: (1024+64+1+39)*(204+20+8+3)*75,
+    xres: 1024,
+    yres: 204,
+    pclk_redg: 1,
+    hsyn_acth: 1,
+    vsyn_acth: 1,
+    hsync_len: 64,
+    left_margin: 1,
+    right_margin: 39,
+    vsync_len: 20,
+    upper_margin: 8,
+    lower_margin: 3,
+    active : 1,
+    crt : 0
+}
+#endif
 };
 
 /*

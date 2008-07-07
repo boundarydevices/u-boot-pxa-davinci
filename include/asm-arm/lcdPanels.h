@@ -84,15 +84,33 @@
 
 #define DA800X600_P  800, 64, 32,152,	600,  3, 1,27,	1,1,0,0,0,	1,1,0,1,62,CRT
 //#define DA800X600_P  800,0x9b,0x31,0x69,600,0x04,0x01,0x17,	0,0,1,0,0,	1,1,0,1,62,CRT
-#define DA1024X768_P 1024,0xe4,0x3c,0x70,	768,0x0c,0x0b,0x20,	0,0,1,0,0,	1,1,0,1,62,LCD_PANEL
+//#define DA1024X768_P 1024,0xe4,0x3c,0x70,	768,0x0c,0x0b,0x20,	0,0,1,0,0,	1,1,0,1,62,LCD_PANEL
+//#define DA1024X768_P 1024, 104,56,160,	768,3,1,23,	0,0,1,0,0,	1,0,0,1,62,CRT	//from GTF spreadsheet
+#define DA1024X768_P 1024,0xe4,0x3c,0x70,	768,0x0c,0x0b,0x20,	0,0,1,0,0,	1,1,0,1,62,CRT
 //#define DA1024X768_P 1024,0xc8,0x55,0xb4,	768,0x06,0x0b,0x1d,	0,0,1,0,0,	1,1,0,1,62,CRT
-//#define DA1024X768_P 1024,0xe4,0x3c,0x70,	768,0x0c,0x0b,0x20,	0,0,1,0,0,	1,1,0,1,62,CRT
 #define HITACHI_92_P 960,15,220,1,    160,200,148,3,	0,0,1,0,0,	1,0,0,1,62,LCD_PANEL
+#define hitachi_wxga_P	1024,64,1,39	768,20,8,3,	1,1,1,0,0,	1,0,0,1,75,LCD_PANEL
+#define tovis_w_P	1024,104,56,160,	200,3,201,11,	1,1,0,0,0,	1,0,0,1,75,CRT
+//#define tovis_w_P	1024,64,1,39,		204,20,8,3,		1,1,1,0,0,	1,0,0,1,75,LCD_PANEL
 
 #define DP480X320_P  480, 64, 34, 1,	320,20,8,3,		0,0,1,0,0,	1,0,0,0,62,LCD_PANEL
 #define DP320X240_P  320, 64, 34, 1,	240,20,8,3,		0,0,1,0,0,	1,0,0,0,62,LCD_PANEL
 #define DL122X32_P   320, 64, 34, 1,	240,20,8,3,		0,0,1,0,0,	0,0,0,0,62,0
+///////////////////////////////
+//HITACHI_QVGA hitachi_qvga
+//SHARP_QVGA sharp_qvga
+//OKAYA_QVGA okaya_qvga
+//OKAYA_480X272 okaya_480X272
+//HITACHI_92 hitachi_92
 
+//DA640X240 hitachi_hvga
+//DA240X320 qvga_portrait
+//DA640X480 sharp_vga
+//DA800X480 hitachi_wvga
+//DA1024X768 crt1024x768
+
+//DA320X240 sharp_qvga
+///////////////////////////////
 // ********************************************************************************
 #if (PLATFORM_TYPE==BOUNDARY_OLD_BOARD)
 #define MOTHERBOARD_SCRAMBLED
