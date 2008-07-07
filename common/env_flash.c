@@ -76,7 +76,9 @@ static env_t *flash_addr = (env_t *)CFG_ENV_ADDR;
 
 #ifdef CFG_ENV_ADDR_REDUND
 static env_t *flash_addr_new = (env_t *)CFG_ENV_ADDR_REDUND;
+#endif
 
+#ifdef CFG_ENV_ADDR_REDUND
 /* CFG_ENV_ADDR is supposed to be on sector boundary */
 static ulong end_addr = CFG_ENV_ADDR + CFG_ENV_SECT_SIZE - 1;
 static ulong end_addr_new = CFG_ENV_ADDR_REDUND + CFG_ENV_SECT_SIZE - 1;
@@ -84,10 +86,6 @@ static ulong end_addr_new = CFG_ENV_ADDR_REDUND + CFG_ENV_SECT_SIZE - 1;
 #define ACTIVE_FLAG   1
 #define OBSOLETE_FLAG 0
 #endif /* CFG_ENV_ADDR_REDUND */
-
-#ifdef CFG_ENV_IS_IN_FLASH
-static env_t *flash_addr_new = (env_t *)CFG_ENV_ADDR ;
-#endif
 
 extern uchar default_environment[];
 extern int default_environment_size;
