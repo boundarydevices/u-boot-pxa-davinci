@@ -94,9 +94,9 @@ FlashGpioWaitForIdle:
 .endm
 
 //out: z-1 timeout
-.macro	waitForReady istr,ildr,mask,inc
+.macro	waitForReady sz,mask,inc
 	BigMov	r2,FLASH_STATUS_CMD&\mask
-	\istr	r2,[r1,#-\inc]
+	str\sz	r2,[r1,#-\inc]
 
 	FLASH_GPIO_WAIT_FOR_IDLE
 	BigMov	r3,FLASH_SUCCESS_RSP&\mask
@@ -108,14 +108,14 @@ FlashGpioWaitForIdle:
 
 71:
 	delayCnt r4,((500/10)*COUNT_MULT)
-92:	\ildr	r4,[r1,#-\inc]	//!!! read status
+92:	ldr\sz	r4,[r1,#-\inc]	//!!! read status
 	and	r4,r4,r3
 	cmp	r4,r3
 	subnes	r5,r5,#1
 	bne	71b
 
 	BigMov	r2,FLASH_READ_CMD&\mask
-	\istr	r2,[r1,#-\inc]
+	str\sz	r2,[r1,#-\inc]
 	delay
 	teq	r5,#0
 .endm
@@ -123,20 +123,20 @@ FlashGpioWaitForIdle:
 
 
 //out: z-1 timeout
-.macro	WaitForEraseDone istr,ildr,mask
+.macro	WaitForEraseDone sz,mask
 	FLASH_GPIO_WAIT_FOR_IDLE
 	BigMov	r3,FLASH_SUCCESS_RSP&\mask
 	mov	r5,#0x10000
 92:
 	delayCnt r4,0x3000
-	\ildr	r4,[rFlashSector]
+	ldr\sz	r4,[rFlashSector]
 	and	r4,r4,r3
 	cmp	r4,r3
 	subnes	r5,r5,#1
 	bne	92b
 
 	BigMov	r2,FLASH_READ_CMD&\mask
-	\istr	r2,[rFlashSector,#0]
+	str\sz	r2,[rFlashSector,#0]
 	delay
 	teq	r5,#0
 .endm
@@ -144,21 +144,21 @@ FlashGpioWaitForIdle:
 //rFlashBase(sl,r10) - flash base
 //Out: r0 - size if z-1
 //		if z-0, flash is of unknown type
-.macro	GetFlashSizeRtn istr,ildr,mask,shift,sizeShift,inc,plait
+.macro	GetFlashSizeRtn sz,mask,shift,sizeShift,inc,plait
 	BigMov	r0,FLASH_STATUS_CLEAR_CMD&\mask
-	\istr	r0,[rFlashBase,#0]
+	str\sz	r0,[rFlashBase,#0]
 	delay
 	BigMov	r0,FLASH_ID_CMD&\mask
-	\istr	r0,[rFlashBase,#0]
+	str\sz	r0,[rFlashBase,#0]
 	delay
 	BigMov	r4,intel_manCode&\mask
 	BigMov	r1,stmicro_manCode&\mask
 	BigMov	r5,f320j3a_devCode&\mask
-	\ildr	r2,[rFlashBase,#MANCODE>>\shift]
-	\ildr	r3,[rFlashBase,#DEVCODE>>\shift]
+	ldr\sz	r2,[rFlashBase,#MANCODE>>\shift]
+	ldr\sz	r3,[rFlashBase,#DEVCODE>>\shift]
 
 	BigMov	r0,FLASH_READ_CMD&\mask
-	\istr	r0,[rFlashBase,#0]
+	str\sz	r0,[rFlashBase,#0]
 	delayCnt r0,((40/10)*COUNT_MULT)
 
 	mov	r0,#f320j3a_SIZE>>\sizeShift
@@ -195,9 +195,9 @@ FlashGpioWaitForIdle:
 //rDBG(sp,r13)
 //lr - return address on failure
 
-.macro	BurnRtn istr,ildr,mask,shift,sizeShift,inc,plait
+.macro	BurnRtn sz,mask,shift,sizeShift,inc,plait
 	str	r5,[rDBG,#DBG_TEMP]
-	GetFlashSizeRtn \istr,\ildr,\mask,\shift,\sizeShift,\inc,\plait
+	GetFlashSizeRtn \sz,\mask,\shift,\sizeShift,\inc,\plait
 	movne	r0,#MANCODE>>2
 	movne	r1,#DEVCODE>>2
 	movne	pc,lr			//return if unrecognized chip
@@ -257,35 +257,37 @@ FlashGpioWaitForIdle:
 //erase
 10:
 	BigMov	r3,FLASH_READ_CMD&\mask
-	\istr	r3,[rFlashBase,#0]
+	str\sz	r3,[rFlashBase,#0]
 	delay
 	ldr	r3,[r1,#-4]	//read flash
 	and	r4,r3,r2
 	cmp	r4,r2
 	beq	3b		//br if (we signal) glitch caused a spurious status register read
 
+	ldrb	r2,[rDBG,#DBG_TEMP]
+	tst		r2,#1
 	BigMov	r0,FLASH_UNLOCK_CMD&\mask
-	\istr	r0,[rFlashSector]
+	strne\sz	r0,[rFlashSector]
 	BigMov	r0,FLASH_UNLOCK_CONFIRM_CMD&\mask
-	\istr	r0,[rFlashSector]
+	strne\sz	r0,[rFlashSector]
 
 	BigMov	r0,FLASH_ERASE_CMD&\mask
-	\istr	r0,[rFlashSector]
+	str\sz	r0,[rFlashSector]
 	BigMov	r0,FLASH_CONFIRM_CMD&\mask
-	\istr	r0,[rFlashSector]
+	str\sz	r0,[rFlashSector]
 	bl	PrintErasing
 
-	WaitForEraseDone \istr,\ildr,\mask
+	WaitForEraseDone \sz,\mask
 	beq	Timeout		//br if erase timed out
 
 	.if (\plait)
 	BigMov	r0,FLASH_ERASE_CMD&\mask
-	\istr	r0,[rFlashSector,#2]
+	str\sz	r0,[rFlashSector,#2]
 	BigMov	r0,FLASH_CONFIRM_CMD&\mask
-	\istr	r0,[rFlashSector,#2]
+	str\sz	r0,[rFlashSector,#2]
 	bl	PrintErasing
 
-	WaitForEraseDone \istr,\ildr,\mask
+	WaitForEraseDone \sz,\mask
 	beq	Timeout		//br if erase timed out
 	.endif
 
@@ -313,7 +315,7 @@ FlashGpioWaitForIdle:
 	sub	r0,r0,r2
 
 	BigMov	r2,FLASH_WRITE_TO_BUFFER_CMD&\mask
-	\istr	r2,[r1]		//!!! write_to_buffer
+	str\sz	r2,[r1]		//!!! write_to_buffer
 
 	sub	r3,rRamSectorEnd,r0
 	mov	r3,r3,LSR #2-\shift
@@ -321,15 +323,15 @@ FlashGpioWaitForIdle:
 	cmp	r3,#0x0f
 	movhi	r3,#0x0f
 	orr	r2,r3,r3,LSL #16
-	\istr	r2,[r1]		//!!! word cnt -1
-25:	\ildr	r2,[r0],#\inc
-	\istr	r2,[r1],#\inc	//!!! words
+	str\sz	r2,[r1]		//!!! word cnt -1
+25:	ldr\sz	r2,[r0],#\inc
+	str\sz	r2,[r1],#\inc	//!!! words
 	subs	r3,r3,#1
 	bpl	25b
 	BigMov	r2,FLASH_CONFIRM_CMD&\mask
-	\istr	r2,[r1,#-\inc]	//!!! confirm
+	str\sz	r2,[r1,#-\inc]	//!!! confirm
 
-	waitForReady \istr,\ildr,\mask,\inc
+	waitForReady \sz,\mask,\inc
 
 	.if (\plait)
 	beq	88f
@@ -340,7 +342,7 @@ FlashGpioWaitForIdle:
 	sub	r0,r0,r2
 
 	BigMov	r2,FLASH_WRITE_TO_BUFFER_CMD&\mask
-	\istr	r2,[r1,#2]!		//!!! write_to_buffer
+	str\sz	r2,[r1,#2]!		//!!! write_to_buffer
 	sub	r3,rRamSectorEnd,r0
 	add	r0,r0,#2
 	mov	r3,r3,LSR #2-\shift
@@ -348,15 +350,15 @@ FlashGpioWaitForIdle:
 	cmp	r3,#0x0f
 	movhi	r3,#0x0f
 	orr	r2,r3,r3,LSL #16
-	\istr	r2,[r1]		//!!! word cnt -1
-85:	\ildr	r2,[r0],#\inc
-	\istr	r2,[r1],#\inc	//!!! words
+	str\sz	r2,[r1]		//!!! word cnt -1
+85:	ldr\sz	r2,[r0],#\inc
+	str\sz	r2,[r1],#\inc	//!!! words
 	subs	r3,r3,#1
 	bpl	85b
 	BigMov	r2,FLASH_CONFIRM_CMD&\mask
-	\istr	r2,[r1,#-\inc]	//!!! confirm
+	str\sz	r2,[r1,#-\inc]	//!!! confirm
 
-	waitForReady \istr,\ildr,\mask,\inc
+	waitForReady \sz,\mask,\inc
 	sub	r0,r0,#2
 	sub	r1,r1,#2
 
@@ -403,7 +405,7 @@ FlashGpioWaitForIdle:
 	b	PrintSuccess
 33:
 	BigMov	r3,FLASH_READ_CMD&\mask
-	\istr	r3,[rFlashBase,#0]
+	str\sz	r3,[rFlashBase,#0]
 	delay
 	ldr	r3,[r1,#-4]	//read flash
 	cmp	r2,r3

@@ -3171,9 +3171,9 @@ BurnContinue:
 
 
 
-//BurnRtn istr,ildr,mask,shift,inc,plait
+//BurnRtn sz,mask,shift,inc,plait
 Burn_Rtn32:
-	BurnRtn str,ldr,0xffffffff,0,0,4,0
+	BurnRtn ,0xffffffff,0,0,4,0
 Burn_Rtn16:
 #if 1
 	BigMov	r0,FLASH_STATUS_CLEAR_CMD&0xffff
@@ -3194,15 +3194,15 @@ Burn_Rtn16:
 	cmpne		r2,#0x21
 	beq	98f
 //(PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)
-	BurnRtn strh,ldrh,  0xffff,0,1,4,1		//the plait version (a1 jumpered to a high address line)
+	BurnRtn h,  0xffff,0,1,4,1		//the plait version (a1 jumpered to a high address line)
 98:
-	BurnRtn strh,ldrh,  0xffff,1,1,2,0		//the non-plait version (a1 correct)
+	BurnRtn h,  0xffff,1,1,2,0		//the non-plait version (a1 correct)
 #else
 
 #if (PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)
-	BurnRtn strh,ldrh,  0xffff,0,1,4,1		//the plait version (a1 jumpered to a high address line)
+	BurnRtn h,  0xffff,0,1,4,1		//the plait version (a1 jumpered to a high address line)
 #else
-	BurnRtn strh,ldrh,  0xffff,1,1,2,0		//the non-plait version (a1 correct)
+	BurnRtn h,  0xffff,1,1,2,0		//the non-plait version (a1 correct)
 #endif
 
 #endif
