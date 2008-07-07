@@ -184,10 +184,8 @@ void lcd_SetPalette(ulong* palette,int colorCnt)
 	}
 }
 
-void lcd_ctrl_init	(void *lcdbase)
+void lcd_ctrl_init(void *lcdbase)
 {
-	char *panelName ;
-
 	unsigned long val=0;
 	const struct itemEntry* l = lists;
 	int count = sizeof(lists)/sizeof(struct itemEntry);
@@ -210,25 +208,16 @@ void lcd_ctrl_init	(void *lcdbase)
 		l++;
 	}
 //	printf( "sm501 init middle\n");
-
-   panelName = getenv( "panel" );
-//	printf( "after getenv\n");
-   if( panelName )
-   {
-      struct lcd_panel_info_t const *panel ;
-      panel = find_lcd_panel( panelName );
-      if( panel )
-      {
-         printf( "panel %s found: %u x %u\n", panelName, panel->xres, panel->yres );
-//	printf( "before set_lcd_panel\n");
-         set_lcd_panel( panel );
-//	printf( "after set_lcd_panel\n");
-      }
-      else
-         printf( "panel %s not found\n", panelName );
-   }
-
-   lcd_base = fbStart;
+#ifdef CONFIG_LCDPANEL
+	{
+		char const *panelName = getenv( "panel" );
+		if (panelName) {
+			int matched=0;
+			find_set_panel((char*)panelName, &matched);
+		}
+	}
+#endif
+	lcd_base = fbStart;
 
 /*
 Settings for Hitachi 5.7
