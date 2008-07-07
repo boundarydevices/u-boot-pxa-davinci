@@ -814,6 +814,9 @@ typedef void		(*ExcpHndlr) (void) ;
 #define UHCHR_SSEP1	(1<<10)
 #define UHCHR_SSEP2	(1<<11)
 
+#define UHCCOMS_HCR		1
+#define UHCRHS_LPS		1
+
 #define UHCHIE_UPRIE	(1<<13)
 #define UHCHIE_UPS2IE	(1<<12)
 #define UHCHIE_UPS1IE	(1<<11)
