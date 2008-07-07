@@ -243,7 +243,7 @@ char* find_set_panel(char* next, int* pmatched)
 		*next = '\0' ;
 	panel = find_lcd_panel( cur );
 	if (panel) {
-		printf( "found panel %s\n", panel->name );
+		printf( "panel %s found: %u x %u\n", panel->name, panel->xres, panel->yres );
 		if (set_p(panel))
 			matched++;
 	} else if (strchr( cur, ':') ) {
