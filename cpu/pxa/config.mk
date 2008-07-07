@@ -24,22 +24,32 @@
 sinclude ../../select.mk	# include DISPLAY_TYPE, HARDWARE_TYPE, SOFTWARE_TYPE, INCLUDE_MINIDEBUG
 
 PLATFORM_RELFLAGS += -fno-strict-aliasing  -fno-common -ffixed-r8
-PLATFORM_CPPFLAGS += -mapcs-32 -march=armv4
 GCC_MAJOR    := $(shell $(CC) -v 2>&1 | grep version | cut -d' ' -f3  | cut -d'.' -f1)
 GCC_MINOR    := $(shell $(CC) -v 2>&1 | grep version | cut -d' ' -f3  | cut -d'.' -f2)
 
-ifneq ($(GCC_MAJOR),3)
-   PLATFORM_CPPFLAGS += -mtune=strongarm1100
-   PLATFORM_RELFLAGS += -msoft-float
+ifeq ($(GCC_MAJOR),4)
+	PLATFORM_CPPFLAGS += -march=armv5te
+	PLATFORM_CPPFLAGS += -mtune=xscale
+	PLATFORM_CPPFLAGS += -mcpu=xscale
+	PLATFORM_RELFLAGS += -msoft-float
 else
-   PLATFORM_CPPFLAGS += -mtune=xscale
-   ifneq ($(GCC_MINOR),4)
-      PLATFORM_RELFLAGS += -msoft-float
-   endif
+	ifeq ($(GCC_MAJOR),3)
+		ifeq ($(GCC_MINOR),4)
+#			PLATFORM_CPPFLAGS += -march=armv5te
+			PLATFORM_CPPFLAGS += -mtune=xscale
+			PLATFORM_CPPFLAGS += -mcpu=xscale
+			PLATFORM_RELFLAGS += -msoft-float
+		else
+			PLATFORM_CPPFLAGS += -march=armv4
+			PLATFORM_CPPFLAGS += -mtune=xscale
+			PLATFORM_CPPFLAGS += -mcpu=xscale
+			PLATFORM_RELFLAGS += -msoft-float
+		endif
+	else
+		PLATFORM_CPPFLAGS += -mtune=strongarm1100
+	endif
 endif
 
-
-PLATFORM_CPPFLAGS += -march=armv5te
 # =========================================================================
 #
 # Supply options according to compiler version

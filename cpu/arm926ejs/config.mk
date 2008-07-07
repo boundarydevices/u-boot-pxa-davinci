@@ -21,10 +21,26 @@
 # MA 02111-1307 USA
 #
 
-PLATFORM_RELFLAGS += -fno-strict-aliasing  -fno-common -ffixed-r8 \
-	-msoft-float
+PLATFORM_RELFLAGS += -fno-strict-aliasing  -fno-common -ffixed-r8
+GCC_MAJOR    := $(shell $(CC) -v 2>&1 | grep version | cut -d' ' -f3  | cut -d'.' -f1)
+GCC_MINOR    := $(shell $(CC) -v 2>&1 | grep version | cut -d' ' -f3  | cut -d'.' -f2)
 
-PLATFORM_CPPFLAGS += -march=armv4
+ifeq ($(GCC_MAJOR),4)
+	PLATFORM_CPPFLAGS += -march=armv5te
+	PLATFORM_RELFLAGS += -msoft-float
+else
+	ifeq ($(GCC_MAJOR),3)
+		ifeq ($(GCC_MINOR),4)
+			PLATFORM_CPPFLAGS += -march=armv5te
+			PLATFORM_RELFLAGS += -msoft-float
+		else
+			PLATFORM_CPPFLAGS += -march=armv4
+			PLATFORM_RELFLAGS += -msoft-float
+		endif
+	else
+		PLATFORM_CPPFLAGS += -mtune=strongarm1100
+	endif
+endif
 # =========================================================================
 #
 # Supply options according to compiler version
