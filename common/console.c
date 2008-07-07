@@ -484,7 +484,7 @@ int console_init_r (void)
 
 #else /* CFG_CONSOLE_IS_IN_ENV */
 
-void DbgBreak();
+void DbgBreak(void);
 
 /* Called after the relocation - use desired console functions */
 int console_init_r (void)
