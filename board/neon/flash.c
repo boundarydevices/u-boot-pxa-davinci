@@ -34,21 +34,8 @@
 flash_info_t flash_info[CFG_MAX_FLASH_BANKS];	/* info for FLASH chips    */
 
 /* Board support for 1 or 2 flash devices */
-#if (PLATFORM_TYPE==HALOGEN)
-#if (PLATFORM_REV==2)
-#define FLASH_PORT_WIDTH16 1
-#endif
-#endif
 
-#if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==HYDROGEN)
-#define FLASH_PORT_WIDTH16 1
-#endif
-
-#if (PLATFORM_TYPE==OXYGEN)
-#define FLASH_PORT_WIDTH16 1
-#endif
-
-#ifdef FLASH_PORT_WIDTH16
+#ifdef CFG_FLASH_PORT_WIDTH16
 #define FLASH_PORT_WIDTH		ushort
 #define FLASH_PORT_WIDTHV		vu_short
 #define FLASH_CHIP_CNT 1
@@ -198,11 +185,12 @@ static ulong flash_get_size (volatile FPW *addr, flash_info_t *info)
 	info->flash_id = FLASH_UNKNOWN;
 	info->sector_count = 0;
 	info->size = 0;
+	info->unlock_first=0;
 
 	if (((ulong)addr) > 0x14000000) return 0;
 	val = mc[(MSC0>>2) +(((ulong)addr)>>27)];
 	if (((ulong)addr) & 0x04000000) val = val>>16;
-#ifndef FLASH_PORT_WIDTH16
+#ifndef CFG_FLASH_PORT_WIDTH16
 	if ( val & (1<<3)) return 0;	//if 16 bit bus then return
 #else
 	if (!( val & (1<<3))) return 0;	//if 32 bit bus then return
@@ -220,7 +208,7 @@ static ulong flash_get_size (volatile FPW *addr, flash_info_t *info)
 	switch (manVal) {
 	case (FPW) 0:
 	case (FPW) STM_MANUFACT:
-#ifndef FLASH_PORT_WIDTH16
+#ifndef CFG_FLASH_PORT_WIDTH16
 	case (FPW) INTEL_MANUFACT & 0xFF0000 :
 	case (FPW) INTEL_MANUFACT & 0x0000FF :
 #endif
@@ -229,7 +217,7 @@ static ulong flash_get_size (volatile FPW *addr, flash_info_t *info)
 		break;
 
 	default:
-		printf( "Invalid flash manufacturer %x, %x\n", manVal,devVal );
+		printf( "Invalid flash manufacturer %x, %x from flash @%p\n", manVal,devVal,addr );
 		return (0);			/* no or unknown flash  */
 	}
 
@@ -237,7 +225,7 @@ static ulong flash_get_size (volatile FPW *addr, flash_info_t *info)
 	switch (devVal) {
 
 	case (FPW) 0:
-#ifndef FLASH_PORT_WIDTH16
+#ifndef CFG_FLASH_PORT_WIDTH16
 	case (FPW) INTEL_ID_28F128J3A & 0xFF0000 :
 	case (FPW) INTEL_ID_28F128J3A & 0x0000FF :
 #endif
@@ -250,6 +238,7 @@ static ulong flash_get_size (volatile FPW *addr, flash_info_t *info)
 		info->flash_id += FLASH_28F128P33B;
 		info->sector_count = 4+127;
 		info->size = (((4*32)+(127*128))<<10) *FLASH_CHIP_CNT;
+		info->unlock_first=1;
 		break;
 	case (FPW) INTEL_ID_28F320J3A:
 		info->flash_id += FLASH_28F320J3A;
@@ -336,6 +325,10 @@ int flash_erase (flash_info_t *info, int s_first, int s_last)
 			/* arm simple, non interrupt dependent timer */
 			reset_timer_masked ();
 
+			if (info->unlock_first) {
+				*addr = (FPW) 0x00600060;	/* unlock setup */
+				*addr = (FPW) 0x00D000D0;	/* unlock confirm */
+			}
 			*addr = (FPW) 0x00500050;	/* clear status register */
 			*addr = (FPW) 0x00200020;	/* erase setup */
 			*addr = (FPW) 0x00D000D0;	/* erase confirm */
@@ -358,6 +351,18 @@ int flash_erase (flash_info_t *info, int s_first, int s_last)
 	return rcode;
 }
 
+#ifdef NEED_UNLOCK_BEFORE_WRITE
+int find_bytes_left_in_sector(flash_info_t *info,ulong addr)
+{
+	int i;
+	for (i = 0; i < info->sector_count; i++) {
+		if (info->start[i] > addr)
+			return info->start[i] - addr;
+	}
+	return info->start[0] + info->size - addr;
+}
+#endif
+
 /*-----------------------------------------------------------------------
  * Copy memory to flash, returns:
  * 0 - OK
@@ -371,13 +376,15 @@ int write_buff (flash_info_t *info, uchar *src, ulong addr, ulong cnt)
 	ulong cp, wp;
 	FPW data;
 	int count, i, l, rc, port_width;
-
+#ifdef NEED_UNLOCK_BEFORE_WRITE
+	int bytes_left_in_sector;
+#endif
    rc = 0 ;
 	if (info->flash_id == FLASH_UNKNOWN) {
 		return 4;
 	}
 /* get lower word aligned address */
-#ifdef FLASH_PORT_WIDTH16
+#ifdef CFG_FLASH_PORT_WIDTH16
 	wp = (addr & ~1);
 	port_width = 2;
 #else
@@ -385,8 +392,15 @@ int write_buff (flash_info_t *info, uchar *src, ulong addr, ulong cnt)
 	port_width = 4;
 #endif
 
-   spin_wheel_init(addr,cnt);
+	spin_wheel_init(addr,cnt);
 
+#ifdef NEED_UNLOCK_BEFORE_WRITE
+	bytes_left_in_sector = find_bytes_left_in_sector(info,wp);
+	if (cnt) if (info->unlock_first) {
+		*wp = (FPW) 0x00600060;	/* unlock setup */
+		*wp = (FPW) 0x00D000D0;	/* unlock confirm */
+	}
+#endif
 	/*
 	 * handle unaligned start bytes
 	 */
@@ -405,9 +419,19 @@ int write_buff (flash_info_t *info, uchar *src, ulong addr, ulong cnt)
 		}
 
 		if ((rc = write_data (info, wp, SWAP (data))) != 0) {
-         goto out;
+			goto out;
 		}
 		wp += port_width;
+#ifdef NEED_UNLOCK_BEFORE_WRITE
+		bytes_left_in_sector -= port_width;
+		if (bytes_left_in_sector <= 0) {
+			bytes_left_in_sector = find_bytes_left_in_sector(info,wp);
+			if (cnt) if (info->unlock_first) {
+				*wp = (FPW) 0x00600060;	/* unlock setup */
+				*wp = (FPW) 0x00D000D0;	/* unlock confirm */
+			}
+		}
+#endif
 	}
 
 	/*
@@ -420,7 +444,7 @@ int write_buff (flash_info_t *info, uchar *src, ulong addr, ulong cnt)
 			data = (data << 8) | *src++;
 		}
 		if ((rc = write_data (info, wp, SWAP (data))) != 0) {
-         goto out;
+			goto out;
 		}
 		wp += port_width;
 		cnt -= port_width;
@@ -428,6 +452,16 @@ int write_buff (flash_info_t *info, uchar *src, ulong addr, ulong cnt)
 			spin_wheel (cnt);
 			count = 0;
 		}
+#ifdef NEED_UNLOCK_BEFORE_WRITE
+		bytes_left_in_sector -= port_width;
+		if (bytes_left_in_sector <= 0) {
+			bytes_left_in_sector = find_bytes_left_in_sector(info,wp);
+			if (cnt) if (info->unlock_first) {
+				*wp = (FPW) 0x00600060;	/* unlock setup */
+				*wp = (FPW) 0x00D000D0;	/* unlock confirm */
+			}
+		}
+#endif
 	}
 
 	if (cnt) {
