@@ -196,16 +196,10 @@ static int bmp_info(ulong addr)
  */
 static int bmp_display(ulong addr, int x, int y)
 {
-#if defined(CONFIG_LCD)
-	extern int lcd_display_bitmap (ulong, int, int);
-	return lcd_display_bitmap ((unsigned long)bmp, x, y);
-#elif defined(CONFIG_VIDEO)
-	extern int video_display_bitmap (ulong, int, int);
-	return video_display_bitmap ((unsigned long)bmp, x, y);
-#elif defined(CONFIG_LCD_MULTI)
+	bmp_image_t *bmp=(bmp_image_t *)addr ;
+#if defined(CONFIG_LCD_MULTI)
 	ushort i, j;
 	uchar *fb;
-	bmp_image_t *bmp=(bmp_image_t *)addr ;
 	uchar *bmap;
 	ushort padded_line;
 	unsigned long width, height;
@@ -303,12 +297,18 @@ printf( "current LCD: %ux%u at %p\n", lcd->info.xres, lcd->info.yres, lcd->fbAdd
 	}
    else
       printf( "Unsupported bit depth %u\n", bpix );
-#else
-# error bmp_display() requires CONFIG_LCD, CONFIG_LCD_MULTI, or CONFIG_VIDEO
-#endif
 
 	if ((unsigned long)bmp != addr)
 		free(bmp);
 
 	return 0;
+#elif defined(CONFIG_LCD)
+	extern int lcd_display_bitmap (ulong, int, int);
+	return lcd_display_bitmap ((unsigned long)bmp, x, y);
+#elif defined(CONFIG_VIDEO)
+	extern int video_display_bitmap (ulong, int, int);
+	return video_display_bitmap ((unsigned long)bmp, x, y);
+#else
+# error bmp_display() requires CONFIG_LCD, CONFIG_LCD_MULTI, or CONFIG_VIDEO
+#endif
 }
