@@ -65,7 +65,6 @@ HeadStart:
 _armboot_start:
 _TEXT_BASE:		.word	TEXT_BASE
 
-_start_armboot: .word	start_armboot
 /*
  * These are defined in the board-specific linker script.
  */
@@ -85,22 +84,30 @@ FIQ_STACK_START:
 #endif
 
 relocate:				/* relocate U-Boot to RAM	    */
-	adr		r0, HeadStart		/* r0 <- current position of code   */
-	bic		r0,r0,#0xff
-	bic		r0,r0,#0xff00		//64k aligned
-	ldr		r1, _TEXT_BASE
-	cmp     r0, r1                  /* don't reloc during debug         */
+	adr	r0, HeadStart		/* r0 <- current position of code   */
+	bic	r0,r0,#0xff
+	bic	r0,r0,#0xff00		//64k aligned
+	ldr	r1, _TEXT_BASE
+	cmp	r0, r1			/* is relocation needed ? */
 	beq     stack_setup
 
-	ldr		r2, _bss_start
+	ldr	r2, _bss_start
 
 copy_loop:
 	ldmia	r0!, {r3-r10}		/* copy from source address [r0]    */
 	stmia	r1!, {r3-r10}		/* copy to   target address [r1]    */
-	cmp		r1, r2			/* until dest end addreee [r2]    */
+	cmp	r1, r2			/* until dest end addreee [r2]    */
 	ble	copy_loop
+//now branch to stack_setup within copied code
+	ldr	r1, _TEXT_BASE
+	adr	r0, stack_setup		/* r0 <- current position of code   */
+	bic	r0,r0,#0xff000000
+	bic	r0,r0,#0x00ff0000
+	add	r0,r0,r1
+	mov	pc,r0
 
-	/* Set up the stack						    */
+//now executing from within real link location
+/* Set up the stack */
 stack_setup:
 	ldr	r0, _TEXT_BASE		/* upper 128 KiB: relocated uboot   */
 	BigSub2 r0,(CFG_MALLOC_LEN+CFG_GBL_DATA_SIZE+CFG_MMU_SPACE_RESERVED) //malloc area,bdinfo
@@ -119,8 +126,7 @@ clbss_l:str	r2, [r0]		/* clear loop...                    */
 	cmp	r0, r1
 	bne	clbss_l
 	bl	dcache_enable
-
-	ldr	pc, _start_armboot
+	b	start_armboot
 
 
 DbgBreak:
@@ -206,6 +212,7 @@ dcache_enable:
 	addne	r0,r0,#1<<20
 	bne	2b
 
+#if 0
 	mov	r0,pc,LSR #20
 	mov	r0,r0,LSL #20
 #define MEM_READONLY_SECTION 0x0402		//map as read/write, non-cacheable, section (flash id query)
@@ -213,6 +220,7 @@ dcache_enable:
 //#define MEM_READONLY_SECTION 0x840a	//set imx31 APX bit
 	BigOrr2	r0,MEM_READONLY_SECTION
 	str	r0,[r6]			//remap 1st meg to this code
+#endif
 
 	BigMov	r0,0xffffffff
 	CP15_DACR mcr,r0
