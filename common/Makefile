@@ -82,6 +82,7 @@ COBJS-$(CONFIG_CMD_MISC) += cmd_misc.o
 COBJS-$(CONFIG_CMD_MMC) += cmd_mmc.o
 COBJS-y += cmd_nand.o
 COBJS-$(CONFIG_CMD_NET) += cmd_net.o
+COBJS-$(CONFIG_CMD_NOT) += cmd_not.o
 COBJS-y += cmd_nvedit.o
 COBJS-y += cmd_onenand.o
 COBJS-$(CONFIG_CMD_OTP) += cmd_otp.o
