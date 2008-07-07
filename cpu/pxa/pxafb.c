@@ -31,7 +31,6 @@
 #include <config.h>
 #include <common.h>
 
-#ifdef CONFIG_PXALCD
 #include <version.h>
 #include <stdarg.h>
 #include <linux/types.h>
@@ -246,7 +245,7 @@ static int pxafb_init (vidinfo_t *vid);
 /************************************************************************/
 /* ---------------  PXA chipset specific functions  ------------------- */
 /************************************************************************/
-#if defined(CONFIG_LCD)
+#if !defined(CONFIG_LCD_MULTI)
 
 int lcd_color_fg;
 int lcd_color_bg;
@@ -257,23 +256,19 @@ void *lcd_console_address;		/* Start of console buffer	*/
 short console_col;
 short console_row;
 
+char* find_set_panel(char* next, int* pmatched);
+
 void lcd_ctrl_init (void *lcdbase)
 {
 #ifdef CONFIG_LCDPANEL
-   char const *panelName = getenv( "panel" );
-   if( panelName )
-   {
-      struct lcd_panel_info_t const *panel ;
-      panel = find_lcd_panel( panelName );
-      if( panel )
-      {
-         printf( "panel %s found: %u x %u\n", panelName, panel->xres, panel->yres );
-         panel_info.pxa.screen = (u_long)lcdbase;
-         set_lcd_panel( panel );
-      }
-      else
-         printf( "panel %s not found\n", panelName );
-   }
+	char const *panelName = getenv( "panel" );
+	if (panelName) {
+		int matched=0;
+		find_set_panel((char*)panelName, &matched);
+		if (matched) {
+			panel_info.pxa.screen = (u_long)lcdbase;
+		}
+	}
 #else
 	pxafb_init_mem(lcdbase, &panel_info);
 	pxafb_init(&panel_info);
@@ -590,7 +585,7 @@ static int pxafb_init (vidinfo_t *vid)
 /************************************************************************/
 /************************************************************************/
 
-#endif /* CONFIG_LCD */
+#endif /* not CONFIG_LCD_MULTI */
 
 #ifdef CONFIG_LCDPANEL
 
@@ -636,11 +631,14 @@ static void disable(void)
 }
 #endif
 
-#ifdef CONFIG_LCD
-void set_lcd_panel( struct lcd_panel_info_t const *panel )
-#elif defined(CONFIG_LCD_MULTI)
+#if defined(CONFIG_LCD_MULTI)
 void init_pxa_fb( struct lcd_t *lcd )
+#elif defined(CONFIG_LCD)
+void set_lcd_panel( struct lcd_panel_info_t const *panel )
 #endif
+
+
+
 {
 #if defined(CONFIG_LCD_MULTI)
    struct lcd_panel_info_t const *panel = &lcd->info ;
@@ -669,8 +667,8 @@ void init_pxa_fb( struct lcd_t *lcd )
    panel_info.vl_efw = panel->lower_margin ;
 
    panel_info.pxa.screen = CFG_DRAM_BASE+CFG_DRAM_SIZE-(panel->xres*panel->yres+1024+4096);
-#if defined(CONFIG_LCD)
-   lcd_base = panel_info.pxa.screen ;
+#if !defined(CONFIG_LCD_MULTI)
+   lcd_base = (void *)(panel_info.pxa.screen);
 #endif
    pxafb_init_mem( (void *)panel_info.pxa.screen, &panel_info);
    pxafb_init(&panel_info);
@@ -704,13 +702,23 @@ void init_pxa_fb( struct lcd_t *lcd )
    lcd->disable = disable ;
    lcd->bg = 0xff ;
    lcd->fg = 0 ;
-#endif
-
-#ifdef CONFIG_LCD
+#else
    cur_lcd_panel = panel ;
 #endif
 }
 
+#if !defined(CONFIG_LCD_MULTI)
+/*
+ * Calculate fb size for VIDEOLFB_ATAG.
+ */
+ulong calc_fbsize(void)
+{
+	ulong size;
+	int line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) >> 3;
+	size = line_length * panel_info.vl_row;
+	return size;
+}
+#endif
+
 #endif // dynamic LCD panel support
-#endif //CONFIG_PXALCD
 
