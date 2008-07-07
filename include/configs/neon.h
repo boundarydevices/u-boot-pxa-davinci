@@ -25,32 +25,50 @@
  * Copyright Boundary Devices, Inc. 2005
  */
 #include "select.h"
-#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)
+#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==ARGON)
 #define CONFIG_PXA270		1	/* This is a PXA270 CPU    */
 #define CONFIG_PXA27X		1	/* Which is a PXA27X */
+#define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
+
+#elif (PLATFORM_TYPE==NEON270)
+#define CONFIG_PXA270		1	/* This is a PXA270 CPU    */
+#define CONFIG_PXA27X		1	/* Which is a PXA27X */
+#define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
+#define CONFIG_SM501		1
+
+#elif (PLATFORM_TYPE==NEON)||(PLATFORM_TYPE==NEONB)
+//These don't use the built-in pxa lcd controller
+#define CONFIG_PXA250		1	/* This is an PXA250 CPU    */
+#define CONFIG_NEON		1	/* on a Neon Board	    */
+#define CONFIG_SM501		1
+
 #else
 #define CONFIG_PXA250		1	/* This is an PXA250 CPU    */
+#define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
 #endif
 
-#define CONFIG_SETUP_MEMORY_TAGS 1
-#define CONFIG_INITRD_TAG	 1
+#if (PLATFORM_TYPE==HALOGEN)
+#if (PLATFORM_REV==2)
+#define CFG_FLASH_PORT_WIDTH16
+#endif
+#endif
 
-
-#if (PLATFORM_TYPE==NEON)||(PLATFORM_TYPE==NEONB)
-//These don't use the built-in pxa lcd controller
-#else
-#define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
+#if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==OXYGEN)
+#define CFG_FLASH_PORT_WIDTH16
 #endif
 
 /*
  * High Level Configuration Options
  * (easy to change)
  */
-#define CONFIG_NEON		1	/* on a Neon Board	    */
-#define CONFIG_SM501		1
-#define PXALCD          1     /* Allow PXA display controller as well */
-// #define CONFIG_LCD		1
+#ifdef CONFIG_SM501
 #define CONFIG_LCD_MULTI 1
+#else
+#define CONFIG_LCD		1
+#endif
+
+#define CONFIG_SETUP_MEMORY_TAGS 1
+#define CONFIG_INITRD_TAG	 1
 
 #define CONFIG_MMC		1
 #define BOARD_LATE_INIT		1
@@ -67,9 +85,16 @@
 /*
  * Hardware drivers
  */
+#if (PLATFORM_TYPE==HYDROGEN)
+#define CONFIG_DRIVER_NE2000
+#define CONFIG_DRIVER_NE2000_BASE 0x04000000
+#define CONFIG_MII
+#define CONFIG_CMD_MII
+#else
 #define CONFIG_DRIVER_SMC91111
 #define CONFIG_SMC91111_BASE 0x10000300
 #define CONFIG_SMC_USE_32_BIT
+#endif
 
 /************************************************************
  * USB support
@@ -77,9 +102,6 @@
 #define LITTLEENDIAN		1  /* Needed by usb_ohci.c */
 #define CFG_DEVICE_DEREGISTER	1  /* Needed by usb_kbd */
 #define CONFIG_DOS_PARTITION	1
-#define CONFIG_USB_OHCI		1
-#define CONFIG_USB_KEYBOARD	1
-#define CONFIG_USB_STORAGE	1
 
 /*
  * select serial console configuration
@@ -106,8 +128,9 @@
 #define CONFIG_CMD_MISC
 #define CONFIG_CMD_BMP
 #define CONFIG_CMD_XMODEM
-#define CONFIG_CMD_I2CTEST
 #define CONFIG_CMD_ECHO
+//#define CONFIG_CMD_I2C
+//#define CONFIG_CMD_I2CTEST
 
 #undef CONFIG_CMD_BDI
 #undef CONFIG_CMD_BOOTD
@@ -119,6 +142,21 @@
 #undef CONFIG_CMD_DATE
 #undef CONFIG_CMD_BOOTP
 #undef CONFIG_CMD_NFS
+
+/*===================*/
+/* I2C Configuration */
+/*===================*/
+#ifdef CONFIG_CMD_I2C
+#define CONFIG_HARD_I2C
+#define CFG_I2C_SPEED		100000	/* not used, but must define */
+#define CFG_I2C_SLAVE		10	/* Bogus, master-only in U-Boot */
+#endif
+
+#ifdef CONFIG_CMD_USB
+#define CONFIG_USB_OHCI
+#define CONFIG_USB_KEYBOARD	1
+#define CONFIG_USB_STORAGE	1
+#endif
 
 #ifdef CONFIG_CMD_I2CTEST
 #define CONFIG_BOOTDELAY	0
@@ -239,8 +277,8 @@
 /*
  * FLASH and environment organization
  */
-#define CFG_MAX_FLASH_BANKS	1	/* max number of memory banks		*/
-#define CFG_MAX_FLASH_SECT	(127+4)	/* max number of sectors on one chip    */
+#define CFG_MAX_FLASH_BANKS	1		/* max number of memory banks		*/
+#define CFG_MAX_FLASH_SECT	(127+4)		/* max number of sectors on one chip    */
 
 /* timeout values are in ticks */
 #define CFG_FLASH_ERASE_TOUT	(25*CFG_HZ) /* Timeout for Flash Erase */
