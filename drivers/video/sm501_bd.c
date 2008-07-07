@@ -47,8 +47,8 @@ unsigned long const mmioLength = 0x00200000;
 unsigned char* const lcdPaletteRegs = (unsigned char*)(REG_BASE+0x80400);
 unsigned char* const crtPaletteRegs = (unsigned char*)(REG_BASE+0x80C00);
 
-#ifdef CONFIG_LCD
-unsigned char* paletteRegs = lcdPaletteRegs;
+#if defined(CONFIG_LCD) && !defined(CONFIG_LCD_MULTI)
+unsigned char* paletteRegs = (unsigned char*)(REG_BASE+0x80400);
 #endif
 
 const unsigned int sm501_list1[]={
@@ -157,7 +157,7 @@ void disable_sm501( void )
    STUFFREG(crtctrlReg,READREG(crtctrlReg)& ~(CRTCRTL_ENABLE));
 }
 
-#ifdef CONFIG_LCD
+#if defined(CONFIG_LCD) && !defined(CONFIG_LCD_MULTI)
 int lcd_color_fg;
 int lcd_color_bg;
 
@@ -186,8 +186,7 @@ void lcd_SetPalette(ulong* palette,int colorCnt)
 
 void lcd_ctrl_init	(void *lcdbase)
 {
-	unsigned short *fbMem;
-   char *panelName ;
+	char *panelName ;
 
 	unsigned long val=0;
 	const struct itemEntry* l = lists;
@@ -229,8 +228,7 @@ void lcd_ctrl_init	(void *lcdbase)
          printf( "panel %s not found\n", panelName );
    }
 
-   fbMem = (unsigned short *)fbStart ;
-   lcd_base = fbMem ;
+   lcd_base = fbStart;
 
 /*
 Settings for Hitachi 5.7
@@ -281,14 +279,6 @@ static void setClockReg( unsigned reg, unsigned long value )
       udelay(16000);
    }
 }
-
-vidinfo_t panel_info = {
-	vl_col:		320,		//this is corrected in SetPanelInfo
-	vl_row:		240,
-	vl_bpix:    LCD_BPP,
-	vl_lcd_line_length: (320 * NBITS(LCD_BPP) ) >> 3
-};
-
 
 static unsigned long clockRegs[] = {
    SLOWCLOCK1, SLOWCLOCK2,
@@ -430,7 +420,29 @@ unsigned long GetPolarities(struct lcd_panel_info_t const *panel)
 	if (!panel->pclk_redg) val |= (1<<14);	//pixel clock polarity
 	return val;
 }
-#ifdef CONFIG_LCD
+
+#if defined(CONFIG_LCD) || defined(CONFIG_LCD_MULTI)
+
+//if either are defined, the sm501 is the main display
+vidinfo_t panel_info = {
+	vl_col:		320,		//this is corrected in SetPanelInfo
+	vl_row:		240,
+	vl_bpix:    LCD_BPP,
+	vl_lcd_line_length: (320 * NBITS(LCD_BPP) ) >> 3
+};
+/*
+ * Calculate fb size for VIDEOLFB_ATAG.
+ */
+ulong calc_fbsize(void)
+{
+	ulong size;
+	int line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) >> 3;
+	size = line_length * panel_info.vl_row;
+	return size;
+}
+#endif
+
+#if defined(CONFIG_LCD) && !defined(CONFIG_LCD_MULTI)
 static void SetPanelInfo(struct lcd_panel_info_t const *panel)
 {
    panel_info.vl_col = panel->xres;
@@ -879,6 +891,8 @@ void init_sm501_crt_shared( struct lcd_t *lcd )
 }
 
 #endif
+
+
 
 #include <command.h>
 static int sm502_clkreg(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
