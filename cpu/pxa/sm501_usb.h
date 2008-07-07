@@ -9,7 +9,7 @@
 		/*
 		 * USB Host Controller
 		 */
-		#define USBH_BASE	0xFE40000
+		#define OHCI_REGS_BASE	0xFE40000
 		#define UHCREV		__REG(0xFE40000)
 		#define UHCHCON		__REG(0xFE40004)
 		#define UHCCOMS		__REG(0xFE40008)
