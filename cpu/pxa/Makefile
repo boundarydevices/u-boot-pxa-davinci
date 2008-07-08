@@ -63,13 +63,14 @@ endif
 endif
 endif
 
+SOBJS +=  xmodemReceive.o
 SRCS	:= $(START:.o=.S) $(SOBJS:.o=.S) $(COBJS:.o=.c)
 COBJS	:= $(addprefix $(obj),$(SOBJS) $(COBJS))
 START	:= $(addprefix $(obj),$(START))
 
 all:	$(obj).depend $(START) $(LIB)
 
-$(LIB):	$(OBJS)
+$(LIB):	$(OBJS) $(SOBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
 
 #########################################################################
