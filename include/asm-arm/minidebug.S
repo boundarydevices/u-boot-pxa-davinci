@@ -2555,9 +2555,11 @@ Download_Cmd:
 	cmp	r0,#NFC_RAM_END-NFC_RAM
 	blo	2f
 	.endif
-	sub	r0,rNum1,#0x04000000
-	cmp	r0,#0x10000000
+	.ifdef DL_RANGE2_BASE
+	sub	r0,rNum1,#DL_RANGE2_BASE
+	cmp	r0,#DL_RANGE2_END-DL_RANGE2_BASE
 	blo	2f
+	.endif
 	cmp	rNum1,#MEM_START
 	bcc	Invalid			//br if rNum1 is below ram start,
 2:					//NOTE: arm sets the carry to the opposite of most processors on subtract, compare

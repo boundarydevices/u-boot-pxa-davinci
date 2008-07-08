@@ -23,17 +23,23 @@
 #if SET_BYTES_PER_PIXEL
 
 #if (PLATFORM_TYPE==MERCURY)
-#define BYTES_PER_PIXEL 1	//1, 2, or 3 for mercury
-#else
+#define __BYTES_PER_PIXEL 1	//1, 2, or 3 for mercury
+#endif
+
 #if (PLATFORM_TYPE==HALOGEN)
-#if (PLATFORM_REV==3)
+#if (PLATFORM_REV!=3)
+#define __BYTES_PER_PIXEL 3
+#endif
+#endif
+
+#if (PLATFORM_TYPE==NEON270)
+#define __BYTES_PER_PIXEL 3
+#endif
+
+#ifndef __BYTES_PER_PIXEL
 #define BYTES_PER_PIXEL 2
 #else
-#define BYTES_PER_PIXEL 3
-#endif
-#else
-#define BYTES_PER_PIXEL 2
-#endif
+#define BYTES_PER_PIXEL __BYTES_PER_PIXEL
 #endif
 
 #endif
@@ -63,9 +69,10 @@
 //              xres,xsyncWidth,xbegin,xend,  yres,ysyncWidth,ybegin,yend,  fPolarity,lPolarity,pPolarity,dPolarity, enable,unscramble,rotate,active,bpp,vSyncHz,type
 #define HITACHI_QVGA_P 320, 64, 1, 16,		240, 20, 8, 3,		0,0,1,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
 #define SHARP_QVGA_P   320, 20, 1, 30,		240, 4, 17, 3,		0,0,1,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
-#define OKAYA_QVGA_P   320, 30,20, 38,		240, 3, 5, 15,		1,1,1,1,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
 //#define DA320X240_P  320, 64, 34, 1,		240, 20, 8, 3,		0,0,1,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
 #define DA320X240_P  320, 64, 34, 11,		240, 5, 8, 3,		0,0,1,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
+#define OKAYA_QVGA_P   320, 30,20, 38,		240, 5, 8, 14,		1,1,0,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
+#define OKAYA_480X272_P 480, 3,20, 38,		272, 3, 5, 15,		1,1,0,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
 
 #define DA640X240_P  640, 64, 34, 1,		240, 20, 8, 3,		0,0,1,0,	1,1,0,1,PXAFB_BPP,62,LCD_PANEL //1
 #define DA800X480_P  800, 64, 34, 1,		480, 20, 8, 3,		0,0,1,0,	1,1,0,1,PXAFB_BPP,62,LCD_PANEL //2
