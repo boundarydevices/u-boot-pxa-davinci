@@ -587,7 +587,6 @@ mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 			ulong src = (blknr+startBlock) * MMC_BLOCK_SIZE ;
 			ulong status ;
 			unsigned int* pDst = (unsigned int*)dst;
-			unsigned int val;
 			MMC_RDTO   = 0xffff;
 			MMC_BLKLEN = MMC_BLOCK_SIZE ;
 			MMC_NOB    = blkcnt ;
@@ -600,6 +599,7 @@ mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 #ifdef CONFIG_IMX31
 			MMC_STAT = MMC_STAT_DATA_TRAN_DONE;
 			{
+				unsigned int val;
 				unsigned int volatile *rxFIFO = (unsigned int *)&(MMC_RXFIFO);
 				// read the data
 				for( blknr = 0 ; blknr < blkcnt ; blknr++ ) {
@@ -650,6 +650,7 @@ mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 						pDst += 8;
 #else
 						{
+							unsigned int val;
 							int bytes = 32;
 							while (bytes) {
 								// read in the byte from the FIFO
