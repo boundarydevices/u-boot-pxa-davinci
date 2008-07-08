@@ -407,7 +407,7 @@ int drv_lcd_init (void)
 }
 
 /*----------------------------------------------------------------------*/
-static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
+int lcd_ClearScreen(void)
 {
 #if LCD_BPP == LCD_MONOCHROME
 	/* Setting the palette */
@@ -450,6 +450,10 @@ static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 	console_row = 0;
 
 	return (0);
+}
+static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
+{
+	return lcd_ClearScreen();
 }
 
 U_BOOT_CMD(
@@ -649,6 +653,30 @@ void bitmap_plot (int x, int y)
 
 /*----------------------------------------------------------------------*/
 #if defined(CONFIG_CMD_BMP) || defined(CONFIG_SPLASH_SCREEN)
+
+#if defined(CONFIG_MPC823)
+//each entry is in ARGB format, alpha high byte, blue low byte
+void lcd_SetPalette(ulong* palette,int colorCnt)
+{
+	volatile immap_t *immr = (immap_t *) CFG_IMMR;
+	volatile cpm8xx_t *cp = &(immr->im_cpm);
+	PALETTEVAL_TYPE *cmap = (ushort *)&(cp->lcd_cmap[255*sizeof(ushort)]);
+	while (colorCnt--) {
+		ulong tmp = *palette++;	//5,6,5 format
+		ushort val =( (tmp>>8) & 0xf800) |
+					( (tmp>>5) & 0x07e0) |
+					( (tmp>>3) & 0x001f) ;
+#ifdef CFG_INVERT_COLORS
+		val = ~val;
+#endif
+		*cmap-- = val;
+	}
+}
+#else
+//other machines have this function defined in their lcd driver
+#endif
+
+void lcd_SetPalette(unsigned long* palette,unsigned colors);
 /*
  * Display the BMP file located at address bmp_image.
  * Only uncompressed.
