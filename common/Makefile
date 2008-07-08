@@ -67,6 +67,7 @@ ifdef CONFIG_FPGA
 COBJS-$(CONFIG_CMD_FPGA) += cmd_fpga.o
 endif
 COBJS-$(CONFIG_CMD_I2C) += cmd_i2c.o
+COBJS-$(CONFIG_CMD_I2CTEST) += cmd_i2ctest.o
 COBJS-$(CONFIG_CMD_IDE) += cmd_ide.o
 COBJS-$(CONFIG_CMD_IMMAP) += cmd_immap.o
 COBJS-$(CONFIG_CMD_ITEST) += cmd_itest.o
