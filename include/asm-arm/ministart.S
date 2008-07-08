@@ -126,7 +126,7 @@ clbss_l:str	r2, [r0]		/* clear loop...                    */
 DbgBreak:
 	mov	r1,lr
 	swi	#0
-	bx	r1
+	mov	pc, r1
 
 FlushCache:
 //	CP15_CONTROL mrc,r0
