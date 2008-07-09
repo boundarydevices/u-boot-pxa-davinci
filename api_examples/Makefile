@@ -57,7 +57,7 @@ OBJS	:= $(addprefix $(obj),$(COBJS))
 ELF	:= $(addprefix $(obj),$(ELF))
 BIN	:= $(addprefix $(obj),$(BIN))
 
-gcclibdir := $(shell dirname `$(CC) -print-libgcc-file-name`)
+gcclibdir := $(shell dirname "`$(CC) -print-libgcc-file-name`")
 
 CPPFLAGS += -I..
 
@@ -71,7 +71,7 @@ $(ELF):
 $(obj)%:	$(obj)%.o $(LIB)
 		$(LD) $(obj)crt0.o -Ttext $(LOAD_ADDR) \
 			-o $@ $< $(LIB) \
-			-L$(gcclibdir) -lgcc
+			-L"$(gcclibdir)" -lgcc
 
 $(BIN):
 $(obj)%.bin:	$(obj)%
