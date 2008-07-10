@@ -82,6 +82,7 @@ U_BOOT_CMD(
 #endif
 
 #if defined( CONFIG_LCD ) || defined( CONFIG_LCD_MULTI )
+void lcd_putc(const char c);
 
 int
 do_lecho (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
