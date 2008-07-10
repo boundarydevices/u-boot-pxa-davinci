@@ -131,7 +131,7 @@ fat_register_device(block_dev_desc_t *dev_desc, int part_no)
 		part_offset = info.start;
 		cur_part = part_no;
 	} else if(!strncmp((char *)&buffer[DOS_FS_TYPE_OFFSET_FAT_16],"FAT",3)
-		|| !strncmp (&buffer[DOS_FS_TYPE_OFFSET_FAT_32], "FAT", 3)) {
+		|| !strncmp ((char *)&buffer[DOS_FS_TYPE_OFFSET_FAT_32], "FAT", 3)) {
 		/* ok, we assume we are on a PBR only */
 		cur_part = 1;
 		part_offset = 0;
