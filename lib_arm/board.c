@@ -104,6 +104,7 @@ void mem_malloc_init (ulong dest_addr)
 
 	memset ((void *) mem_malloc_start, 0,
 			mem_malloc_end - mem_malloc_start);
+	gd->flags |= GD_FLG_RELOC;	/* tell others: relocation done */
 }
 
 void *sbrk (ptrdiff_t increment)
