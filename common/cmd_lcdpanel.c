@@ -322,7 +322,7 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		printf( "panel disabled\n" );
 #endif
 	} else {
-		unsigned matched = 0 ;
+		int matched = 0 ;
 		char *next = argv[1];
 #if defined(CONFIG_LCD_MULTI)
 		disablePanels();
