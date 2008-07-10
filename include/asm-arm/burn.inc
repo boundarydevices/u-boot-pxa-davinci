@@ -173,7 +173,7 @@ FlashGpioWaitForIdle:
 	cmpne	r3,r5
 
 //keep this one last
-	BigMovNe r5,INTEL_ID_28F128P33B&\mask
+	BigMov	r5,INTEL_ID_28F128P33B&\mask
 //these are the same, so no instruction generated
 	BigEor2Ne r0,((f128P33B_SIZE>>\sizeShift)^(f128j3a_SIZE>>\sizeShift))
 	cmpne	r3,r5
