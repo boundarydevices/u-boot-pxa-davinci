@@ -28,7 +28,7 @@ GCC_MAJOR    := $(shell $(CC) -v 2>&1 | grep version | cut -d' ' -f3  | cut -d'.
 GCC_MINOR    := $(shell $(CC) -v 2>&1 | grep version | cut -d' ' -f3  | cut -d'.' -f2)
 
 ifeq ($(GCC_MAJOR),4)
-	PLATFORM_CPPFLAGS += -march=armv5te
+#	PLATFORM_CPPFLAGS += -march=armv5te
 	PLATFORM_CPPFLAGS += -mtune=xscale
 	PLATFORM_CPPFLAGS += -mcpu=xscale
 	PLATFORM_RELFLAGS += -msoft-float
