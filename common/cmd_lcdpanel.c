@@ -267,6 +267,8 @@ char* find_set_panel(char* next, int* pmatched)
 	return next;
 }
 
+void disable_lcd_panel(void);
+
 static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 #if defined(CONFIG_LCD_MULTI)
@@ -316,11 +318,9 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		printf( "xres\tyres\tCRT\tname\n" );
 		for( i = 0 ; i < num_lcd_panels ; i++ )
 			short_panel_info( lcd_panels+i );
-#if defined(CONFIG_LCD_MULTI)
 	} else if( '-' == *argv[1] ) {
 		disable_lcd_panel();
 		printf( "panel disabled\n" );
-#endif
 	} else {
 		int matched = 0 ;
 		char *next = argv[1];
