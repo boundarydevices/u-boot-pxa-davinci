@@ -103,6 +103,10 @@ static void disable(void)
 {
 }
 
+void disable_lcd_panel( void )
+{
+}
+
 #define NUM_WINDOWS 4
 
 static unsigned encPerPixel = 1 ;
