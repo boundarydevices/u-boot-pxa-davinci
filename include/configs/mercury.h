@@ -183,7 +183,7 @@
 #define CONFIG_BOOTCOMMAND	"while not mmcdet ; do cls ; lecho \"insert SD card\" ; sleep 1 ; done ; cls ; " \
                                 "if mmcwp ; then lecho \"write protected\" ; else lecho \"not write protected\" ; fi ; " \
                                 "mmcinit; " \
-                                "if fatload mmc 0 80000000 init.scr ; then autoscr 80000000 ; fi"
+                                "if fatload mmc 0 80001000 init.scr ; then autoscr 80001000 ; fi"
 #define CONFIG_BOOTARGS		"console=ttymxc0,115200 DEBUG=1 ENV=/etc/bashrc init=/linuxrc rw root=/dev/ram0"
 
 /*
