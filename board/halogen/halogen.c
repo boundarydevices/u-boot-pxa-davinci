@@ -47,10 +47,6 @@ vidinfo_t panel_info = {
 	vl_lcd_line_length: (320 * NBITS(LCD_BPP) ) >> 3
 };
 
-void disable_lcd_panel( void )
-{
-}
-
 
 /* ------------------------------------------------------------------------- */
 

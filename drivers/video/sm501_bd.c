@@ -568,6 +568,7 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    cur_lcd_panel = panel ;
    SetPanelInfo(panel);
 }
+#endif
 
 void disable_lcd_panel( void )
 {
@@ -580,8 +581,6 @@ void disable_lcd_panel( void )
    crtctrl  &= ~(DISPCRTL_ENABLE);
    STUFFREG( crtctrlReg, crtctrl );
 }
-
-#endif
 
 #ifdef CONFIG_LCD_MULTI
 static int initialized = 0 ;

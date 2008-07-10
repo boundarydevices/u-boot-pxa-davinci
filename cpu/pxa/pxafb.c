@@ -629,6 +629,11 @@ static unsigned long get_palette_color(unsigned char idx)
 static void disable(void)
 {
 }
+#else
+//the other video driver will implement this if there is one.
+void disable_lcd_panel( void )
+{
+}
 #endif
 
 #if defined(CONFIG_LCD_MULTI)
