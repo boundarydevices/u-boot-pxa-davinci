@@ -98,6 +98,7 @@ COBJS-$(CONFIG_CMD_SCSI) += cmd_scsi.o
 COBJS-$(CONFIG_CMD_SETEXPR) += cmd_setexpr.o
 COBJS-$(CONFIG_CMD_SPI) += cmd_spi.o
 COBJS-$(CONFIG_CMD_STRINGS) += cmd_strings.o
+COBJS-$(CONFIG_CMD_STRCPY) += cmd_strcpy.o
 COBJS-$(CONFIG_CMD_TERMINAL) += cmd_terminal.o
 COBJS-$(CONFIG_CMD_UNIVERSE) += cmd_universe.o
 COBJS-$(CONFIG_CMD_USB) += cmd_usb.o
