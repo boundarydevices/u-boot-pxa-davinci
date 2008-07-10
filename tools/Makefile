@@ -290,7 +290,7 @@ $(obj)libfdt_internal.h:
 		@rm -f $(obj)libfdt_internal.h
 		ln -s $(src)../libfdt/libfdt_internal.h $(obj)libfdt_internal.h
 
-$(LOGO_H):	$(obj)bmp_logo $(LOGO_BMP)
+$(LOGO_H):	$(obj)bmp_logo$(SFX) $(LOGO_BMP)
 		$(obj)./bmp_logo $(LOGO_BMP) >$@
 
 #########################################################################
