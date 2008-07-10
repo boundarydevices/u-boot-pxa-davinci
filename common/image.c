@@ -315,8 +315,8 @@ void image_print_contents (image_header_t *hdr)
 	image_print_type (hdr);
 	printf ("%sData Size:    ", p);
 	genimg_print_size (image_get_data_size (hdr));
-	printf ("%sLoad Address: %08x\n", p, image_get_load (hdr));
-	printf ("%sEntry Point:  %08x\n", p, image_get_ep (hdr));
+	printf ("%sLoad Address: %08x\n", p, (unsigned int)image_get_load (hdr));
+	printf ("%sEntry Point:  %08x\n", p, (unsigned int)image_get_ep (hdr));
 
 	if (image_check_type (hdr, IH_TYPE_MULTI) ||
 			image_check_type (hdr, IH_TYPE_SCRIPT)) {
@@ -479,7 +479,7 @@ static void genimg_print_size (uint32_t size)
 	print_size (size, "\n");
 #else
 	printf ("%d Bytes = %.2f kB = %.2f MB\n",
-			size, (double)size / 1.024e3,
+			(int)size, (double)size / 1.024e3,
 			(double)size / 1.048576e6);
 #endif
 }
