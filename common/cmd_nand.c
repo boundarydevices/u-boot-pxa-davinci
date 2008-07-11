@@ -176,7 +176,7 @@ out:
 }
 extern ulong eccReadMask;	/* bitmask off ecc err groups*/
 
-int seq_nand(nand_info_t *nand, ulong off, ulong* pSize, u_char *buf,int bRead)
+int seq_nand(nand_info_t *nand, ulong off, size_t* pSize, u_char *buf,int bRead)
 {
 	ulong pageSize = nand->oobblock;
 	size_t retlen;
