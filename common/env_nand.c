@@ -231,7 +231,7 @@ int saveenv(void)
 	size_t total;
 	int ret = 0;
 	nand_erase_options_t nand_erase_options;
-	
+
 	nand_erase_options.length = CFG_ENV_RANGE;
 	nand_erase_options.quiet = 0;
 	nand_erase_options.jffs2 = 0;
@@ -246,7 +246,7 @@ int saveenv(void)
 
 	puts ("Writing to Nand... ");
 	total = CFG_ENV_SIZE;
-	if (writeenv(CFG_ENV_OFFSET, env_ptr)) {
+	if (writeenv(CFG_ENV_OFFSET, (u_char *)env_ptr)) {
 		puts("FAILED!\n");
 		return 1;
 	}
@@ -349,7 +349,7 @@ void env_relocate_spec (void)
 	int ret;
 
 	total = CFG_ENV_SIZE;
-	ret = readenv(CFG_ENV_OFFSET, env_ptr);
+	ret = readenv(CFG_ENV_OFFSET, (u_char *)env_ptr);
 	if (ret || total != CFG_ENV_SIZE)
 		return use_default();
 
