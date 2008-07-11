@@ -28,7 +28,6 @@ int do_strcpy(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	char *endptr ;
 	unsigned long addr ;
 	unsigned len ;
-	int arg ;
 
 	if( 3 > argc ){
 		goto bail ;
