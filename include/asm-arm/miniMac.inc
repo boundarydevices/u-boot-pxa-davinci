@@ -197,7 +197,7 @@
 #define rGdbTermChar1	r7
 #define rGdbNum2	r8
 #define rGdbTermChar2	r9
-#define rGdbNum3 	sl	//r10
+#define rGdbNum3	sl	//r10
 #define rGdbChkSum	fp	//r11
 
 #define rSP r8			//register which contains L4(' ',' ',' ',' '), all spaces
@@ -342,17 +342,17 @@ InvalidateAndReturn:
 
 //this is case where stacks are assumed invalid
 .macro  I_VectorEntrance Work,Branch,code
-	GetDebugMagic 	\Branch
+	GetDebugMagic	\Branch
 	str	\Work,[\Branch,#DBG_TEMP-DBG_MAGIC]
 	mov	\Branch, #(\code<<2)+8
 .endm
 .macro  I_VectorExitCC Work,Branch,cc,ccia,ncc
-	GetDebugMagicCC 	\cc,\ncc,\Work
+	GetDebugMagicCC	\cc,\ncc,\Work
 	ldr\cc	\Work,[\Work,#DBG_TEMP-DBG_MAGIC]
 	bx\cc	\Branch
 .endm
 .macro  I_VectorExitCC1 Work,Branch,cc,ccia,ncc
-	GetDebugMagic 	\Work
+	GetDebugMagic	\Work
 	ldr\cc	\Work,[\Work,#DBG_TEMP-DBG_MAGIC]
 	bx\cc	\Branch
 .endm

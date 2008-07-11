@@ -153,7 +153,7 @@
 #define LCD_CR0		0		//master enable last
 #define LCD_CR1		4
 #define LCD_CR2		8
-#define LCD_CR3 	0x0c
+#define LCD_CR3		0x0c
 #define LCD_FBR0	0x20			//Frame branch register
 #define LCD_FBR1	0x24			//Frame branch register
 #define LCD_SR		0x38
@@ -208,7 +208,7 @@
 #define CR2_LINES_PER_PANEL			0	//10 bit field +1
 
 
-#define CR3_PDFOR 					30
+#define CR3_PDFOR				30
 #define CR3_DOUBLE_PCLK				27
 #define CR3_BITS_PER_PIXEL			24	//3 bit field
 //0 - 1 bit

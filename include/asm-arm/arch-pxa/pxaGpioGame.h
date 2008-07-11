@@ -90,7 +90,7 @@ SPECZ_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
 
 	SPEC_	ALL,  6,OUT,HIGH,1		//MMC_CLK
 
-	SPEC_	_ABC, 7,IN, HIGH,0		//CP_48MHZ, 	TICKET IN
+	SPEC_	_ABC, 7,IN, HIGH,0		//CP_48MHZ,	TICKET IN
 	SPEC_	_Z,   7,OUT,HIGH,0		//CP_48MHZ	!!! red led
 
 	SPEC_	_ABC, 8,OUT,HIGH,1		//MMC_CCS0

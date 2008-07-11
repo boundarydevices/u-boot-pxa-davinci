@@ -1,6 +1,6 @@
 
 	.equiv	IPU_BASE, 0x53fc0000
-	.equiv	IPU_CONF, 			0x00
+	.equiv	IPU_CONF,		0x00
 	.equiv	IPU_CHAN_BUF0_RDY,	0x04
 	.equiv	IPU_CHAN_BUF1_RDY,	0x08
 	.equiv	IPU_CHAN_DB_MODE_SEL, 0x0c	//Double buffer mode select

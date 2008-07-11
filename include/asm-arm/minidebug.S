@@ -150,7 +150,7 @@ V_PrefetchAbort:
 	//rBranch is sp, so need to restore invalid stack
 	ldrne	rWork,[rWork,#DBG_TEMP-DBG_ABORT_PC]
 	subnes	pc,lr,#4		//retry access
-	GetDebugMagic 	rWork
+	GetDebugMagic	rWork
 	.endif
 
 	mov		rBranch,#(SIG_PREFETCH_ABORT<<2)+8
@@ -165,7 +165,7 @@ V_DataAbort:
 	JOIN beq
 	sub	lr,lr,#4		//+8 of offending instruction for most data aborts instead of +4
 DEBUG_EVENT:
-	GetDebugMagic 	rWork
+	GetDebugMagic	rWork
 	strd	r0,[rWork,#DBG_R0-DBG_MAGIC]
 	sub	r0,rWork,#DBG_MAGIC
 
@@ -183,7 +183,7 @@ DEBUG_EVENT:
 
 V_Unused:
 	mov	sp,r0			//save r0
-	GetDebugBase 	r0
+	GetDebugBase	r0
 	str	sp,[r0,#DBG_R0]
 	str	r1,[r0,#DBG_R1]
 	mov	r1,#SIG_UNUSED
@@ -442,10 +442,10 @@ gdb_lastSignal1:
 	mov	r3,#0
 	mov	r1,#RECEIVE_LOOP_COUNT
 10:
-	bl	Receive1		//z-0 good data in r0, z-1 timeout, r0 is 0
+	bl	Receive1	//z-0 good data in r0, z-1 timeout, r0 is 0
 	moveq rNum1,#0
 	beq	12f		//br if timeout
-	cmpne	r6,#SIG_RESET 		//disable cr abort on power up
+	cmpne	r6,#SIG_RESET	//disable cr abort on power up
 //	beq	10b		//uncomment to stop <cr> from stopping
 
 	cmp	r0,#L1(PLUS)
@@ -536,19 +536,19 @@ gdb_lastSignal1:
 	EnableFlashReadMode	r0,r1,rUart
 
 #if (PLATFORM_TYPE==NEONB)
-	adr		lr,AfterPCPrint
-	add		r1,r1,lr		//virtual address of AfterPCPrint if in Linux for data fetch
-	cmp		lr,#0x800
-	BigOrr2Eq lr,FLASH_BASE_ADDRESS 		//if in low part of CS0 flash, try CS1 flash
+	adr	lr,AfterPCPrint
+	add	r1,r1,lr		//virtual address of AfterPCPrint if in Linux for data fetch
+	cmp	lr,#0x800
+	BigOrr2Eq lr,FLASH_BASE_ADDRESS	//if in low part of CS0 flash, try CS1 flash
 	BigMov	r0,0xe3a00055		//instruction mov	r0,#55
-	cmp		rUart,#0x41000000
+	cmp	rUart,#0x41000000
 	movlo	r1,lr			//use physical address of AfterPCPrint for data fetch
-	ldr		r2,[r1]
-	cmp		r2,r0
-	moveq	pc,lr		//br if CS1 valid
-	b		AfterPCPrint_error
+	ldr	r2,[r1]
+	cmp	r2,r0
+	moveq	pc,lr			//br if CS1 valid
+	b	AfterPCPrint_error
 #else
-	b		AfterPCPrint1
+	b	AfterPCPrint1
 #endif
 
 // ******************************************************************************************
@@ -684,7 +684,7 @@ MainInitializationCode:
 	adr		lr,AfterPCPrint
 	cmp		lr,#0x800
 	bne		InitializeCont1
-	BigOrr2 lr,FLASH_BASE_ADDRESS 		//if in low part of CS0 flash, try CS1 flash
+	BigOrr2 lr,FLASH_BASE_ADDRESS		//if in low part of CS0 flash, try CS1 flash
 	BigMov	r0,0xe3a00055		//instruction mov	r0,#55
 	ldr		r2,[lr]
 	cmp		r2,r0

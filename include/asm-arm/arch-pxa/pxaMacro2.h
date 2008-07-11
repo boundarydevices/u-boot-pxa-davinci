@@ -375,11 +375,11 @@
 	BigMov	\rBase,CLK_MANAGER_BASE
 	.if CPU_PXA270
 	.equiv	CKEN_MEMORY_CONTROLLER, 22
-	.equiv	CKEN_OS_TIMER, 			9
+	.equiv	CKEN_OS_TIMER,	9
 
-	.equiv	CCCR_L_BIT,		0
+	.equiv	CCCR_L_BIT,	0
 	.equiv	CCCR_2N_BIT,	7
-	.equiv	CCCR_A_BIT,		25
+	.equiv	CCCR_A_BIT,	25
 
 	.equiv	CLKCFG_TURBO_BIT,		0
 	.equiv	CLKCFG_FREQUENCY_CHANGE_BIT,	1
@@ -387,42 +387,42 @@
 	.equiv	CLKCFG_FAST_BUS_BIT,	3
 
 	.if		(\cpuClock==104)	//13*8 = 104MHz
-	.equiv	CCCR_2N,	2
+	.equiv	CCCR_2N, 2
 	.equiv	CCCR_L,	8
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 0
 	.equiv	CLKCFG_FAST_BUS, 0
 	.else
 	.if		(\cpuClock==208)	//13*16 = 208MHz
-	.equiv	CCCR_2N,	2
+	.equiv	CCCR_2N, 2
 	.equiv	CCCR_L,	16
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 0
 	.equiv	CLKCFG_FAST_BUS, 0
 	.else
 	.if		(\cpuClock==312)	//312MHz
-	.equiv	CCCR_2N,	3
+	.equiv	CCCR_2N, 3
 	.equiv	CCCR_L,	16
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 1
 	.equiv	CLKCFG_FAST_BUS, 0
 	.else
 	.if		(\cpuClock==416)	//416MHz
-	.equiv	CCCR_2N,	4
+	.equiv	CCCR_2N, 4
 	.equiv	CCCR_L,	16
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 1
 	.equiv	CLKCFG_FAST_BUS, 1
 	.else
 	.if		(\cpuClock==520)	//520MHz
-	.equiv	CCCR_2N,	5
+	.equiv	CCCR_2N, 5
 	.equiv	CCCR_L,	16
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 1
 	.equiv	CLKCFG_FAST_BUS, 1
 	.else
 	.if		(\cpuClock==624)	//624MHz
-	.equiv	CCCR_2N,	6
+	.equiv	CCCR_2N, 6
 	.equiv	CCCR_L,	16
 	.equiv	CCCR_A, 0
 	.equiv	CLKCFG_TURBO, 1
