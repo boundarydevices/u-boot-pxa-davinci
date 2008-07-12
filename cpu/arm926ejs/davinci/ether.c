@@ -97,18 +97,6 @@ void eth_mdio_enable(void)
 
 static u_int8_t dm644x_eth_mac_addr[] __attribute__ ((aligned (4))) = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
-/*
- * This function must be called before emac_open() if you want to override
- * the default mac address.
- */
-void dm644x_eth_set_mac_addr(const u_int8_t *addr)
-{
-	int i;
-
-	for (i = 0; i < sizeof (dm644x_eth_mac_addr); i++) {
-		dm644x_eth_mac_addr[i] = addr[i];
-	}
-}
 
 /* EMAC Addresses */
 static volatile emac_regs	*adap_emac = (emac_regs *)EMAC_BASE_ADDR;
@@ -129,6 +117,21 @@ static unsigned char		emac_rx_buffers[EMAC_MAX_RX_BUFFERS * (EMAC_MAX_ETHERNET_P
 static volatile u_int8_t	active_phy_addr = 0xff;
 
 phy_t				phy;
+
+/*
+ * This function must be called before emac_open() if you want to override
+ * the default mac address.
+ */
+void dm644x_eth_set_mac_addr(const u_int8_t *addr)
+{
+	int i;
+
+	for (i = 0; i < sizeof (dm644x_eth_mac_addr); i++) {
+		dm644x_eth_mac_addr[i] = addr[i];
+	}
+	adap_emac->MACSRCADDRHI = *((unsigned int*)dm644x_eth_mac_addr);
+	adap_emac->MACSRCADDRLO = *((unsigned short*)(dm644x_eth_mac_addr+4));
+}
 
 static void dm644x_eth_mdio_enable(void)
 {

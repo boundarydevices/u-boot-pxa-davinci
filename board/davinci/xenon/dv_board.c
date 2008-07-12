@@ -167,18 +167,22 @@ int board_init(void)
 	return(0);
 }
 
+int get_rom_mac (char *v_rom_mac);
+
 extern char version_string[];
 int misc_init_r (void)
 {
-	char *s ;
+	char macAddr[6];
 	int		clk = 0;
 	clk = ((REG(PLL2_PLLM) + 1) * 27) / ((REG(PLL2_DIV2) & 0x1f) + 1);
 	printf ("ARM Clock : %dMHz\n", ((REG(PLL1_PLLM) + 1) * 27 ) / 2);
 	printf ("DDR Clock : %dMHz\n", (clk / 2));
 
-	if( NULL != ( s = getenv(MAC_VARIABLE) ) )
-		printf( "Mac address %s\n", s );
-	else
+	if (get_rom_mac(macAddr)==0) {
+		printf( "Mac address %02x:%02x:%02x:%02x:%02x:%02x\n",
+			macAddr[0], macAddr[1], macAddr[2],
+			macAddr[3], macAddr[4], macAddr[5] );
+	} else
 		printf( "No mac address assigned\n" );
 
 	if (!eth_hw_init()) {
@@ -219,7 +223,7 @@ int get_rom_mac (char *v_rom_mac)
 {
    char *cmac ;
    if( NULL != ( cmac = getenv(MAC_VARIABLE) ) ){
-      if( 0 == parse_mac(cmac,v_rom_mac) ){
+      if (parse_mac(cmac,v_rom_mac) ){
          dm644x_eth_set_mac_addr(v_rom_mac);
          return 0 ;
       }
@@ -236,5 +240,3 @@ int set_rom_mac (char const *v_rom_mac)
    setenv(MAC_VARIABLE, cMac);
    return saveenv();
 }
-
-
