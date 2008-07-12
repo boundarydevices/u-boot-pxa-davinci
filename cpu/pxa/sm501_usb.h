@@ -1,6 +1,6 @@
 #ifndef SM501_USB_INCLUDED
 #define SM501_USB_INCLUDED
-
+#define __REG(x) (*((volatile u32 *)(x)))
 	#if defined(CONFIG_SM501)
 		#define USB_GATE_MODE0	__REG(0xFE00040)
 		#define USB_GATE_MODE1	__REG(0xFE00048)

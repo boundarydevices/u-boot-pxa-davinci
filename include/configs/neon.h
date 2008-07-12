@@ -35,12 +35,14 @@
 #define CONFIG_PXA27X		1	/* Which is a PXA27X */
 #define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
 #define CONFIG_SM501		1
+//#define CONFIG_SM501_USB	1	/* comment this out to use the pxa270's usb host*/
 
 #elif (PLATFORM_TYPE==NEON)||(PLATFORM_TYPE==NEONB)
 //These don't use the built-in pxa lcd controller
 #define CONFIG_PXA250		1	/* This is an PXA250 CPU    */
 #define CONFIG_NEON		1	/* on a Neon Board	    */
 #define CONFIG_SM501		1
+#define CONFIG_SM501_USB	1
 
 #else
 #define CONFIG_PXA250		1	/* This is an PXA250 CPU    */
@@ -132,6 +134,9 @@
 #define CONFIG_CMD_STRCPY
 //#define CONFIG_CMD_I2C
 //#define CONFIG_CMD_I2CTEST
+#if (PLATFORM_TYPE==ARGON)
+#define CONFIG_CMD_OKAYAWRITE
+#endif
 
 #undef CONFIG_CMD_BDI
 #undef CONFIG_CMD_BOOTD

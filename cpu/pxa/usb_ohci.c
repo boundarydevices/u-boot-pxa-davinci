@@ -35,15 +35,16 @@
 
 #include <common.h>
 /* #include <pci.h> no PCI on the S3C24X0 */
-
-#include <asm/arch/pxa-regs.h>
-
 #include <malloc.h>
 #include <usb.h>
 #include "usb_ohci.h"
 
-#if defined( CONFIG_SM501 )
+#if defined( CONFIG_SM501_USB )
 #include "sm501_usb.h"
+#elif defined( CONFIG_PXA27X )
+#include <asm/arch/pxa-regs.h>
+#else
+#error This is not a PXA27X, and CONFIG_SM501_USB was not selected
 #endif
 
 // #define OHCI_USE_NPS		/* force NoPowerSwitching mode */
@@ -1557,7 +1558,11 @@ int usb_lowlevel_init(void)
 	 */
 	clk_power->CLKCON |= (1 << 4);
 #endif
-#ifdef CONFIG_PXA27X
+
+#if defined( CONFIG_SM501_USB )
+	USB_GATE_MODE0 |= ENABLE_USBH ;
+	USB_GATE_MODE1 |= ENABLE_USBH ;
+#elif defined( CONFIG_PXA27X )
 	/*
 	 * Section 20.6.1 of PXA Developer's reference manual
 	 */
@@ -1571,9 +1576,6 @@ int usb_lowlevel_init(void)
 	CKEN |= CKEN10_USBHOST ;
 	udelay(10);
 	UHCHR &= ~(UHCHR_FHR|UHCHR_SSE);
-#elif defined( CONFIG_SM501 )
-	USB_GATE_MODE0 |= ENABLE_USBH ;
-	USB_GATE_MODE1 |= ENABLE_USBH ;
 #endif
 
 	memset (&gohci, 0, sizeof (ohci_t));
@@ -1614,9 +1616,10 @@ int usb_lowlevel_init(void)
 #ifdef FIXME
 		clk_power->CLKCON &= ~(1 << 4);
 #endif
-#ifdef CONFIG_PXA27X
+
+#if defined( CONFIG_SM501_USB )
+#elif defined( CONFIG_PXA27X )
 		CKEN   &= ~CKEN10_USBHOST ;
-#elif defined( CONFIG_SM501 )
 #endif
 		return -1;
 	}
@@ -1633,9 +1636,10 @@ int usb_lowlevel_init(void)
 #ifdef FIXME
 		clk_power->CLKCON &= ~(1 << 4);
 #endif
-#ifdef CONFIG_PXA27X
+
+#if defined( CONFIG_SM501_USB )
+#elif defined(CONFIG_PXA27X)
 		CKEN   &= ~CKEN10_USBHOST ;
-#elif defined( CONFIG_SM501 )
 #endif
 		return -1;
 	}
@@ -1660,7 +1664,8 @@ int usb_lowlevel_stop(void)
 	/* call hc_release_ohci() here ? */
 	hc_reset (&gohci);
 
-#ifdef CONFIG_PXA27X
+#if defined( CONFIG_SM501_USB )
+#elif defined(CONFIG_PXA27X)
 	/*
 	 * Section 20.7.4.4 of PXA Developer's reference manual
 	 */
@@ -1669,7 +1674,6 @@ int usb_lowlevel_stop(void)
 	UHCRHS |= UHCRHS_LPS ;
 	UHCHR  |= UHCHR_SSE ;
 	CKEN   &= ~CKEN10_USBHOST ;
-#elif defined( CONFIG_SM501 )
 #endif
 
 	return 0;
