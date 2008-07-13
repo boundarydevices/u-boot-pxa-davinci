@@ -3,9 +3,9 @@ lecho "SD card Detected" ;
 while mmcwp ; do cls ; lecho "remove write protect" ; sleep 1 ; done ;
 lecho "not write protected" ;
 
-if fatload mmc 0 a0008000 logo*.bmp ; then
-	bmp info a0008000 ;
-	bmp display a0008000 ;
+if fatload mmc 0 a0010000 logo*.bmp ; then
+	bmp info a0010000 ;
+	bmp display a0010000 ;
 else
 	lecho "No logo present" ;
 fi
