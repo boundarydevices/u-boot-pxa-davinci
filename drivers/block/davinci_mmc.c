@@ -637,7 +637,7 @@ int mmc_init(int verbose)
 			cid.prod_name,
 			mmc_g.mmc_csd.capacity,
 			1<<mmc_g.mmc_csd.read_blkbits,
-			mmc_g.mmc_csd.capacity*(1<<mmc_g.mmc_csd.read_blkbits)/(1024*1024) );
+			(mmc_g.mmc_csd.capacity/1024)*(1<<mmc_g.mmc_csd.read_blkbits)/1024 );
 
 	resp = mmc_cmd(7, rca<<16, MMC_CMDAT_R1);
 	if( !resp ) {
