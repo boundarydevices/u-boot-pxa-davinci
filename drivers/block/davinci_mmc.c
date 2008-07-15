@@ -381,7 +381,8 @@ unsigned long  mmc_bread (int dev_unused, unsigned long start, lbaint_t blkcnt, 
 	mmc_setblklen( mmc_g.mmc_dev.blksz );
 
 	for( i = 0 ; i < blkcnt ; i++ ){
-		resp = mmc_cmd(MMC_CMD_READ_BLOCK, blockNum*mmc_g.mmc_dev.blksz, MMC_CMDAT_R1|MMC_CMDAT_READ|MMC_CMDAT_DATA_EN);
+		unsigned addr = (IF_TYPE_SDHC == mmc_g.mmc_dev.if_type) ? blockNum : blockNum*mmc_g.mmc_dev.blksz ;
+		resp = mmc_cmd(MMC_CMD_READ_BLOCK, addr, MMC_CMDAT_R1|MMC_CMDAT_READ|MMC_CMDAT_DATA_EN);
 		if( resp ){
 			unsigned longsRead = mmc_ReadFifo((unsigned int*)buffer,longsPerBlock);
 
@@ -592,6 +593,7 @@ int mmc_init(int verbose)
 		mmc_g.mmc_csd.r2w_factor = 4; /* Unused */
 		mmc_g.mmc_csd.write_blkbits = 9;
 		mmc_g.mmc_csd.write_partial = 0;
+		mmc_g.mmc_dev.if_type = IF_TYPE_SDHC ;
 		break;
 	default:
 		dumpResponse(resp);
@@ -644,6 +646,8 @@ int mmc_init(int verbose)
 	}
 
 	if (isSD) {
+		if( IF_TYPE_MMC == mmc_g.mmc_dev.if_type )
+			mmc_g.mmc_dev.if_type = IF_TYPE_SD ;
 		int busWidthMode = 0;
 		mmc_g.allowed4bit = 1;
 		if (0 == getenv("sd1bit") ){
