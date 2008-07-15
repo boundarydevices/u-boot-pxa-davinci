@@ -117,10 +117,10 @@ static void setPixClock( unsigned long mhz )
 	unsigned long divisor, high, low ;
 	unsigned long pllIn = 27000000*(REGVALUE(PLL2_PLLM)+1);
 	divisor = pllIn/mhz ;
-	if( divisor > 16 ){
+	if( divisor > 1023 ){
 		encPerPixel = (divisor / 16)+1 ;	// add one to ensure increment available in divisor
 		divisor = pllIn/(encPerPixel*mhz);
-	} // slower than 40MHz
+	} // slower than 6.3MHz
 	else
 		encPerPixel = 1 ;
 
