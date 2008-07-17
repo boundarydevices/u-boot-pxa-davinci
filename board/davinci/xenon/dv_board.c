@@ -225,10 +225,10 @@ int get_rom_mac (char *v_rom_mac)
    if( NULL != ( cmac = getenv(MAC_VARIABLE) ) ){
       if (parse_mac(cmac,v_rom_mac) ){
          dm644x_eth_set_mac_addr(v_rom_mac);
-         return 0 ;
+         return 1 ;
       }
    }
-   return -1 ;
+   return 0 ;
 }
 
 int set_rom_mac (char const *v_rom_mac)
@@ -238,5 +238,5 @@ int set_rom_mac (char const *v_rom_mac)
             v_rom_mac[0], v_rom_mac[1], v_rom_mac[2],
             v_rom_mac[3], v_rom_mac[4], v_rom_mac[5] );
    setenv(MAC_VARIABLE, cMac);
-   return saveenv();
+   return (0 == saveenv());
 }
