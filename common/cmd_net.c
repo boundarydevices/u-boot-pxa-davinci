@@ -117,9 +117,9 @@ int do_mac (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			if( set_rom_mac( mac ) ){
 				printf( "done\n" );
 				rval = 0 ;
-		}
-		else
-			printf( "Error setting mac address\n" );
+			}
+			else
+				printf( "Error setting mac address\n" );
 		}
 		else
 			printf( "Error parsing mac: use form NN:NN:NN:NN:NN:NN\n" );
