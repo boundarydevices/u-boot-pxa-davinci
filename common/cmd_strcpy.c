@@ -28,6 +28,7 @@ int do_strcpy(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	char *endptr ;
 	unsigned long addr ;
 	unsigned len ;
+        char *src = 0 ;
 
 	if( 3 > argc ){
 		goto bail ;
@@ -38,8 +39,17 @@ int do_strcpy(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		goto bail ;
 	}
 
+        src = argv[2];
+        if( '$' == *src ){
+           src = getenv( src+1 );
+           if( !src ){
+              printf( "Invalid variable <%s>\n", argv[2] );
+              goto bail ;
+           }
+        }
+
 	if( 3 == argc ){
-		len = strlen(argv[2]) + 1;
+		len = strlen(src) + 1;
 	}
 	else {
 		len = simple_strtoul(argv[3],&endptr,10);
@@ -48,7 +58,7 @@ int do_strcpy(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			goto bail ;
 		}
 	}
-	strncpy((void *)addr, argv[2], len);
+	strncpy((void *)addr, src, len);
 	return 0 ;
 
 bail:
@@ -56,7 +66,7 @@ bail:
 	return 1;
 }
 
-U_BOOT_CMD(strcpy, 4, 1, do_strcpy,
+U_BOOT_CMD(strcpy, 100, 1, do_strcpy,
 	"strcpy - copy strings\n",
 	"<addr> string [byte count]\n"
 	"    - copy string to <addr>, length at most [byte count] or first NULL\n" );
