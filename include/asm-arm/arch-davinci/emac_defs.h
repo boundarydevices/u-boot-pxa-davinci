@@ -57,6 +57,7 @@
  * NOTE: Only 1 buffer supported as of now
  */
 #define EMAC_MAX_RX_BUFFERS		10
+#define EMAC_MAX_TX_BUFFERS		2
 
 
 /***********************************************
@@ -81,11 +82,12 @@
 /* Number of statistics registers */
 #define EMAC_NUM_STATS			36
 
+struct _emac_desc;
 
 /* EMAC Descriptor */
 typedef volatile struct _emac_desc
 {
-	u_int32_t	next;		/* Pointer to next descriptor in chain */
+	volatile struct _emac_desc *next; /* Pointer to next descriptor in chain */
 	u_int8_t	*buffer;	/* Pointer to data buffer */
 	u_int32_t	buff_off_len;	/* Buffer Offset(MSW) and Length(LSW) */
 	u_int32_t	pkt_flag_len;	/* Packet Flags(MSW) and Length(LSW) */
