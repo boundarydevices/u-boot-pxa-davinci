@@ -178,7 +178,7 @@ int misc_init_r (void)
 	printf ("ARM Clock : %dMHz\n", ((REG(PLL1_PLLM) + 1) * 27 ) / 2);
 	printf ("DDR Clock : %dMHz\n", (clk / 2));
 
-	if (get_rom_mac(macAddr)==0) {
+	if (get_rom_mac(macAddr)) {
 		printf( "Mac address %02x:%02x:%02x:%02x:%02x:%02x\n",
 			macAddr[0], macAddr[1], macAddr[2],
 			macAddr[3], macAddr[4], macAddr[5] );
@@ -224,7 +224,7 @@ int get_rom_mac (char *v_rom_mac)
    char *cmac ;
    if( NULL != ( cmac = getenv(MAC_VARIABLE) ) ){
       if (parse_mac(cmac,v_rom_mac) ){
-         dm644x_eth_set_mac_addr(v_rom_mac);
+         dm644x_eth_set_mac_addr((unsigned char*)v_rom_mac);
          return 1 ;
       }
    }
