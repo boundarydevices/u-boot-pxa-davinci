@@ -557,8 +557,9 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
       setClockReg( pm0ClockReg, reg );
       setClockReg( pm1ClockReg, reg );
 
-      if (panel->crt) updateCRT( freq, panel );
-         paletteRegs = lcdPaletteRegs ;
+      if (panel->crt) 
+         updateCRT( freq, panel );
+      paletteRegs = lcdPaletteRegs ;
    }
 
    if(panel->xres*panel->yres > XGA_PIXELS)
@@ -876,6 +877,9 @@ void init_sm501_crt_shared( struct lcd_t *lcd )
    reg &= ~0x200 ; // use panel data, not CRT
    STUFFREG( crtctrlReg, reg );
    lcd->fbAddr = lcd_fbaddr ;
+   lcd->set_palette = sm501_lcd_set_palette ;
+   lcd->get_palette_color = sm501_lcd_get_palette_color ;
+   lcd->disable = sm501_lcd_disable ;
 }
 
 #endif
