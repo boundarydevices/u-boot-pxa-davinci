@@ -119,6 +119,11 @@ int lxt972_auto_negotiate(int phy_addr)
 	u_int16_t	tmp;
 	int i=0;
 
+	if (!dm644x_eth_phy_read(phy_addr, PHY_LXT971_STAT2, &tmp))
+		return(0);
+        if( tmp & PHY_LXT971_STAT2_LINK ){
+           return 1 ;
+        }
 
 	if (!dm644x_eth_phy_read(phy_addr, PHY_COMMON_AUTO_ADV, &tmp))
 		return(0);
