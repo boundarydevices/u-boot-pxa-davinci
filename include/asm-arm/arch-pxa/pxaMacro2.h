@@ -108,6 +108,7 @@
 	strpl	\rTemp,[\rBase,#MDREFR]
 	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
+	add	\rTemp,\rTemp,#1	//force wait on read instead of throwing away
 	BigMov	\rTemp,SM_MDCNFG_VAL
 	BigEor2Cc \rTemp,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
 	.if RomWidthIsRamWidth
