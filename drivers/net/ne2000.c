@@ -299,6 +299,7 @@ dp83902a_send(unsigned char *data, int total_len, unsigned long key)
 		DP_OUT(base, DP_RBCL, len);
 		DP_OUT(base, DP_RBCH, 0);
 		DP_OUT(base, DP_CR, DP_CR_PAGE0 | DP_CR_RDMA | DP_CR_START);
+		DP_IN(base, DP_CR, tmp);	//delay
 		DP_IN(base, DP_DATA, tmp);
 	}
 
@@ -414,6 +415,7 @@ dp83902a_RxEvent(void)
 		dp->rx_next = pkt;
 		DP_OUT(base, DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
 		DP_OUT(base, DP_CR, DP_CR_RDMA | DP_CR_START);
+		DP_IN(base, DP_CR, i);	//delay
 #ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_RX_DMA
 		udelay(10);
 #endif
@@ -467,6 +469,7 @@ dp83902a_recv(unsigned char *data, int len)
 	DP_OUT(base, DP_RSAH, dp->rx_next);
 	DP_OUT(base, DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
 	DP_OUT(base, DP_CR, DP_CR_RDMA | DP_CR_START);
+	DP_IN(base, DP_CR, i);	//delay
 #ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_RX_DMA
 	udelay(10);
 #endif
@@ -801,6 +804,7 @@ static hw_info_t * get_prom(cyg_uint8 *base, uchar* mac) {
 	for (i = 0; i < sizeof(program_seq)/sizeof(program_seq[0]); i++)
 		DP_OUT(base, program_seq[i].offset, program_seq[i].value);
 
+	DP_IN(base, DP_CR, i);	//delay
 	PRINTK("PROM:");
 	for (i = 0; i < 32; i+=2) {
 		DP_IN_DP(base, *(unsigned short*)(&prom[i]));
@@ -1033,7 +1037,7 @@ int set_rom_mac (char const *mac)
 	}
 	buf[0] = 0x5aa5;
 	buf[1] = 0x0006;
-	buf[2] = 0x0004;
+	buf[2] = 0x0024;
 	memcpy(&buf[3],mac,6);
 
 #define EEOP_WRITE_DISABLE	((0x04<<6)|0x00)		//9 bits total
