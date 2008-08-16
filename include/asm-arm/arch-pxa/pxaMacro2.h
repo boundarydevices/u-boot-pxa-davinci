@@ -108,6 +108,7 @@
 	strpl	\rTemp,[\rBase,#MDREFR]
 	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
+	add	\rTemp,\rTemp,#1	//force wait on read instead of throwing away
 	BigMov	\rTemp,SM_MDCNFG_VAL
 	BigEor2Cc \rTemp,(SM_MDCNFG_VAL)^(BM_MDCNFG_VAL)
 	.if RomWidthIsRamWidth
@@ -216,7 +217,7 @@
 	.equiv	CS1_MSC, (1<<15)+   (1<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//SM501
 #else
 #if (PLATFORM_TYPE==HYDROGEN)
-	.equiv	CS1_MSC, (1<<15)+   (4<<12)+            (4<<8)+            ((5-1)<<4)+        (1<<3) +       1		//AX88796B, SRAM interface
+	.equiv	CS1_MSC, (1<<15)+   (1<<12)+            (3<<8)+            ((5-1)<<4)+        (1<<3) +       1		//AX88796B, SRAM interface
 #else
 	.equiv	CS1_MSC, (1<<15)+   (3<<12)+            (2<<8)+             ((3-1)<<4)+        (1<<3) +       4		//SMC chip
 #endif

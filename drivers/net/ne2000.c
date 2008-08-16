@@ -299,6 +299,7 @@ dp83902a_send(unsigned char *data, int total_len, unsigned long key)
 		DP_OUT(base, DP_RBCL, len);
 		DP_OUT(base, DP_RBCH, 0);
 		DP_OUT(base, DP_CR, DP_CR_PAGE0 | DP_CR_RDMA | DP_CR_START);
+		DP_IN(base, DP_CR, tmp);	//delay
 		DP_IN(base, DP_DATA, tmp);
 	}
 
@@ -414,6 +415,7 @@ dp83902a_RxEvent(void)
 		dp->rx_next = pkt;
 		DP_OUT(base, DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
 		DP_OUT(base, DP_CR, DP_CR_RDMA | DP_CR_START);
+		DP_IN(base, DP_CR, i);	//delay
 #ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_RX_DMA
 		udelay(10);
 #endif
@@ -467,6 +469,7 @@ dp83902a_recv(unsigned char *data, int len)
 	DP_OUT(base, DP_RSAH, dp->rx_next);
 	DP_OUT(base, DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
 	DP_OUT(base, DP_CR, DP_CR_RDMA | DP_CR_START);
+	DP_IN(base, DP_CR, i);	//delay
 #ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_RX_DMA
 	udelay(10);
 #endif
@@ -801,6 +804,7 @@ static hw_info_t * get_prom(cyg_uint8 *base, uchar* mac) {
 	for (i = 0; i < sizeof(program_seq)/sizeof(program_seq[0]); i++)
 		DP_OUT(base, program_seq[i].offset, program_seq[i].value);
 
+	DP_IN(base, DP_CR, i);	//delay
 	PRINTK("PROM:");
 	for (i = 0; i < 32; i+=2) {
 		DP_IN_DP(base, *(unsigned short*)(&prom[i]));
@@ -1033,7 +1037,7 @@ int set_rom_mac (char const *mac)
 	}
 	buf[0] = 0x5aa5;
 	buf[1] = 0x0006;
-	buf[2] = 0x0004;
+	buf[2] = 0x0024;
 	memcpy(&buf[3],mac,6);
 
 #define EEOP_WRITE_DISABLE	((0x04<<6)|0x00)		//9 bits total
@@ -1091,15 +1095,15 @@ int get_rom_mac(uchar *newMac)
 //return 0 on success
 #define MII_OP_WRITE 0x1
 #define MII_OP_READ  0x2
-#define MII_READ(addr,reg)	  ((((((((0x3f<<2)|1)<<2)|MII_OP_READ )<<5)|addr)<<5)|reg)
-//bits for field			     6     2           2             5         5       2
-#define MII_WRITE(addr,reg)	((((((((((0x3f<<2)|1)<<2)|MII_OP_WRITE)<<5)|addr)<<5)|reg)<<2)|2)
+#define MII_READ(addr,reg)	  ((((((1<<2)|MII_OP_READ )<<5)|addr)<<5)|reg)
+//bits for field			2          2             5         5       2
+#define MII_WRITE(addr,reg)	((((((((1<<2)|MII_OP_WRITE)<<5)|addr)<<5)|reg)<<2)|2)
 
 #define MII_MDO 8
 #define MII_MDI 4
 #define MII_HIGHZ 2
 #define MII_CLK 1
-void ShiftMII_no_turn_around(cyg_uint8 *base, unsigned int writeVal, int len)
+void ShiftMII(cyg_uint8 *base, unsigned int writeVal, int len)
 {
 	unsigned char val;
 	while (len) {
@@ -1110,33 +1114,22 @@ void ShiftMII_no_turn_around(cyg_uint8 *base, unsigned int writeVal, int len)
 		DP_OUT(base, DP_MEMR, val|MII_CLK);
 		udelay(1);
 		DP_OUT(base, DP_MEMR, val);
-		udelay(1);
 	}
 }
-void ShiftMII(cyg_uint8 *base, unsigned int writeVal, int len)
-{
-	ShiftMII_no_turn_around(base, writeVal, len);
-	DP_OUT(base, DP_MEMR, MII_HIGHZ);
-	udelay(1);
-	DP_OUT(base, DP_MEMR, MII_HIGHZ|MII_CLK);
-	udelay(1);
-	DP_OUT(base, DP_MEMR, MII_HIGHZ);
-}
+
 //internal phy is fixed at 0x10 for addr
 static int AX88796B_miiphy_read(char *devname, unsigned char addr, unsigned char reg, unsigned short *value)
 {
 	cyg_uint8 *base;
 	base = nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
 	unsigned int readVal = MII_READ(addr,reg);
-	int len = (6 + 2 + 2 + 5 + 5);
+	int len = (2 + 2 + 5 + 5);
 	unsigned char val;
+	ShiftMII(base,0xffffffff,32);	//sync
 	ShiftMII(base,readVal,len);
-	udelay(1);
-	DP_OUT(base, DP_MEMR, MII_HIGHZ|MII_CLK);	//2nd turnaround bit
-	udelay(1);
 	DP_OUT(base, DP_MEMR, MII_HIGHZ);
 	udelay(1);
-	len = 16;
+	len = 17;
 	readVal = 0;
 	while (len) {
 		len--;
@@ -1148,12 +1141,14 @@ static int AX88796B_miiphy_read(char *devname, unsigned char addr, unsigned char
 		DP_OUT(base, DP_MEMR, MII_HIGHZ);
 		udelay(1);
 	}
-	udelay(1);
 	DP_OUT(base, DP_MEMR, MII_HIGHZ|MII_CLK);
 	udelay(1);
 	DP_OUT(base, DP_MEMR, MII_HIGHZ);
 	if (value)
 		*value = readVal;
+	if (readVal & 0x10000) {
+		printf("phy not responding, addr:0x%x, reg:0x%x readVal:0x%x\n",addr,reg,readVal);
+	}
 	return 0;
 }
 
@@ -1163,9 +1158,15 @@ static int AX88796B_miiphy_write(char *devname, unsigned char addr, unsigned cha
 	cyg_uint8 *base;
 	base = nic.base = (cyg_uint8 *) CONFIG_DRIVER_NE2000_BASE;
 	unsigned int writeVal = MII_WRITE(addr,reg);
-	int len = (6 + 2 + 2 + 5 + 5 + 2);
-	ShiftMII_no_turn_around(base,writeVal,len);
+	int len = (2 + 2 + 5 + 5 + 2);
+	ShiftMII(base,0xffffffff,32);	//sync
+	ShiftMII(base,writeVal,len);
 	ShiftMII(base,value,16);
+	DP_OUT(base, DP_MEMR, MII_HIGHZ);
+	udelay(1);
+	DP_OUT(base, DP_MEMR, MII_HIGHZ|MII_CLK);
+	udelay(1);
+	DP_OUT(base, DP_MEMR, MII_HIGHZ);
 	return 0;
 }
 int AX88796B_miiphy_initialize(bd_t *bis)

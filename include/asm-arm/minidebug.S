@@ -3124,7 +3124,7 @@ BurnContinue:
 	adr	r4,Burn_Rtn32
 	ldr	r3,[r4]
 	BigMov	r2,0xe58d5054	//NOTE: when 1st instruction of Burn_Rtn32 changes (or DBG_TEMP value), this must change as well
-	adrne	r4,Burn_Rtn16
+	addne	r4,r4,#(Burn_Rtn16-Burn_Rtn32)
 
 	cmp	r4,#MEM_START
 	bhs	10f

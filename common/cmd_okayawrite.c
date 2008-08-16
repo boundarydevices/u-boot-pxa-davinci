@@ -21,9 +21,9 @@
 #include <common.h>
 #include <command.h>
 
-#define GP_SPI_ENABLE 22
-#define GP_SPI_CLK 117
-#define GP_SPI_DATA 118
+#define GP_SPI_ENABLE	CONFIG_OKW_GP_SPI_ENABLE
+#define GP_SPI_CLK	CONFIG_OKW_GP_SPI_CLK
+#define GP_SPI_DATA	CONFIG_OKW_GP_SPI_DATA
 
 #define GP_INDEX(gp) ((gp<96)? (gp>>5) : 0x40)
 

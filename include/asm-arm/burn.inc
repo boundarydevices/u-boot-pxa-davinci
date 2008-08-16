@@ -264,12 +264,7 @@ FlashGpioWaitForIdle:
 	cmp	r4,r2
 	beq	3b		//br if (we signal) glitch caused a spurious status register read
 
-	ldrb	r2,[rDBG,#DBG_TEMP]
-	tst		r2,#1
-	BigMov	r0,FLASH_UNLOCK_CMD&\mask
-	strne\sz	r0,[rFlashSector]
-	BigMov	r0,FLASH_UNLOCK_CONFIRM_CMD&\mask
-	strne\sz	r0,[rFlashSector]
+	bl	34f		//UnLockP33
 
 	BigMov	r0,FLASH_ERASE_CMD&\mask
 	str\sz	r0,[rFlashSector]
@@ -296,6 +291,7 @@ FlashGpioWaitForIdle:
 
 //programming
 20:
+	bl	34f		//UnLockP33
 	bl	PrintProgramming
 21:
 	ldr	r2,[r0],#4	//read ram
@@ -411,4 +407,14 @@ FlashGpioWaitForIdle:
 	cmp	r2,r3
 	beq	32b		//br if (we signal) glitch caused a spurious status register read
 	b	ReturnError
+
+//UnLockP33:
+34:
+	ldrb	r2,[rDBG,#DBG_TEMP]
+	tst		r2,#1
+	BigMov	r0,FLASH_UNLOCK_CMD&\mask
+	strne\sz	r0,[rFlashSector]
+	BigMov	r0,FLASH_UNLOCK_CONFIRM_CMD&\mask
+	strne\sz	r0,[rFlashSector]
+	mov		pc,lr
 .endm
