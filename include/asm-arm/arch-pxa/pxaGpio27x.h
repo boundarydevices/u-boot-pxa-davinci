@@ -50,7 +50,7 @@
 #else
 	SPEC_GP  12,OUT,HIGH,0		//NC
 #endif
-	SPEC_GP  13,OUT,HIGH,0		//NC
+	SPEC_GP  13,IN,HIGH,0		//NC - Mag stripe 
 
 	SPEC_GP  14,OUT,HIGH,0		//NC
 	SPEC_GP  15,OUT,HIGH,2		//nCS1, NC
@@ -183,10 +183,10 @@
 	SPEC_GP  94,OUT,HIGH,0		//NC
 	SPEC_GP  95,OUT,HIGH,0		//NC
 	SPEC_GP  96,IN,HIGH,0		//NEON270 J12 pin 2
-	SPEC_GP  97,IN,HIGH,0		//NEON270 J12 pin 3
-	SPEC_GP  98,OUT,HIGH,0		//NC
-	SPEC_GP  99,OUT,HIGH,0		//NC
-	SPEC_GP  100,OUT,HIGH,0		//NC
+	SPEC_GP  97,IN,HIGH,0		//NEON270 J12 pin 3,  - Mag stripe inputs
+	SPEC_GP  98,IN,HIGH,0		//NC - Mag stripe inputs
+	SPEC_GP  99,IN,HIGH,0		//NC - Mag stripe inputs
+	SPEC_GP  100,IN,HIGH,0		//NC - Mag stripe inputs
 	SPEC_GP  101,OUT,HIGH,0		//NC
 	SPEC_GP  102,OUT,HIGH,0		//NC
 	SPEC_GP  103,OUT,HIGH,0		//port 1,USB Power Enable for REV 1 board (driver needs to enable usb power (LOW,0)
