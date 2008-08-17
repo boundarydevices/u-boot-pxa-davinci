@@ -189,12 +189,12 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	hsyn_acth: 0,
 	vsyn_acth: 0,
 	oepol_actl: 0,
-	hsync_len: 30,
-	left_margin: 20,
-	right_margin: 38,
-	vsync_len: 3,
-	upper_margin: 5,
-	lower_margin: 15,
+	hsync_len: 41,
+	left_margin: 1,
+	right_margin: 2,
+	vsync_len: 10,
+	upper_margin: 3,
+	lower_margin: 2,
 	active: 1,
 	crt:0
 }, {
