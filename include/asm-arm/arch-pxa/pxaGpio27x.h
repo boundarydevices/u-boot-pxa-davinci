@@ -22,7 +22,8 @@
 	SPEC_GP  2,IN,HIGH,0		//SYS_EN
 
 	SPEC_GP  3,IN,HIGH,0		//PWR_SCL, Rev 1 usb client enable, float means USB Slave not ready to accept data
-								//out 1 means ready
+					//out 1 means ready
+					//MicroAVL Touchscreen pic IRQ
 
 	SPEC_GP  4,IN,HIGH,0		//PWR_SDA
 
@@ -43,20 +44,24 @@
 #endif
 
 	SPEC_GP  11,OUT,HIGH,0		//Neon270 SMSC Lan91c111 reset (high active)
-#if (PLATFORM_TYPE==NEON270)||(PLATFORM_TYPE==HYDROGEN)
-					//HYDROGEN AX88796B IRQ input
+#if (PLATFORM_TYPE==NEON270)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)
+					//HYDROGEN, MicroAVL AX88796B IRQ input
 	SPEC_GP  12,IN,HIGH,0		//float means USB Slave not ready to accept data
-								//out 1 means ready (D+ signal)
+					//out 1 means ready (D+ signal)
 #else
 	SPEC_GP  12,OUT,HIGH,0		//NC
 #endif
-	SPEC_GP  13,IN,HIGH,0		//NC - Mag stripe 
 
+#if (PLATFORM_TYPE==MICROAVL)
+	SPEC_GP  13,IN,HIGH,0		//MicroAVL MagStripe
+#else
+	SPEC_GP  13,OUT,HIGH,0		//NC
+#endif
 	SPEC_GP  14,OUT,HIGH,0		//NC
 	SPEC_GP  15,OUT,HIGH,2		//nCS1, NC
 
 
-#if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==HYDROGEN)
+#if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)
 	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control (Argon/Okaya want GP16 low)
 #else
 	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control
@@ -81,7 +86,7 @@
 	SPEC_GP  23,OUT,HIGH,0		//NEON270 lan91c111 reset (high active on chip, but inverted by transistor)
 #endif
 
-	SPEC_GP  24,IN,LOW,0		//LAN91c111 Interrupt pin (SMSC)
+	SPEC_GP  24,IN,LOW,0		//LAN91c111 Interrupt pin (SMSC), MicroAVL AX88796 PME
 
 	SPEC_GP  25,OUT,HIGH,0		//SSP_TXD, nc
 	SPEC_GP  26,OUT,HIGH,0		//SSP_RXD, nc
@@ -130,7 +135,7 @@
 	SPEC_GP  54,OUT,HIGH,2		//MC_nPSKTSEL, nc
 	SPEC_GP  55,OUT,HIGH,2		//MC_nPREG,   NC
 	SPEC_GP  56,IN,HIGH,1		//MC_nPWAIT  NC
-	SPEC_GP  57,IN,HIGH,1		//MC_nIOIS16, NC
+	SPEC_GP  57,IN,HIGH,1		//MC_nIOIS16, NC, MicroAVL - AX88796
 	SPEC_GP  58,OUT,HIGH,ALT_LCD	//LCD_LDD0
 	SPEC_GP  59,OUT,HIGH,ALT_LCD	//LCD_LDD1
 	SPEC_GP  60,OUT,HIGH,ALT_LCD	//LCD_LDD2
@@ -161,10 +166,10 @@
 	SPEC_GP  78,OUT,HIGH,2		//nCS2, SMC91c111 Chip Select nDATACS
 	SPEC_GP  79,OUT,HIGH,2		//nCS3, NC
 	SPEC_GP  80,OUT,HIGH,2		//nCS4, SMC91c111 Chip Select
-	SPEC_GP  81,OUT,HIGH,0		//NC, Micro AVL SSP SDI
-	SPEC_GP  82,OUT,LOW,0		//NC, Micro AVL SSP SDO, okaya display enable
-	SPEC_GP  83,OUT,HIGH,0		//NC, Micro AVL SSP Frame
-	SPEC_GP  84,OUT,HIGH,0		//NC, Micro AVL SSP SCLK
+	SPEC_GP  81,OUT,HIGH,0		//NC, MicroAVL SSP SDI
+	SPEC_GP  82,OUT,LOW,0		//NC, MicroAVL SSP SDO, okaya shutdown (LOW normal operation)
+	SPEC_GP  83,OUT,HIGH,0		//NC, MicroAVL SSP Frame
+	SPEC_GP  84,OUT,HIGH,0		//NC, MicroAVL SSP SCLK
 	SPEC_GP  85,OUT,HIGH,0		//NC
 	SPEC_GP  86,OUT,HIGH,ALT_LCD	//LDD16
 	SPEC_GP  87,OUT,HIGH,ALT_LCD	//LDD17
@@ -172,7 +177,11 @@
 	SPEC_GP  88,OUT,HIGH,0		//NC
 	SPEC_GP  89,OUT,HIGH,0		//NC
 #else
+#if (PLATFORM_TYPE==MICROAVL)
+	SPEC_GP  88,OUT,HIGH,0		//NC
+#else
 	SPEC_GP  88,IN,HIGH,1		//port 1 usb power over current
+#endif
 	SPEC_GP  89,OUT,HIGH,0		//port 1 usb power enable (driver needs to enable usb power (LOW,2)
 #endif
 
@@ -183,14 +192,22 @@
 	SPEC_GP  94,OUT,HIGH,0		//NC
 	SPEC_GP  95,OUT,HIGH,0		//NC
 	SPEC_GP  96,IN,HIGH,0		//NEON270 J12 pin 2
-	SPEC_GP  97,IN,HIGH,0		//NEON270 J12 pin 3,  - Mag stripe inputs
-	SPEC_GP  98,IN,HIGH,0		//NC - Mag stripe inputs
-	SPEC_GP  99,IN,HIGH,0		//NC - Mag stripe inputs
-	SPEC_GP  100,IN,HIGH,0		//NC - Mag stripe inputs
+	SPEC_GP  97,IN,HIGH,0		//NEON270 J12 pin 3, MicroAVL MagStripe
+#if (PLATFORM_TYPE==MICROAVL)
+	SPEC_GP  98,IN,HIGH,0		//MicroAVL MagStripe
+	SPEC_GP  99,IN,HIGH,0		//MicroAVL MagStripe
+	SPEC_GP  100,IN,HIGH,0		//MicroAVL MagStripe
+#else
+	SPEC_GP  98,OUT,HIGH,0		//NC
+	SPEC_GP  99,OUT,HIGH,0		//NC
+	SPEC_GP  100,OUT,HIGH,0		//NC
+#endif
 	SPEC_GP  101,OUT,HIGH,0		//NC
-	SPEC_GP  102,OUT,HIGH,0		//NC
-	SPEC_GP  103,OUT,HIGH,0		//port 1,USB Power Enable for REV 1 board (driver needs to enable usb power (LOW,0)
-	SPEC_GP  104,OUT,HIGH,0		//NC
+	SPEC_GP  102,OUT,HIGH,0		//NC, MicroAvl touchscreen pic RA1 (unused VREF)
+	SPEC_GP  103,OUT,HIGH,0		//port 1,USB Power Enable for REV 1 board
+					//(driver needs to enable usb power (LOW,0)
+					//MicroAVL RXEnable for RS485
+	SPEC_GP  104,OUT,HIGH,0		//NC, MicroAVL TXEnable for RS485
 
 #ifdef __HALOGEN1
 	SPEC_GP  105,IN,HIGH,0		//USB Overcurrent

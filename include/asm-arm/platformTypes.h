@@ -13,6 +13,7 @@
 #define NEON270						11
 #define MERCURY						12
 #define HYDROGEN					13
+#define MICROAVL					14
 
 #if (PLATFORM_TYPE==NEONB)
 #define PHYS_FLASH_BASE 0x04000000

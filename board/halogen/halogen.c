@@ -28,6 +28,7 @@
 #include <common.h>
 #include <config.h>
 #include <common.h>
+#include <command.h>
 #include <version.h>
 #include <stdarg.h>
 #include <linux/types.h>
@@ -70,11 +71,15 @@ int board_init (void)
 
 	return 0;
 }
+int do_okw(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 
 int board_late_init(void)
 {
 	setenv("stdout", "serial");
 	setenv("stderr", "serial");
+#if (PLATFORM_TYPE==MICROAVL)
+	do_okw(NULL,0,1,NULL);
+#endif
 	return 0;
 }
 
