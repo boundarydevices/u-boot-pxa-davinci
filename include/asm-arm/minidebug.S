@@ -3187,11 +3187,13 @@ Burn_Rtn16:
 	BigMov	r0,FLASH_READ_CMD&0xffff
 	strh	r0,[rFlashBase,#0]
 	delayCnt r0,((40/10)*COUNT_MULT)
-	cmp	r2,#0x16
+	cmp		r2,#0x16
 	cmpne	r2,#0x17
 	cmpne	r2,#0x18
-	eorne		r2,r2,#0x8800
-	cmpne		r2,#0x21
+	eorne	r2,r2,#0x8800
+	cmpne	r2,#0x21
+	eorne	r2,r2,#0x8900^0x8800
+	cmpne	r2,#0x22
 	beq	98f
 //(PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)
 	BurnRtn h,  0xffff,0,1,4,1		//the plait version (a1 jumpered to a high address line)

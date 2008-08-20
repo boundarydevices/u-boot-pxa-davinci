@@ -41,6 +41,10 @@
 	.equiv	INTEL_ID_28F128P33B,	((0x8821<<16) + 0x8821)
 	.equiv	f128P33B_NUM_SECTORS, (4+127)		//for 32M flash, (16 meg on 16 bit board)
 	.equiv	f128P33B_SIZE,		( (127*SECT_SIZE)+((4*32*2)<<10) )
+
+	.equiv	INTEL_ID_28F256P33B,	((0x8922<<16) + 0x8922)
+	.equiv	f256P33B_NUM_SECTORS, (4+255)		//for 64M flash, (32 meg on 16 bit board)
+	.equiv	f256P33B_SIZE,		( (255*SECT_SIZE)+((4*32*2)<<10) )
 // *****************************
 	.equiv	MANCODE, 0
 	.equiv	DEVCODE, 4
@@ -144,6 +148,7 @@ FlashGpioWaitForIdle:
 //rFlashBase(sl,r10) - flash base
 //Out: r0 - size if z-1
 //		if z-0, flash is of unknown type
+//		r3==r5 if bottom part
 .macro	GetFlashSizeRtn sz,mask,shift,sizeShift,inc,plait
 	BigMov	r0,FLASH_STATUS_CLEAR_CMD&\mask
 	str\sz	r0,[rFlashBase,#0]
@@ -171,11 +176,15 @@ FlashGpioWaitForIdle:
 	BigMovNe r5,f128j3a_devCode&\mask
 	movne	r0,#f128j3a_SIZE>>\sizeShift
 	cmpne	r3,r5
-
-//keep this one last
+//All bottom parts (4 small sectors at 0) are below here
+//keep matching bottom parts
 	BigMov	r5,INTEL_ID_28F128P33B&\mask
 //these are the same, so no instruction generated
 	BigEor2Ne r0,((f128P33B_SIZE>>\sizeShift)^(f128j3a_SIZE>>\sizeShift))
+	cmpne	r3,r5
+
+	BigMovNe r5,INTEL_ID_28F256P33B&\mask
+	BigEor2Ne r0,((f256P33B_SIZE>>\sizeShift)^(f128P33B_SIZE>>\sizeShift))
 	cmpne	r3,r5
 
 //	movne	r0,#0		//if no device codes match, then unknown size
@@ -211,9 +220,9 @@ FlashGpioWaitForIdle:
 	ldrb	r2,[rDBG,#DBG_TEMP]
 	cmp	r2,#CMD_BURNALL
 	movne	r0,#0			//if not BURNALL, zero the flash size
-	moveq	r0,r0,LSL #1	//low bit is INTEL_ID_28F128P33B flag
+	moveq	r0,r0,LSL #1	//low bit is bottom part flag
 	cmp	r3,r5
-	orreq	r0,r0,#1		//set if this is an INTEL_ID_28F128P33B
+	orreq	r0,r0,#1		//set if this is a bottom part
 	str	r0,[rDBG,#DBG_TEMP]
 
 	FLASH_GPIO_WAIT_FOR_IDLE

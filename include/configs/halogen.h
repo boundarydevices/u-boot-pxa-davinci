@@ -25,7 +25,7 @@
  * Copyright Boundary Devices, Inc. 2005
  */
 #include "select.h"
-#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==ARGON)
+#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)||(PLATFORM_TYPE==ARGON)
 #define CONFIG_PXA270		1	/* This is a PXA270 CPU    */
 #define CONFIG_PXA27X		1	/* Which is a PXA27X */
 #define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
@@ -55,7 +55,7 @@
 #endif
 #endif
 
-#if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==OXYGEN)
+#if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)||(PLATFORM_TYPE==OXYGEN)
 #define CFG_FLASH_PORT_WIDTH16
 #endif
 
@@ -87,7 +87,7 @@
 /*
  * Hardware drivers
  */
-#if (PLATFORM_TYPE==HYDROGEN)
+#if (PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)
 #define CONFIG_DRIVER_NE2000
 #define CONFIG_DRIVER_NE2000_BASE 0x04000000
 #define CONFIG_MII
@@ -141,7 +141,7 @@
 #define CONFIG_CMD_OKAYAWRITE
 #endif
 
-#if (PLATFORM_TYPE==HYDROGEN)
+#if (PLATFORM_TYPE==MICROAVL)
 #define CONFIG_OKW_GP_SPI_ENABLE 83
 #define CONFIG_OKW_GP_SPI_CLK 84
 #define CONFIG_OKW_GP_SPI_DATA 81
@@ -294,7 +294,7 @@
  * FLASH and environment organization
  */
 #define CFG_MAX_FLASH_BANKS	1		/* max number of memory banks		*/
-#define CFG_MAX_FLASH_SECT	(127+4)		/* max number of sectors on one chip    */
+#define CFG_MAX_FLASH_SECT	(255+4)		/* max number of sectors on one chip    */
 
 /* timeout values are in ticks */
 #define CFG_FLASH_ERASE_TOUT	(25*CFG_HZ) /* Timeout for Flash Erase */
