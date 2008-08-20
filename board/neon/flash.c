@@ -114,7 +114,7 @@ static void flash_get_offsets (ulong base, flash_info_t *info)
 		ulong ssize = SECTOR_SIZE_PER_CHIP * FLASH_CHIP_CNT;
 		ulong nsize = ssize;
 		ulong nchange = 0x10000;
-		if ((info->flash_id & 0xffff) == FLASH_28F128P33B) {
+		if (((info->flash_id & 0xffff) == FLASH_28F128P33B)||((info->flash_id & 0xffff) == FLASH_28F256P33B)) {
 			ssize = (32<<10)*FLASH_CHIP_CNT;
 			nchange = 4;
 		}
@@ -238,6 +238,12 @@ static ulong flash_get_size (volatile FPW *addr, flash_info_t *info)
 		info->flash_id += FLASH_28F128P33B;
 		info->sector_count = 4+127;
 		info->size = (((4*32)+(127*128))<<10) *FLASH_CHIP_CNT;
+		info->unlock_first=1;
+		break;
+	case (FPW) INTEL_ID_28F256P33B:
+		info->flash_id += FLASH_28F256P33B;
+		info->sector_count = 4+255;
+		info->size = (((4*32)+(255*128))<<10) *FLASH_CHIP_CNT;
 		info->unlock_first=1;
 		break;
 	case (FPW) INTEL_ID_28F320J3A:
