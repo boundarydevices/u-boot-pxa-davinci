@@ -779,7 +779,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	for (i = 0; i < height; ++i) {
 		WATCHDOG_RESET();
 		for (j = 0; j < width ; j++)
-#if defined(CONFIG_PXA250)
+#if defined(CONFIG_PXA250) || defined(CONFIG_PXA270) || defined(CONFIG_PXALCD)
 			*(fb++)=*(bmap++);
 #elif defined(CONFIG_MPC823) || defined(CONFIG_MCC200)
 			*(fb++)=255-*(bmap++);
