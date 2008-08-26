@@ -274,7 +274,12 @@
 #define PHYS_FLASH_2		0x04000000 /* Flash Bank #2 */
 #define PHYS_FLASH_SIZE		0x02000000 /* 32 MB */
 #define PHYS_FLASH_BANK_SIZE	0x02000000 /* 32 MB Banks */
+
+#if (PLATFORM_TYPE==MICROAVL)
+#define PHYS_FLASH_SECT_SIZE	0x00020000 /* 128 KB sectors (x1) */
+#else
 #define PHYS_FLASH_SECT_SIZE	0x00040000 /* 256 KB sectors (x2) */
+#endif
 
 #define CFG_DRAM_BASE		0xa0000000
 #define CFG_DRAM_SIZE		0x04000000
@@ -295,6 +300,14 @@
  */
 #define CFG_MAX_FLASH_BANKS	1		/* max number of memory banks		*/
 #define CFG_MAX_FLASH_SECT	(255+4)		/* max number of sectors on one chip    */
+#define CFG_FLASH_CFI 1
+#define CFG_FLASH_CFI_DRIVER 1
+#define CFG_FLASH_CFI_WIDTH 0x02
+#define CFG_FLASH_PROTECTION 1
+#define CONFIG_FLASH_SHOW_PROGRESS 1
+#define CFG_FLASH_USE_BUFFER_WRITE
+#define CFG_MONITOR_LEN		0
+#define CFG_MONITOR_BASE	CFG_FLASH_BASE
 
 /* timeout values are in ticks */
 #define CFG_FLASH_ERASE_TOUT	(25*CFG_HZ) /* Timeout for Flash Erase */
@@ -305,7 +318,11 @@
  */
 #define CFG_ENV_IS_IN_FLASH	1
 #define CFG_FLASH_BASE     0
+#if (PLATFORM_TYPE==MICROAVL)
+#define CFG_ENV_ADDR		   ((CFG_FLASH_BASE)+(1<<18))	/* Environment Sector at base+256k */
+#else
 #define CFG_ENV_ADDR		   ((CFG_FLASH_BASE)+0x100000)	/* Addr of Environment Sector	*/
+#endif
 #define CFG_ENV_OFFSET     ((CFG_ENV_ADDR)-(CFG_FLASH_BASE))
 #define CFG_ENV_SIZE		   PHYS_FLASH_SECT_SIZE	/* Total Size of Environment Sector	*/
 
