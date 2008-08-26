@@ -34,3 +34,4 @@ ubsha1.exe
 crc32.c
 environment.c
 sha1.c
+makeFlash
