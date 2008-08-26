@@ -49,3 +49,9 @@ U_BOOT_CMD(
 	"xmodem address - load binary file over serial line (xmodem protocol)\n",
 	"'address' is ram location of dowload\n"
 );
+
+U_BOOT_CMD(
+	dl, 3, 0,	xmodem_bin,
+	"dl address - load binary file over serial line (xmodem protocol)\n",
+	"'address' is ram location of dowload\n"
+);
