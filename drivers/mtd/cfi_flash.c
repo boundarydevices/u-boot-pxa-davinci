@@ -1018,6 +1018,23 @@ out_unmap:
 }
 #endif /* CFG_FLASH_USE_BUFFER_WRITE */
 
+static int flash_sector_clear(flash_info_t * info, int sect)
+{
+	uchar *addr ;
+        unsigned i ;
+        unsigned sector_size = info->size/info->sector_count ;
+        int clear = 1 ;
+
+	addr = flash_map (info, sect, 0);
+        for( i = 0 ; i < sector_size ; i++ ){
+           if( 0xff != addr[i] ){
+              clear = 0 ;
+              break;
+           }
+        }
+	flash_unmap(info, sect, 0, addr);
+        return clear ;
+}
 
 /*-----------------------------------------------------------------------
  */
@@ -1051,6 +1068,10 @@ int flash_erase (flash_info_t * info, int s_first, int s_last)
 
 
 	for (sect = s_first; sect <= s_last; sect++) {
+                if( flash_sector_clear(info,sect) )
+                   continue;
+                flash_real_protect (info,sect,0);
+
 		if (info->protect[sect] == 0) { /* not protected */
 			switch (info->vendor) {
 			case CFI_CMDSET_INTEL_PROG_REGIONS:
