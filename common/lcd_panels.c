@@ -162,7 +162,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	active: 1,
 	crt: 0
 }, {
-//#define OKAYA_QVGA_P   320, 30,37, 38,	240, 3, 16, 15,	1,1,0,0,0,	1,0,0,1,120,LCD_PANEL
+//#define okaya_qvga_P   320, 30,37, 38,	240, 3, 16, 15,	1,1,0,0,0,	1,0,0,1,120,LCD_PANEL
 	name: "okaya_qvga",
 	pixclock: 13974000,	//(320+30+37+38)*(240+3+16+15)*120 Hz = 425*274*120
 	xres: 320,
@@ -180,9 +180,9 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	active: 1,
 	crt: 0
 }, {
-#define OKAYA_480X272_P 480, 3,20, 38,		272, 3, 5, 15,		1,1,0,0,	1,0,0,1,PXAFB_BPP,62,LCD_PANEL //0
+#define okaya_480x272_P 480, 41, 1, 2,	272, 10, 3, 2,	1,1,1,0,0,	1,0,0,1,62,LCD_PANEL
 	name: "okaya_480x272",
-	pixclock: 11394080,	//(480+30+20+38)*(272+3+5+15)*68 Hz = 568*295*68 = 11,394,080
+	pixclock: 10226384,	//(480+41+1+2)*(272+10+3+2)*68 Hz = 568*295*68 = 10226384
 	xres: 480,
 	yres: 272,
 	pclk_redg: 1,
