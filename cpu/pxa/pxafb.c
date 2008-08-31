@@ -653,7 +653,7 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
 
    panel_info.vl_col = panel->xres ;
    panel_info.vl_row = panel->yres ;
-   panel_info.vl_clkp = panel->pclk_redg ;
+   panel_info.vl_clkp = panel->pclk_redg ^ 1;
    panel_info.vl_hsp  = panel->hsyn_acth ;
    panel_info.vl_vsp  = panel->vsyn_acth ;
    panel_info.vl_oepol_actl  = panel->oepol_actl;
