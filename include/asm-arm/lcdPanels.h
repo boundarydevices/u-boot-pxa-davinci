@@ -75,7 +75,7 @@
 //#define sharp_qvga_P  320, 64, 34, 11,	240, 5, 8, 3,	0,0,1,0,0,	1,0,0,1,62,LCD_PANEL
 //#define okaya_qvga_P   320, 30,20, 38,	240, 5, 8, 14,	1,1,0,0,0,	1,0,0,1,62,LCD_PANEL
 #define okaya_qvga_P   320, 30,37, 38,	240, 3, 16, 15,	1,1,0,0,0,	1,0,0,1,120,LCD_PANEL
-#define okaya_480x272_P 480, 3,20, 38,	272, 3, 5, 15,	1,1,1,0,0,	1,0,0,1,62,LCD_PANEL
+#define okaya_480x272_P 480, 41, 1, 2,	272, 10, 3, 2,	1,1,1,0,0,	1,0,0,1,62,LCD_PANEL
 
 #define hitachi_hvga_P  640, 64, 34, 1,	240, 20, 8, 3,	0,0,1,0,0,	1,1,0,1,62,LCD_PANEL
 #define hitachi_wvga_P  800, 64, 34, 1,	480, 20, 8, 3,	0,0,1,0,0,	1,1,0,1,62,LCD_PANEL
