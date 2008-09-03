@@ -116,13 +116,15 @@ static void setPixClock( unsigned long mhz )
 	unsigned highError, lowError ;
 	unsigned long divisor, high, low ;
 	unsigned long pllIn = 27000000*(REGVALUE(PLL2_PLLM)+1);
-	divisor = pllIn/mhz ;
-	if( divisor > 1023 ){
-		encPerPixel = (divisor / 16)+1 ;	// add one to ensure increment available in divisor
-		divisor = pllIn/(encPerPixel*mhz);
-	} // slower than 6.3MHz
-	else
-		encPerPixel = 1 ;
+	char *enc_spec = getenv( "encperpix" );
+	if( enc_spec ){
+		encPerPixel = simple_strtoul(enc_spec,0,0);
+		if( 0 == encPerPixel ){
+			printf( "Invalid enc_per_pixel" );
+			encPerPixel = 1 ;
+		}
+	}
+	divisor = pllIn/(encPerPixel*mhz);
 
 	// choose nearest
 	if( divisor < 16 ){
