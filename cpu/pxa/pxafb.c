@@ -516,7 +516,7 @@ static int pxafb_init (vidinfo_t *vid)
 		LCCR2_BegFrmDel(vid->vl_bfw) +
 		LCCR2_EndFrmDel(vid->vl_efw);
 
-	fbi->reg_lccr3 = (reg_lccr3 & ~(LCCR3_HSP | LCCR3_VSP))|
+	fbi->reg_lccr3 = (reg_lccr3 & ~(LCCR3_HSP|LCCR3_VSP|LCCR3_PCP|LCCR3_OEP))|
 		(vid->vl_hsp ? 0 : LCCR3_HSP) |
 		(vid->vl_vsp ? 0 : LCCR3_VSP) |
 		(vid->vl_oepol_actl ? LCCR3_OEP : 0) |
