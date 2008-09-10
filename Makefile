@@ -444,7 +444,7 @@ $(obj)include/autoconf.mk: $(obj)include/config.h
 
 sinclude $(obj)include/autoconf.mk.dep
 
-init.scr: board/$(BOARDDIR)/init.script
+init.scr: board/$(BOARDDIR)/init.${PLATFORM_TYPE}.script
 	tools/mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "autoscript" -d $< $@
 
 upgrade.scr: upgrade.script
