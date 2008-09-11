@@ -26,7 +26,7 @@ include $(TOPDIR)/config.mk
 
 LIB	= lib$(BOARD).a
 
-OBJS	:= halogen.o flash.o
+OBJS	:= halogen.o
 SOBJS	:= lowlevel_init.o
 
 $(LIB):	$(OBJS) $(SOBJS)

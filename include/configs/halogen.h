@@ -55,6 +55,13 @@
 #endif
 #endif
 
+#define CFG_FLASH_CFI_DRIVER
+#define CFG_FLASH_CFI
+#define CFG_MONITOR_BASE        TEXT_BASE
+#define CFG_MONITOR_LEN         (256 * 1024)	/* Reserve 256 KB for Monitor */
+#define CFG_FLASH_PROTECTION
+#define CFG_FLASH_USE_BUFFER_WRITE
+
 #if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)||(PLATFORM_TYPE==OXYGEN)
 #define CFG_FLASH_PORT_WIDTH16
 #endif
@@ -274,7 +281,11 @@
 #define PHYS_FLASH_2		0x04000000 /* Flash Bank #2 */
 #define PHYS_FLASH_SIZE		0x02000000 /* 32 MB */
 #define PHYS_FLASH_BANK_SIZE	0x02000000 /* 32 MB Banks */
+#if (PLATFORM_TYPE==MICROAVL)
+#define PHYS_FLASH_SECT_SIZE	0x00020000 /* 128 KB sectors (x1) */
+#else
 #define PHYS_FLASH_SECT_SIZE	0x00040000 /* 256 KB sectors (x2) */
+#endif
 
 #define CFG_DRAM_BASE		0xa0000000
 #define CFG_DRAM_SIZE		0x04000000
@@ -305,7 +316,11 @@
  */
 #define CFG_ENV_IS_IN_FLASH	1
 #define CFG_FLASH_BASE     0
+#if (PLATFORM_TYPE==MICROAVL)
+#define CFG_ENV_ADDR		   ((CFG_FLASH_BASE)+0x40000)	/* Addr of Environment Sector	*/
+#else
 #define CFG_ENV_ADDR		   ((CFG_FLASH_BASE)+0x100000)	/* Addr of Environment Sector	*/
+#endif
 #define CFG_ENV_OFFSET     ((CFG_ENV_ADDR)-(CFG_FLASH_BASE))
 #define CFG_ENV_SIZE		   PHYS_FLASH_SECT_SIZE	/* Total Size of Environment Sector	*/
 
