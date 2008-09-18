@@ -77,7 +77,7 @@ int board_late_init(void)
 {
 	setenv("stdout", "serial");
 	setenv("stderr", "serial");
-#if (PLATFORM_TYPE==MICROAVL)
+#ifdef CONFIG_CMD_OKAYAWRITE
 	do_okw(NULL,0,1,NULL);
 #endif
 	return 0;

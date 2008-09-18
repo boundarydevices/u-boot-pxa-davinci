@@ -51,15 +51,7 @@
 #endif
 #endif
 
-#if 1		//(SOFTWARE_TYPE==WINCE)
 	.equiv	RECEIVE_LOOP_COUNT, 0x10000*COUNT_MULT
-#else
-#if (PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)||(PLATFORM_TYPE==GAME_CONTROLLER)||(PLATFORM_TYPE==GAME_WITH_SMC)
-	.equiv	RECEIVE_LOOP_COUNT, 0x100000*COUNT_MULT
-#else
-	.equiv	RECEIVE_LOOP_COUNT, 0x300000*3*COUNT_MULT
-#endif
-#endif
 
 // **********************************************************
 	.equiv	DBG_MAGIC,95 //this allows BigMov sp,DEBUG_BASE+DBG_MAGIC to generate just 1 instruction

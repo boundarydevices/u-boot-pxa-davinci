@@ -1,8 +1,4 @@
 	.nolist
-	.ifdef __ARMASM
-CONFIG_UNSCRAMBLE_LCD EQU 0
-LCD_REORDER_BLUE EQU 1
-	.endif
 
 #define L1(a)          ((CH_##a))
 #define L2(a,b)     ((CH_##a)+(CH_##b<<8))
@@ -535,7 +531,7 @@ gdb_lastSignal1:
 
 	EnableFlashReadMode	r0,r1,rUart
 
-#if (PLATFORM_TYPE==NEONB)
+	.if (PLAT_PHYS_FLASH_BASE)
 	adr	lr,AfterPCPrint
 	add	r1,r1,lr		//virtual address of AfterPCPrint if in Linux for data fetch
 	cmp	lr,#0x800
@@ -547,9 +543,9 @@ gdb_lastSignal1:
 	cmp	r2,r0
 	moveq	pc,lr			//br if CS1 valid
 	b	AfterPCPrint_error
-#else
+	.else
 	b	AfterPCPrint1
-#endif
+	.endif
 
 // ******************************************************************************************
 //A MAIN goal is for all the code above this point to fit into the 2k mini instruction cache
@@ -663,14 +659,13 @@ PrintHexEndian12:
 
 
 MainInitializationCode:
-#if (PLATFORM_TYPE==MERCURY)
-#else
+	.if (PLAT_TEST_PC_IN_RAM)
 	cmp		pc,#MEM_START
 	biclo	sp,pc,#FLASH_BASE_ADDRESS
 	rsblos	sp,sp,#0x4000
 	movlo	r1,#0
 	blo		InitializeCont2		//br if not ram and not from reset vector
-#endif
+	.endif
 //pc - 0-0x4000, 0x04000000-0x04004000, MEM_START-0xffffffff
 	InitCS0_CS1	r0,sp
 	InitGPIO	r0,sp
@@ -680,7 +675,7 @@ MainInitializationCode:
 1:	subs	r0,r0,#1
 	bne		1b
 
-#if (PLATFORM_TYPE==NEONB)
+	.if (PLAT_PHYS_FLASH_BASE)
 	adr		lr,AfterPCPrint
 	cmp		lr,#0x800
 	bne		InitializeCont1
@@ -689,7 +684,7 @@ MainInitializationCode:
 	ldr		r2,[lr]
 	cmp		r2,r0
 	addeq	pc,lr,#InitializeCont-AfterPCPrint		//br if CS1 valid
-#endif
+	.endif
 	b		InitializeCont1
 
 //OUT: r0,r2 value, r7 trashed
@@ -1248,7 +1243,7 @@ GetNumber:
 	mov	pc,r3
 
 // *****************************************************************
-#if (PLATFORM_TYPE==NEONB)
+	.if (PLAT_PHYS_FLASH_BASE)
 AfterPCPrint_error:
 	bl	TransmitCRLF
 	BigMov	r0,L4(F,l,a,s)
@@ -1260,7 +1255,7 @@ AfterPCPrint_error:
 	BigMov	r0,L4(a,l,i,d)
 	bl	Transmit
 	bl	TransmitCRLF
-#endif
+	.endif
 AfterPCPrint1:
 	mov		rPrevNum1,#MEM_START
 	movs	rNum1,rNum1
@@ -2617,12 +2612,7 @@ InitializeCont1:
 	InitMMU		r0,r1
 	InitPWR		r0,r1,sp	//out: r1 RCSR
 InitializeCont2:
-#if (PLATFORM_TYPE==MERCURY)
-	mov	r2,#FUNC_REQ_GL
-	tst r1,#RCSR_SLEEP_RESET
-	beq 87f		//;  Not sleep.
-	mov	r2,#FUNC_REQ_WAKEUP
-#else
+	.if (PLAT_TEST_PC_IN_RAM)
 	cmp	pc,#MEM_START
 	bhs	89f				//if in ram, must be mdebug
 
@@ -2633,7 +2623,12 @@ InitializeCont2:
 	tst r1,#RCSR_SLEEP_RESET
 	beq 89f		//;  Not sleep.
 	mov	r2,#FUNC_REQ_WAKEUP
-#endif
+	.else
+	mov	r2,#FUNC_REQ_GL
+	tst r1,#RCSR_SLEEP_RESET
+	beq 87f		//;  Not sleep.
+	mov	r2,#FUNC_REQ_WAKEUP
+	.endif
 87:	adr	r7,88f
 	adr	lr,89f
 	mov	r10,r1	//RCSR
@@ -3195,17 +3190,17 @@ Burn_Rtn16:
 	eorne	r2,r2,#0x8900^0x8800
 	cmpne	r2,#0x22
 	beq	98f
-//(PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)
+//(GAME_CONTROLLER_PLAITED_A1)
 	BurnRtn h,  0xffff,0,1,4,1		//the plait version (a1 jumpered to a high address line)
 98:
 	BurnRtn h,  0xffff,1,1,2,0		//the non-plait version (a1 correct)
 #else
 
-#if (PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)
+	.if (PLAT_ROM_PLAITED)
 	BurnRtn h,  0xffff,0,1,4,1		//the plait version (a1 jumpered to a high address line)
-#else
+	.else
 	BurnRtn h,  0xffff,1,1,2,0		//the non-plait version (a1 correct)
-#endif
+	.endif
 
 #endif
 

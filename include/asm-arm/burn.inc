@@ -1,11 +1,6 @@
 	.equiv	FLASH_GPIO_STATUS, 0				//1 means use gp to tell when flash is ready
 
-#if (PLATFORM_TYPE==NEONB)
-	.equiv	FLASH_BASE_ADDRESS, 0x04000000
-#else
-	.equiv	FLASH_BASE_ADDRESS, 0x0
-#endif
-
+	.equiv	FLASH_BASE_ADDRESS, PLAT_PHYS_FLASH_BASE
 
 	.equiv	FLASH_ID_CMD,		((0x0090<<16) + 0x0090)			//read Identifier Codes
 	.equiv	FLASH_STATUS_CMD,	((0x0070<<16) + 0x0070)
