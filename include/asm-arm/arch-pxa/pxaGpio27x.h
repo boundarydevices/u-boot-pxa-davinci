@@ -1,8 +1,3 @@
-#if (PLATFORM_TYPE==HALOGEN)
-#if (PLATFORM_REV==1)
-#define __HALOGEN1 1
-#endif
-#endif
 //gpios for pxa270
 
 //CP  - Clock and Power Management Unit
@@ -16,109 +11,72 @@
 //ST  - standard UART Port
 //LCD - LCD Controller
 
+//
+// 1st define platform specific overrides
+// Then, provide defaults
+//
+	SPEC_GP1 9,PLAT_GP_IN_LOW_BATTERY,IN,HIGH,0	//Low battery
+	SPEC_GP1 10,PLAT_GP_IN_MMC_WP,IN,HIGH,0		//MMC card detect
+	SPEC_GP1 12,PLAT_GP_USB_CLIENT_READY,IN,HIGH,0	//float means USB Slave not ready to accept data
+							//out 1 means ready (D+ signal)
+	SPEC_GP1 12,PLAT_GP_IN_IRQ_AX88796,IN,HIGH,0	//HYDROGEN, MicroAVL AX88796B IRQ input
+	SPEC_GP1 13,PLAT_GP_IN_MAGSTRIPE1,IN,HIGH,0	//MicroAVL MagStripe
+	SPEC_GP1 22,PLAT_GP_IN_IRQ_SM501,IN,HIGH,0	//Neon270 SM501 interrupt
+	SPEC_GP1 36,PLAT_GP_IN_FF_DCD,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4) 4 output Vbus Enable
+	SPEC_GP1 40,PLAT_GP_OUT_FF_DTR,OUT,HIGH,2	//(out alt 2:FF_DTR)
+	SPEC_GP1 88,PLAT_GP_IN_USB_OVER_CURRENT,IN,HIGH,1	//port 1 usb power over current
+	SPEC_GP1 89,PLAT_GP_OUT_USB_POWER_ENABLE,OUT,HIGH,0	//port 1 usb power enable (driver needs to enable usb power (LOW,2)
+	SPEC_GP1 98,PLAT_GP_IN_MAGSTRIPE2,IN,HIGH,0		//MicroAVL MagStripe
+	SPEC_GP1 99,PLAT_GP_IN_MAGSTRIPE3,IN,HIGH,0		//MicroAVL MagStripe
+	SPEC_GP1 100,PLAT_GP_IN_MAGSTRIPE4,IN,HIGH,0		//MicroAVL MagStripe
+	SPEC_GP1 105,PLAT_GP_IN_USB_OVER_CURRENT105,IN,HIGH,0	//USB Overcurrent
+	SPEC_GP1 115,PLAT_GP_IN_MBREQ,IN,HIGH,0			//MC_MBREQ, alternate function 3 AFTER PSSR[RDH] is cleared
+	SPEC_GP1 116,PLAT_GP_OUT_MBGNT,OUT,HIGH,3		//MC_MBGNT, only NEON270 has SM501 for Bus Mastering
+
+
 	SPEC_GP  0,IN,HIGH,0		//UCB1400 interrupt
 	SPEC_GP  1,IN,HIGH,0		//nRESET_GPIO, usb client connect interrupt
-
 	SPEC_GP  2,IN,HIGH,0		//SYS_EN
-
-	SPEC_GP  3,IN,HIGH,0		//PWR_SCL, Rev 1 usb client enable, float means USB Slave not ready to accept data
-					//out 1 means ready
+	SPEC_GP  3,IN,HIGH,0		//PWR_SCL
 					//MicroAVL Touchscreen pic IRQ
-
 	SPEC_GP  4,IN,HIGH,0		//PWR_SDA
-
 	SPEC_GP  5,IN,HIGH,0		//PWR_CAP 0
 	SPEC_GP  6,IN,HIGH,0		//PWR_CAP 1
 	SPEC_GP  7,IN,HIGH,0		//PWR_CAP 2
 	SPEC_GP  8,IN,HIGH,0		//PWR_CAP 3
-#if (PLATFORM_TYPE==NEON270)
-	SPEC_GP  9,IN,HIGH,0		//Low battery
-#else
 	SPEC_GP  9,OUT,HIGH,0		//NC
-#endif
-
-#ifdef __HALOGEN1
 	SPEC_GP  10,OUT,HIGH,0		//NC, rev 1 doesn't have MMC write protect, or card detect
-#else
-	SPEC_GP  10,IN,HIGH,0		//MMC card detect
-#endif
-
 	SPEC_GP  11,OUT,HIGH,0		//Neon270 SMSC Lan91c111 reset (high active)
-#if (PLATFORM_TYPE==NEON270)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)
-					//HYDROGEN, MicroAVL AX88796B IRQ input
-	SPEC_GP  12,IN,HIGH,0		//float means USB Slave not ready to accept data
-					//out 1 means ready (D+ signal)
-#else
 	SPEC_GP  12,OUT,HIGH,0		//NC
-#endif
-
-#if (PLATFORM_TYPE==MICROAVL)
-	SPEC_GP  13,IN,HIGH,0		//MicroAVL MagStripe
-#else
 	SPEC_GP  13,OUT,HIGH,0		//NC
-#endif
 	SPEC_GP  14,OUT,HIGH,0		//NC
 	SPEC_GP  15,OUT,HIGH,2		//nCS1, NC
-
-
-#if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)
-	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control (Argon/Okaya want GP16 low)
-#else
-	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control
-#endif
+	SPEC_GP  16,OUT,PLAT_GP_OUT_BACKLIGHT_PWM_LEVEL,0	//LCD backlight brightness control (Argon/Okaya want GP16 low)
 	SPEC_GP  17,OUT,HIGH,0		//LCD backlight ON/OFF
-
 	SPEC_GP  18,IN,HIGH,1		//MC_RDY, VIO_READY
-
 	SPEC_GP  19,OUT,HIGH,0		//NC
-
 	SPEC_GP  20,OUT,HIGH,0		//NC
 	SPEC_GP  21,OUT,HIGH,0		//NC
-#if (PLATFORM_TYPE==NEON270)
-	SPEC_GP  22,IN,HIGH,0		//Neon270 SM501 interrupt
-#else
 	SPEC_GP  22,OUT,HIGH,0		//NC
-#endif
-
-#ifdef __HALOGEN1
-	SPEC_GP  23,OUT,HIGH,0		//NC
-#else
 	SPEC_GP  23,OUT,HIGH,0		//NEON270 lan91c111 reset (high active on chip, but inverted by transistor)
-#endif
-
 	SPEC_GP  24,IN,LOW,0		//LAN91c111 Interrupt pin (SMSC), MicroAVL AX88796 PME
-
 	SPEC_GP  25,OUT,HIGH,0		//SSP_TXD, nc
 	SPEC_GP  26,OUT,HIGH,0		//SSP_RXD, nc
 	SPEC_GP  27,OUT,HIGH,0		//NC
-
 	SPEC_GP  28,IN,HIGH,1		//AC_BITCLK,	ac97 bitclk
 	SPEC_GP  29,IN,HIGH,1		//AC_SDATAIN0,	ac97 datain0
 	SPEC_GP  30,OUT,HIGH,2		//AC_SDATAOUT,	ac97 data out
 	SPEC_GP  31,OUT,HIGH,2		//AC_SYNC,	ac97 sync
 ////////////////////////////////////////////////////////////////////////////////////////////
-
-
 	SPEC_GP  32,OUT,HIGH,2		//MMCLK
 	SPEC_GP  33,OUT,HIGH,0		//MC_nCS5, NC
 	SPEC_GP  34,IN,HIGH,1		//(in alt 1:FF_RXD) (out alt 1:USB_P2_2)		2    input, Session Valid
 	SPEC_GP  35,IN,HIGH,0		//(in alt 1:FF_CTS) (in alt 2:USB_P2_1)			1    input, SRP Detect
-#ifdef __HALOGEN1
 	SPEC_GP  36,OUT,HIGH,0		//(in alt 1:FF_DCD)
-#else
-	SPEC_GP  36,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4)		4    output Vbus Enable
-#endif
 	SPEC_GP  37,OUT,HIGH,0		//(in alt 1:FF_DSR) (out alt 1:USB_P2_8)		 8	 output Vbus Pulsing Enable for SRP
-
 	SPEC_GP  38,IN,HIGH,0		//(in alt 1:FF_RI)  (in alt 3:USB_P2_3)		//MMC Write Protect (rev 1 is NC),// 3    input, Vbus valid 4.4 Volts
 	SPEC_GP  39,OUT,HIGH,2		//(out alt 2:FF_TXD) (out alt 1:USB_P2_6)
-
-#ifdef __HALOGEN1
-	SPEC_GP  40,OUT,HIGH,2		//(out alt 2:FF_DTR)
-#else
 	SPEC_GP  40,IN,HIGH,0		//(out alt 2:FF_DTR) (in alt 3:USB_P2_5)		5    input, Vbus valid 4.0 Volts
-#endif
-
 	SPEC_GP  41,OUT,HIGH,2		//(out alt 2:FF_RTS) (in alt 2:USB_P2_7)		7    input OTG ID
 	SPEC_GP  42,IN,HIGH,1		//BT_RXD
 	SPEC_GP  43,OUT,HIGH,2		//BT_TXD
@@ -142,11 +100,7 @@
 	SPEC_GP  61,OUT,HIGH,ALT_LCD	//LCD_LDD3
 	SPEC_GP  62,OUT,HIGH,ALT_LCD	//LCD_LDD4
 	SPEC_GP  63,OUT,HIGH,ALT_LCD	//LCD_LDD5
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////
-
-
 	SPEC_GP  64,OUT,HIGH,ALT_LCD	//LCD_LDD6
 	SPEC_GP  65,OUT,HIGH,ALT_LCD	//LCD_LDD7
 	SPEC_GP  66,OUT,HIGH,ALT_LCD	//LCD_LDD8
@@ -154,9 +108,7 @@
 	SPEC_GP  68,OUT,HIGH,ALT_LCD	//LCD_LDD10
 	SPEC_GP  69,OUT,HIGH,ALT_LCD	//LCD_LDD11
 	SPEC_GP  70,OUT,HIGH,ALT_LCD	//LCD_LDD12
-
 	SPEC_GP  71,OUT,HIGH,ALT_LCD	//LCD_LDD13
-
 	SPEC_GP  72,OUT,HIGH,ALT_LCD	//LCD_LDD14
 	SPEC_GP  73,OUT,HIGH,ALT_LCD	//LCD_LDD15
 	SPEC_GP  74,OUT,HIGH,ALT_LCD	//LCD_FCLK, NC
@@ -173,18 +125,8 @@
 	SPEC_GP  85,OUT,HIGH,0		//NC
 	SPEC_GP  86,OUT,HIGH,ALT_LCD	//LDD16
 	SPEC_GP  87,OUT,HIGH,ALT_LCD	//LDD17
-#ifdef __HALOGEN1
 	SPEC_GP  88,OUT,HIGH,0		//NC
 	SPEC_GP  89,OUT,HIGH,0		//NC
-#else
-#if (PLATFORM_TYPE==MICROAVL)
-	SPEC_GP  88,OUT,HIGH,0		//NC
-#else
-	SPEC_GP  88,IN,HIGH,1		//port 1 usb power over current
-#endif
-	SPEC_GP  89,OUT,HIGH,0		//port 1 usb power enable (driver needs to enable usb power (LOW,2)
-#endif
-
 	SPEC_GP  90,OUT,HIGH,0		//NC
 	SPEC_GP  91,OUT,HIGH,0		//NC
 	SPEC_GP  92,IN,HIGH,1		//MMDAT 0 (IN or OUT)
@@ -193,28 +135,16 @@
 	SPEC_GP  95,OUT,HIGH,0		//NC
 	SPEC_GP  96,IN,HIGH,0		//NEON270 J12 pin 2
 	SPEC_GP  97,IN,HIGH,0		//NEON270 J12 pin 3, MicroAVL MagStripe
-#if (PLATFORM_TYPE==MICROAVL)
-	SPEC_GP  98,IN,HIGH,0		//MicroAVL MagStripe
-	SPEC_GP  99,IN,HIGH,0		//MicroAVL MagStripe
-	SPEC_GP  100,IN,HIGH,0		//MicroAVL MagStripe
-#else
 	SPEC_GP  98,OUT,HIGH,0		//NC
 	SPEC_GP  99,OUT,HIGH,0		//NC
 	SPEC_GP  100,OUT,HIGH,0		//NC
-#endif
 	SPEC_GP  101,OUT,HIGH,0		//NC
 	SPEC_GP  102,OUT,HIGH,0		//NC, MicroAvl touchscreen pic RA1 (unused VREF)
 	SPEC_GP  103,OUT,HIGH,0		//port 1,USB Power Enable for REV 1 board
 					//(driver needs to enable usb power (LOW,0)
 					//MicroAVL RXEnable for RS485
 	SPEC_GP  104,OUT,HIGH,0		//NC, MicroAVL TXEnable for RS485
-
-#ifdef __HALOGEN1
-	SPEC_GP  105,IN,HIGH,0		//USB Overcurrent
-#else
 	SPEC_GP	 105,OUT,HIGH,0		//NC
-#endif
-
 	SPEC_GP  106,OUT,HIGH,0		//NC
 	SPEC_GP  107,OUT,HIGH,0		//NC
 	SPEC_GP  108,OUT,HIGH,0		//NC
@@ -224,14 +154,8 @@
 	SPEC_GP  112,IN,HIGH,1		//MMCMD (IN or OUT)
 	SPEC_GP  113,OUT,HIGH,2		//AC97 Reset, NC
 	SPEC_GP  114,OUT,HIGH,0		//NC
-#if (PLATFORM_TYPE==NEON270)	//next rev of board
-//only NEON270 has SM501 for Bus Mastering
-	SPEC_GP  115,IN,HIGH,0		//MC_MBREQ, alternate function 3 AFTER PSSR[RDH] is cleared
-	SPEC_GP  116,OUT,HIGH,3		//MC_MBGNT
-#else
 	SPEC_GP  115,OUT,HIGH,0		//NC
 	SPEC_GP  116,OUT,HIGH,0		//NC
-#endif
 	SPEC_GP  117,IN,HIGH,1		//SCL (I2C), In or Out shouldn't matter, linux says IN
 	SPEC_GP  118,IN,HIGH,1		//SDA (I2C), In or Out shouldn't matter, linux says IN
 	SPEC_GP  119,OUT,HIGH,0		//NC

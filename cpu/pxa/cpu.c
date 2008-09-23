@@ -47,11 +47,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define GPIO_SET(val,gp)     if (val) GPSRx(gp) = GP_BITMASK(gp); else GPCRx(gp) = GP_BITMASK(gp)
 
-#if (PLATFORM_TYPE==NEON270)
-#define GPIO_SMSC_RESET 23
-#else
-#define GPIO_SMSC_RESET -1
-#endif
 
 int cpu_init (void)
 {
@@ -63,11 +58,13 @@ int cpu_init (void)
 	FIQ_STACK_START = IRQ_STACK_START - CONFIG_STACKSIZE_IRQ;
 #endif
 
-	if (GPIO_SMSC_RESET >=0) {
-		GPIO_SET(0,GPIO_SMSC_RESET);
+#ifdef PLAT_GP_OUT_SMSC_RESET
+	if (PLAT_GP_OUT_SMSC_RESET >=0) {
+		GPIO_SET(0,PLAT_GP_OUT_SMSC_RESET);
 		udelay(10);
-		GPIO_SET(1,GPIO_SMSC_RESET);
+		GPIO_SET(1,PLAT_GP_OUT_SMSC_RESET);
 	}
+#endif
 	return 0;
 }
 

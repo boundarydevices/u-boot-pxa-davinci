@@ -25,37 +25,25 @@
  * Copyright Boundary Devices, Inc. 2005
  */
 #include "select.h"
-#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)||(PLATFORM_TYPE==ARGON)
+#if (PLAT_IS_PXA27X)
 #define CONFIG_PXA270		1	/* This is a PXA270 CPU    */
 #define CONFIG_PXA27X		1	/* Which is a PXA27X */
-#define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
-
-#elif (PLATFORM_TYPE==NEON270)
-#define CONFIG_PXA270		1	/* This is a PXA270 CPU    */
-#define CONFIG_PXA27X		1	/* Which is a PXA27X */
-#define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
-#define CONFIG_SM501		1
-//#define CONFIG_SM501_USB	1	/* comment this out to use the pxa270's usb host*/
-
-#elif (PLATFORM_TYPE==NEON)||(PLATFORM_TYPE==NEONB)
-//These don't use the built-in pxa lcd controller
+#elif (PLAT_IS_PXA2XX)
 #define CONFIG_PXA250		1	/* This is an PXA250 CPU    */
-#define CONFIG_NEON		1	/* on a Neon Board	    */
+#endif
+
+#if (PLAT_PXA_LCD)
+#define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
+#endif
+
+#ifdef PLAT_SM501_BASE
 #define CONFIG_SM501		1
+#if (PLAT_IS_PXA27X==0)		/* Change to #if 1 to use the SM501 usb host*/
 #define CONFIG_SM501_USB	1
-
-#else
-#define CONFIG_PXA250		1	/* This is an PXA250 CPU    */
-#define CONFIG_PXALCD          1     /* Allow PXA display controller as well */
-#endif
-
-#if (PLATFORM_TYPE==HALOGEN)
-#if (PLATFORM_REV==2)
-#define CFG_FLASH_PORT_WIDTH16
 #endif
 #endif
 
-#if (PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)||(PLATFORM_TYPE==OXYGEN)
+#if (PLAT_ROM_WIDTH==16)
 #define CFG_FLASH_PORT_WIDTH16
 #endif
 
@@ -87,14 +75,16 @@
 /*
  * Hardware drivers
  */
-#if (PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)
+#ifdef PLAT_AX88796_BASE
 #define CONFIG_DRIVER_NE2000
-#define CONFIG_DRIVER_NE2000_BASE 0x04000000
+#define CONFIG_DRIVER_NE2000_BASE PLAT_AX88796_BASE
 #define CONFIG_MII
 #define CONFIG_CMD_MII
-#else
+#endif
+
+#ifdef PLAT_LAN91C111_BASE
 #define CONFIG_DRIVER_SMC91111
-#define CONFIG_SMC91111_BASE 0x10000300
+#define CONFIG_SMC91111_BASE (PLAT_LAN91C111_BASE+0x0300)
 #define CONFIG_SMC_USE_32_BIT
 #endif
 

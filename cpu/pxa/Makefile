@@ -67,7 +67,7 @@ include $(SRCTREE)/rules.mk
 sinclude $(obj).depend
 
 minidebug.o : minidebug.S Makefile
-	$(ARM_ELF_GCC) -c $(D_GNUC) -DUBOOT=1 -DDISPLAY_TYPE=$(DISPLAY_TYPE) -DPLATFORM_TYPE=$(PLATFORM_TYPE) -DPLATFORM_REV=$(PLATFORM_REV) -DSOFTWARE_TYPE=$(SOFTWARE_TYPE) $(STACKS_VALID) -DCPU_CLOCK=$(CPU_CLOCK) \
+	$(ARM_ELF_GCC) -c $(D_GNUC) -DUBOOT=1 -DDISPLAY_TYPE=$(DISPLAY_TYPE) -DPLATFORM_TYPE=$(PLATFORM_TYPE) -DSOFTWARE_TYPE=$(SOFTWARE_TYPE) $(STACKS_VALID) -DCPU_CLOCK=$(CPU_CLOCK) \
 		$(SOFT_FLOAT) -I$(TOPDIR)/include $(PLATFORM_CPPFLAGS) -o $@ $<
 
 #########################################################################

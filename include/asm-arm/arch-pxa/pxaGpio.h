@@ -7,14 +7,30 @@
 #define HIGH 1
 
 	.ifdef __ARMASM
-.macro	SPEC_GP gp_,dir,level,alt
+.macro	SPEC_GP2 gp_,dir,level,alt
 SPEC_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
 .endm
 	.else
-.macro	SPEC_GP gp_,dir,level,alt
+.macro	SPEC_GP2 gp_,dir,level,alt
 	.set	SPEC_\gp_,\dir+(\level<<8)+(\alt<<16)
 .endm
 	.endif
+// *****************************************************************************************
+.macro	SPEC_GP1 gp_,gp_test,dir,level,alt
+	.if (\gp_test >= 0)
+		.if (\gp_==\gp_test)
+			SPEC_GP2 \gp_,\dir,\level,\alt
+		.else
+			aaa	\gp_, \gp_test, \dir,\level,\alt
+		.endif
+	.endif
+.endm
+// *****************************************************************************************
+.macro	SPEC_GP gp_,dir,level,alt
+	.ifndef SPEC_\gp_
+		SPEC_GP2 \gp_,\dir,\level,\alt
+	.endif
+.endm
 // *****************************************************************************************
 .macro	CREATE_MASK_DIR name,prefix,p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15,p16,p17,p18,p19,p20,p21,p22,p23,p24,p25,p26,p27,p28,p29,p30,p31
 	.ifdef __ARMASM
@@ -129,14 +145,14 @@ SPEC_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
 	.endif
 .endm
 
-#if (PLATFORM_TYPE==NEON)||(PLATFORM_TYPE==NEONB)||(PLATFORM_TYPE==BD2003)||(PLATFORM_TYPE==BOUNDARY_OLD_BOARD)
-#define ALT_LCD 2
-#include "pxaGpio25x.h"
+#if (PLAT_GAME==1)
+#include "pxaGpioGame.h"
 #else
-#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==NEON270)
+#if (PLAT_IS_PXA27X==1)
 #define ALT_LCD 2
 #include "pxaGpio27x.h"
 #else
-#include "pxaGpioGame.h"
+#define ALT_LCD 2
+#include "pxaGpio25x.h"
 #endif
 #endif

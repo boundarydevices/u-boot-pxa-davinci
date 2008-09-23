@@ -5,13 +5,13 @@
 	GBLA	CPU_PXA270
 	GBLA	RomWidthIsRamWidth
 	.endif
-#if (PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==OXYGEN)||(PLATFORM_TYPE==NEON270)
+#if (PLAT_IS_PXA27X==1)
 	.set	CPU_PXA270,1
 #else
 	.set	CPU_PXA270,0
 #endif
 
-#if (PLATFORM_TYPE==NEONB)||(PLATFORM_TYPE==HALOGEN)||(PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)||(PLATFORM_TYPE==ARGON)||(PLATFORM_TYPE==OXYGEN)||(PLATFORM_TYPE==NEON270)||(PLATFORM_TYPE==NEON)
+#if (PLAT_RAM_32BIT_WIDE==1)
 	.set	RomWidthIsRamWidth,0	//use 32 bit ram always
 #else
 	.set	RomWidthIsRamWidth,1
@@ -24,7 +24,7 @@
 			//2 : tRP = 3, tRCD = 3, tRAS = 7, tRC = 10
 			//3 : tRP = 3, tRCD = 3, tRAS = 7, tRC = 11
 //BM big memory option
-#if (PLATFORM_TYPE==NEON270)
+#if (PLAT_RAM_64_OR_128MB==1)
 	//64 meg option
 	.equiv	SM_numColumnAddrBits, 9
 	.equiv	SM_numRowAddrBits, 13	//for MT48LC8M16A2 - 75 B
@@ -187,43 +187,9 @@
 #endif
 .endm
 
-	.equiv	tEHEL,	0	//R14
-	.equiv	tAPA,	3	//r15 25ns/10ns rounded up
-
-	.equiv	RDFSelect, 13	//R2 : tAVQV : 110ns/10ns = 11; 11-1=10=RDF
-//	.equiv	RDFSelect, 10	//R2 : tAVQV : 110ns/10ns = 11; 11-1=10=RDF
-			//0-11 map to 0-11
-			//12 -> 13, 13 ->15, 14->18, 15->23
-
-//#if (PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)
-#if (PLATFORM_TYPE==GAME_CONTROLLER_PLAITED_A1)||(PLATFORM_TYPE==GAME_CONTROLLER)||(PLATFORM_TYPE==GAME_WITH_SMC)
-	.equiv	BurstSelect, 0	//if plaited bug, burst mode will no longer work.
-#else
-	.equiv	BurstSelect, 2	//0->nonburst,1->SRAM,2->burst of4, 3->burst of 8, 4->variable latency i/o
-#endif
-
-
-#if (PLATFORM_TYPE==NEONB)
-//access time 70ns, 25ns after CS data becomes valid
-//							RRR					RDN					RDF					RBW			RTX
-//						  gap between	     Address to
-//				1-fast    chip selects	     data valid
-//				0-slow    recovery           2nd burst access     1st access delay   16-bit bus    non-burst(0), sram(1), 4cycle(2), 8cycle(3), VLIO(4)
-	.equiv	CS0_MSC, (1<<15)+   (3<<12)+           (12<<8)+        ((12-1)<<4)+                       0
-	.equiv	CS1_MSC, (1<<15)+(((tEHEL+1)>>1)<<12)+((tAPA-1)<<8)+     (RDFSelect<<4)+                 (BurstSelect)			//fast device
-#else
-	.equiv	CS0_MSC, (1<<15)+(((tEHEL+1)>>1)<<12)+((tAPA-1)<<8)+     (RDFSelect<<4)+                 (BurstSelect)			//fast device
-#if (PLATFORM_TYPE==NEON270)
-	.equiv	CS1_MSC, (1<<15)+   (1<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//SM501
-#else
-#if (PLATFORM_TYPE==HYDROGEN)||(PLATFORM_TYPE==MICROAVL)
-	.equiv	CS1_MSC, (1<<15)+   (1<<12)+            (3<<8)+            ((5-1)<<4)+        (1<<3) +       1		//AX88796B, SRAM interface
-#else
-	.equiv	CS1_MSC, (1<<15)+   (3<<12)+            (2<<8)+             ((3-1)<<4)+        (1<<3) +       4		//SMC chip
-#endif
-//	.equiv	CS1_MSC, (1<<15)+   (6<<12)+           ((11-1)<<8)+        ((4-1)<<4)+        (1<<3) +       4		//SMC chip
-#endif
-#endif
+	.equiv	CS0_MSC, PLAT_CS0_MSC
+	.equiv	CS1_MSC, PLAT_CS1_MSC
+//	.equiv	CS1_MSC, (1<<15)+	(6<<12)+	((11-1)<<8)+	((4-1)<<4)+	(1<<3) +       4		//SMC chip
 
 .macro InitCS0_CS1	rBase,rTemp
 	BigMov	\rBase,MEMORY_CONTROL_BASE
@@ -246,35 +212,19 @@
 1:
 	InitRam \rBase, \rTemp,\rTemp2		//out: \rBase - MEMORY_CONTROL_BASE
 
-#if (PLATFORM_TYPE==BOUNDARY_OLD_BOARD)
-	.equiv	CHIP_MODE, 0		//don't use VIO_READY
-#else
+#if (PLAT_GP_IN_VIO_READY==18)
 	.equiv	CHIP_MODE, 4		//gp18 is VIO_READY
+#else
+	.equiv	CHIP_MODE, 0		//don't use VIO_READY
 #endif
 
-//							RRR					RDN					RDF					RBW			RTX
-//						  gap between	     Address to
-//				1-fast    chip selects	     data valid
-//				0-slow    recovery           2nd burst access     1st access delay   16-bit bus    non-burst(0), sram(1), 4cycle(2), 8cycle(3), VLIO(4)
 #if 1
 	.equiv	CS2_MSC, (1<<15)+   (4<<12)+           ((6-2)<<8)+         ((4-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB dma
 //	.equiv	CS2_MSC, (1<<15)+   (7<<12)+           ((16-1)<<8)+         ((16-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB dma
-
 //											vlio min 2             vlio min 3
-#if (PLATFORM_TYPE==NEON) || (PLATFORM_TYPE==NEONB)
-	.equiv	CS3_MSC, (1<<15)+   (1<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//SM501
-	.equiv	CS4_MSC, (1<<15)+   (3<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//SMC chip
-#else
-	.if CPU_PXA270
-	.equiv	CS3_MSC, (1<<15)+   (1<<12)+            (2<<8)+            ((4-1)<<4)+        (0<<3) +       4		//NC
-	.equiv	CS4_MSC, (1<<15)+   (3<<12)+            (2<<8)+            ((5-1)<<4)+        (0<<3) +       4		//SMC chip
-	.else
-	.equiv	CS3_MSC, (1<<15)+   (4<<12)+           ((6-2)<<8)+         ((4-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB dma
+	.equiv	CS3_MSC, PLAT_CS3_MSC
 //	.equiv	CS3_MSC, (1<<15)+   (7<<12)+           ((16-1)<<8)+        ((16-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB dma
-	.equiv	CS4_MSC, (1<<15)+   (6<<12)+           ((11-1)<<8)+        ((4-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB IO
-	.endif
-#endif
-
+	.equiv	CS4_MSC, PLAT_CS4_MSC
 	.equiv	CS5_MSC, (0<<15)+   (7<<12)+           ((8-1)<<8)+         ((8-1)<<4)+       (1<<3) +       (0)			//for USB IO delay after CMD write
 #else
 	.equiv	CS2_MSC, (1<<15)+   (7<<12)+           ((16-1)<<8)+        ((16-1)<<4)+       (1<<3) +       CHIP_MODE		//for USB dma
@@ -335,38 +285,24 @@
 	.equiv	CKEN_I2C,	14
 	.equiv	CKEN_LCD,	16
 
-#if (PLATFORM_TYPE==NEON) || (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER)
-	.equiv	__ENABLED_BTUART_MASK, (1<<CKEN_BTUART)
-	.equiv	__ENABLED_STUART_MASK, (1<<CKEN_STUART)
-#endif
-	.if CPU_PXA270
-	.equiv	__ENABLED_BTUART_MASK, (1<<CKEN_BTUART)
-	.equiv	__ENABLED_STUART_MASK, (1<<CKEN_STUART)
+	.if (PLAT_HAS_BTUART==1)
+		.equiv	__ENABLED_BTUART_MASK, (1<<CKEN_BTUART)
+	.else
+		.equiv	__ENABLED_BTUART_MASK, 0
+	.endif
+	.if (PLAT_HAS_STUART==1)
+		.equiv	__ENABLED_STUART_MASK, (1<<CKEN_STUART)
+	.else
+		.equiv	__ENABLED_STUART_MASK, 0
 	.endif
 
-#if (PLATFORM_TYPE==BD2003) || (PLATFORM_TYPE==BOUNDARY_OLD_BOARD) || (PLATFORM_TYPE==OLD_GAME_CONTROLLER) || (PLATFORM_TYPE==HALOGEN) || (PLATFORM_TYPE==HYDROGEN) || (PLATFORM_TYPE==MICROAVL) || (PLATFORM_TYPE==ARGON) || (PLATFORM_TYPE==OXYGEN) || (PLATFORM_TYPE==NEON270)
-	.equiv	__ENABLED_LCD_MASK, (1<<CKEN_LCD)
-#endif
-
-	.ifndef __ENABLED_BTUART_MASK
-		.ifndef __ENABLE_BTUART
-			.equiv	__ENABLED_BTUART_MASK, 0
-		.else
-			.equiv	__ENABLED_BTUART_MASK, (1<<CKEN_BTUART)
-		.endif
+	.if (PLAT_PXA_LCD==1)
+		.equiv	__ENABLED_LCD_MASK, (1<<CKEN_LCD)
+	.else
+		.equiv	__ENABLED_LCD_MASK, 0
 	.endif
 
-	.ifndef __ENABLED_STUART_MASK
-		.ifndef __ENABLE_STUART
-			.equiv	__ENABLED_STUART_MASK, 0
-		.else
-			.equiv	__ENABLED_STUART_MASK, (1<<CKEN_STUART)
-		.endif
-	.endif
 
-	.ifndef __ENABLED_LCD_MASK
-	.equiv	__ENABLED_LCD_MASK, 0
-	.endif
 
 .macro InitIC_Clocks rBase,rTemp,cpuClock
 	BigMov	\rBase,IC_BASE
@@ -639,7 +575,7 @@
 	mov	\rTemp,#(1<<11)		//gp11 reset for SMSC lan91c111
 	str	\rTemp,[\rBase,#GPCR0]
 
-#if (PLATFORM_TYPE==NEON270)
+#if (PLAT_GP_IN_MBREQ==115)
 	BigMov	\rTemp,(AFVAL112)|(3<<((115-112)<<1))	//MBREQ alternate function 3
 	str	\rTemp,[\rBase,#GAFR3_U]
 #endif

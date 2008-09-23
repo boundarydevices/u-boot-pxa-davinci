@@ -201,15 +201,17 @@
 .macro	EnableFlashReadMode rTemp0,rTemp1,rUART
 	rsbs	\rTemp0,pc,#0x800
 	BigMov	\rTemp0,FLASH_READ_CMD
-
-#if (PLATFORM_TYPE==NEONB)
-	BigMov	\rTemp1,VIRTUAL_CS1	//remember, although instruction fetches are physical, data are still virtual
-#else
-	BigMov	\rTemp1,VIRTUAL_CS0	//remember, although instruction fetches are physical, data are still virtual
-#endif
+//remember, although instruction fetches are physical,
+//data fetches are still virtual
+	.if (PLAT_PHYS_FLASH_BASE)
+		BigMov	\rTemp1,VIRTUAL_CS1
+	.else
+		BigMov	\rTemp1,VIRTUAL_CS0
+	.endif
 	cmphs	\rUART,#0x41000000
-	strhs	\rTemp0,[\rTemp1]		//if (pc is in minicache) & (rUart is in virtual memory) then
-				//make sure flash is in read mode, we are almost off the minicache
+	strhs	\rTemp0,[\rTemp1]
+//if (pc is in minicache) & (rUart is in virtual memory) then
+//make sure flash is in read mode, we are almost off the minicache
 .endm
 
 //Out: z-0 means 16 bit width

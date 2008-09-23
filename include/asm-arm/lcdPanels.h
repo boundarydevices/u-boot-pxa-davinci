@@ -19,25 +19,7 @@
 
 //pixel clock frequency = LCLK / (2*(PCD+1))
 #if SET_BYTES_PER_PIXEL
-
-#if (PLATFORM_TYPE==MERCURY)
-#define __BYTES_PER_PIXEL 1	//1, 2, or 3 for mercury
-#endif
-
-#if (PLATFORM_TYPE==HALOGEN)
-#define __BYTES_PER_PIXEL 3
-#endif
-
-#if (PLATFORM_TYPE==NEON270)
-#define __BYTES_PER_PIXEL 3
-#endif
-
-#ifndef __BYTES_PER_PIXEL
-#define BYTES_PER_PIXEL 2		//ARGON is 16 bit/pixel mode
-#else
-#define BYTES_PER_PIXEL __BYTES_PER_PIXEL
-#endif
-
+#define BYTES_PER_PIXEL PLAT_BYTES_PER_PIXEL
 #endif
 
 
@@ -99,16 +81,19 @@
 #define DL122X32_P   320, 64, 34, 1,	240,20,8,3,		0,0,1,0,0,	0,0,0,0,62,0
 ///////////////////////////////
 // ********************************************************************************
-#if (PLATFORM_TYPE==BOUNDARY_OLD_BOARD)
-#define MOTHERBOARD_SCRAMBLED
+#ifdef __ARMASM
+#define __SKIP_LCD_REORDER 1
 #endif
 
-//#define CONFIG_UNSCRAMBLE_LCD
-#ifdef CONFIG_UNSCRAMBLE_LCD
-#if 1  //FL_ACTIVE(DEF_P)					//passive cannot swap pin order
-#ifdef MOTHERBOARD_SCRAMBLED
+#if (PLAT_PXALCD_SCRAMBLED)
+#define __MOTHERBOARD_SCRAMBLED 1
+#endif
 
-#ifndef DAUGHTERBOARD_UNSCRAMBLE
+#ifdef __CONFIG_UNSCRAMBLE_LCD
+#if 1  //FL_ACTIVE(DEF_P)					//passive cannot swap pin order
+#ifdef __MOTHERBOARD_SCRAMBLED
+
+#ifndef __DAUGHTERBOARD_UNSCRAMBLE
 #define LCD_REORDER_BLUE  15,14, 8, 7, 6
 #define LCD_REORDER_GREEN 13,12,11, 5, 4, 3
 #define LCD_REORDER_RED   10, 9, 2, 1, 0
@@ -116,15 +101,16 @@
 
 #else
 //motherboard is NOT scrambled
-#ifdef DAUGHTERBOARD_UNSCRAMBLE
+#ifdef __DAUGHTERBOARD_UNSCRAMBLE
 #define LCD_REORDER_BLUE  15,14,13,10, 9
 #define LCD_REORDER_GREEN  8, 4, 3, 2, 12, 11
 #define LCD_REORDER_RED    7, 6, 5, 1, 0
 #endif
-#endif	//#ifdef MOTHERBOARD_SCRAMBLED
-#endif	//#if FL_ACTIVE(DEF_P)
-#endif	//#ifdef CONFIG_UNSCRAMBLE_LCD
+#endif	//#ifdef __MOTHERBOARD_SCRAMBLED
+#endif	//#if 1 //FL_ACTIVE(DEF_P)
+#endif	//#ifdef __CONFIG_UNSCRAMBLE_LCD
 
+#ifndef __SKIP_LCD_REORDER
 #ifndef LCD_REORDER_BLUE
 #if (BYTES_PER_PIXEL==1)
 #define LCD_REORDER_BLUE  0,1
@@ -139,6 +125,7 @@
 #define LCD_REORDER_BLUE  0,1,2,3,4,5
 #define LCD_REORDER_GREEN 6,7,8,9,10,11
 #define LCD_REORDER_RED   12,13,14,15,16,17
-#endif
-#endif
-#endif
+#endif	//else 2
+#endif	//else 1
+#endif	//#ifndef LCD_REORDER_BLUE
+#endif	//#ifndef __SKIP_LCD_REORDER

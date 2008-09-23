@@ -477,17 +477,9 @@ static int pxafb_init (vidinfo_t *vid)
 
 #if defined( CONFIG_PXA270 )
 
-#if (PLATFORM_TYPE==HALOGEN)
-#if (PLATFORM_REV==1)||(PLATFORM_REV==2)
+#if (PLAT_BYTES_PER_PIXEL==3)
 #define PALETTE_SELECT	0x00010000 ;        // 18-bits to panel
-#endif
-#endif
-
-#if (PLATFORM_TYPE==NEON270)
-#define PALETTE_SELECT	0x00010000 ;        // 18-bits to panel
-#endif
-
-#ifndef PALETTE_SELECT
+#else
 #define PALETTE_SELECT	0x00008000 ;        // 16-bits to panel, default
 #endif
 
