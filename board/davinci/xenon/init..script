@@ -27,9 +27,9 @@ if fatload mmc 0 80800000 uImage ; then
         lecho 'load initrd'
 	if fatload mmc 0 81000000 mmcinitrd* ; then
 		lecho "Booting Linux"
-                set bootargs "mem=224M console=ttyS0,115200n8 root=/dev/ram0 "
+                set bootargs "mem=200M console=ttyS0,115200n8 root=/dev/ram0 "
                 set bootargs $bootargs "video=dm64xxfb:output=lcd "
-                set bootargs $bootargs "dav-dma=pool=0x400000"
+                set bootargs $bootargs "dav-dma=phys=200M+24M"
                 set bootargs $bootargs "mtdparts=davinci_nand.0:128k(ubdata),640k(spare0),1280k(ub),128896k(yaffs),128k(params)"
 		set bootargs $bootargs "eth=$ethaddr"
                 set bootargs $bootargs "mmc=bits:4"
