@@ -105,13 +105,14 @@ U_BOOT_CMD(
 
 int do_mmc_bread(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-   if( 3 == argc ){
+   if( 3 <= argc ){
       char *endp ;
       void *addr ;
-      unsigned long blocknum = simple_strtoul(argv[1], &endp, 16 );
+      unsigned numBlocks = 1 ;
+      unsigned long blocknum = simple_strtoul(argv[1], &endp, 0 );
       if( 0 != *endp )
       {
-         printf( "Invalid blockNum %s (use hex)\n", argv[1] );
+         printf( "Invalid blockNum %s (use decimal or 0xHEX)\n", argv[1] );
          return -1;
       }
       addr = (void *)simple_strtoul(argv[2], &endp, 16 );
@@ -120,13 +121,20 @@ int do_mmc_bread(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
          printf( "Invalid address %s (use hex)\n", argv[2] );
          return -1;
       }
-      printf( "read block number 0x%x into address %p\n", blocknum, addr );
+      if( 3 < argc ){
+         numBlocks = simple_strtoul(argv[3], &endp, 0 );
+         if( (0 == numBlocks) || (0 != *endp ) ){
+            printf( "Invalid block count <%s> (use decimal or 0xHEX)\n", argv[3] );
+            return -1 ;
+         }
+      }
+      printf( "read blocks %u..%u into address %p\n", blocknum, blocknum+numBlocks-1, addr );
 
       block_dev_desc_t *dev = mmc_get_dev(0);
       if( dev ){
-         unsigned long rval = dev->block_read(0, blocknum, 1, addr );
-         if( 1 == rval ){
-            printf( "read block %lu (0x%lx)\n", blocknum, blocknum );
+         unsigned long rval = dev->block_read(0, blocknum, numBlocks, addr );
+         if( numBlocks == rval ){
+            printf( "read blocks %lu (0x%lx)...\n", blocknum, blocknum );
          }
          else
             printf( "error reading block %lu (0x%lx)\n", blocknum, blocknum );
@@ -139,7 +147,30 @@ int do_mmc_bread(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 }
 
 U_BOOT_CMD(
-	mmcread,	3,	1,	do_mmc_bread,
-	"mmcread - read mmc block\n",
-	"mmcread blockNum(hex) address(hex)\\n"
+	mmcread,	4,	1,	do_mmc_bread,
+	"mmcread - read mmc block(s)\n",
+	"mmcread blockNum(decimal or 0xHEX) address(hex) [numBlocks=1]\\n"
 );
+
+int mmcpart(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+   unsigned devNum = 0 ;
+   if( 2 == argc )
+      devNum = simple_strtoul(argv[1], NULL, 16 );
+   block_dev_desc_t *dev = mmc_get_dev(devNum);
+   if( dev ){
+      print_part(dev);
+   }
+   else
+      printf( "Invalid MMC dev(%u)", devNum );
+
+   return 0 ;
+}
+
+U_BOOT_CMD(
+	mmcpart,  3,  1,  mmcpart,
+	"mmcpart - Show MMC/SD partition info\n",
+	"mmcpart devNum\n"
+);
+
+
