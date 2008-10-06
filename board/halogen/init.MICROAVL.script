@@ -1,1 +1,46 @@
-No SD card. This file is a placeholder.
+if fatload mmc 0 a0010000 logo*.bmp ; then
+   bmp info a0010000 ;
+   bmp display a0010000 ;
+else
+   lecho "No logo present" ;
+fi
+
+if fatload mmc 0 a0008000 u-boot-microavl*.bin ; then
+        echo "u-boot loaded from $filename: $filesize bytes\n" ;
+        if cmp.b 0xa0008000 0 $filesize ; then
+                lecho "U-Boot versions match" ;
+        else
+                lecho "U-Boot versions mismatch!!!" ;
+                lecho "Auto-upgrade in 10 seconds..." ;
+                for n in 5 4 3 2 1 ; do
+                        lecho \\\\c "$n" ;
+                        sleep 1 ;
+                done
+                protect off all
+                erase 0 3ffff
+                cp.b a0008000 0 $filesize
+                lecho "Programmed $filesize bytes" ;
+                reset
+        fi
+fi
+
+if fatload mmc 0 a2000000 uim* ; then
+   lecho 'load Linux'
+   if fatload mmc 0 a2200000 mmcinitrd* ; then
+      echo 'using initrd' ;
+      lecho "Booting Linux"
+      set bootargs root=/dev/ram0 console=ttyS0,115200 mtdparts=physmap-flash.0:1024k(armboot),256k(ubparam),128k(params),-(rootfs1)
+      if test 1 -eq $sd1bit ; then set bootargs $bootargs pxamci.use1bit=1 ; fi
+      bootm a2000000 a2200000
+   fi
+else
+   echo "No Linux kernel" ;
+fi
+
+lecho 'No Linux, try CE'
+
+if fatload mmc 0 A0010000 nk*.nb0 ; then
+   go A0010000 ;
+else
+   echo "No WinCE image" ;
+fi
