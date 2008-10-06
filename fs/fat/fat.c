@@ -321,6 +321,9 @@ get_fatent(fsdata *mydata, __u32 entry)
 	return ret;
 }
 
+static inline __u32  sector_to_cluster( fsdata *mydata, __u32 sector ){
+	return (sector - mydata->data_begin)/mydata->clust_size ;
+}
 
 /*
  * Read at most 'size' bytes from the specified cluster into 'buffer'.
@@ -530,6 +533,21 @@ get_vfatname(fsdata *mydata, int curclust, __u8 *cluster,
 	if (*l_name == DELETED_FLAG) *l_name = '\0';
 	else if (*l_name == aRING) *l_name = 'å';
 	downcase(l_name);
+
+FAT_DPRINT( "%p->%p\n", realdent, retdent );
+FAT_DPRINT( "%c%c%c%c%c%c%c%c.%c%c%c  0x%x"
+      , realdent->name[0]
+      , realdent->name[1]
+      , realdent->name[2]
+      , realdent->name[3]
+      , realdent->name[4]
+      , realdent->name[5]
+      , realdent->name[6]
+      , realdent->name[7]
+      , realdent->ext[0]
+      , realdent->ext[1]
+      , realdent->ext[2]
+      , realdent->attr );
 
 	/* Return the real directory entry */
 	memcpy(retdent, realdent, sizeof(dir_entry));
@@ -779,7 +797,7 @@ do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
     dir_entry *dentptr;
     __u16 prevcksum = 0xffff;
     char *subname = "";
-    int rootdir_size, cursect;
+    int rootdir_size, cursect, end_sect;
     int idx, isdir = 0;
     int files = 0, dirs = 0;
     long ret = 0;
@@ -810,6 +828,7 @@ do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
 	mydata->data_begin = mydata->rootdir_sect + rootdir_size
 		- (mydata->clust_size * 2);
     }
+    end_sect = cursect+rootdir_size ;
     mydata->fatbufnum = -1;
 
     FAT_DPRINT ("FAT%d, fatlength: %d\n", mydata->fatsize,
@@ -848,6 +867,10 @@ do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
 	    FAT_DPRINT ("Error: reading rootdir block\n");
 	    return -1;
 	}
+	FAT_DPRINT( "read: block %u: %p..%p\n"
+		, (cursect*SECTOR_SIZE)/FS_BLOCK_SIZE
+		, do_fat_read_block
+		, do_fat_read_block+(mydata->clust_size * SECTOR_SIZE));
 	dentptr = (dir_entry *) do_fat_read_block;
 	for (i = 0; i < DIRENTSPERBLOCK; i++) {
 	    char s_name[14], l_name[256];
@@ -858,7 +881,7 @@ do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
 		if ((dentptr->attr & ATTR_VFAT) &&
 		    (dentptr->name[0] & LAST_LONG_ENTRY_MASK)) {
 		    prevcksum = ((dir_slot *) dentptr)->alias_checksum;
-		    get_vfatname (mydata, 0, do_fat_read_block, dentptr, l_name);
+		    get_vfatname (mydata, sector_to_cluster(mydata,cursect), do_fat_read_block, dentptr, l_name);
 		    if (dols == LS_ROOT) {
 			int isdir = (dentptr->attr & ATTR_DIR);
 			char dirc;
@@ -961,7 +984,28 @@ do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
 
 	    goto rootdir_done;  /* We got a match */
 	}
-	cursect++;
+	cursect++ ;
+
+        if( (cursect >= end_sect) && (mydata->fatsize == 32) )
+	{
+		int curclust;
+		cursect-- ;
+		curclust = (cursect - mydata->data_begin)/mydata->clust_size;
+FAT_DPRINT("%u(%u)->", cursect, curclust);
+		curclust = get_fatent(mydata, curclust);
+
+		if (curclust <= 0x0001 || (curclust & 0x0fffffff) >= 0x0FFFFFF0) {
+			if (dols){
+				printf ("\n%d file(s), %d dir(s)\n\n", files, dirs);
+				return 0 ;
+			}
+			else
+				return -1 ;
+		}
+		cursect = curclust * mydata->clust_size + mydata->data_begin;
+                end_sect = cursect + mydata->clust_size ;
+FAT_DPRINT("(%u)%u..%u\n", curclust, cursect, end_sect);
+	}
     }
   rootdir_done:
 
