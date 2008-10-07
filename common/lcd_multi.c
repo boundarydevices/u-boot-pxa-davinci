@@ -119,21 +119,32 @@ static inline void console_back( struct lcd_t *lcd )
    }
 }
 
+static int transparent_back = 0 ;
+static int checked_transp = 0 ;
+
 static void lcd_drawchar8( struct lcd_t *lcd, char c )
 {
 	uchar *dest;
 	ushort row;
-   uchar *src = video_fontdata + c * VIDEO_FONT_HEIGHT ;
-
+	uchar *src = video_fontdata + c * VIDEO_FONT_HEIGHT ;
 	dest = (uchar *)lcd->fbAddr + (lcd->info.xres*VIDEO_FONT_HEIGHT*lcd->y) + lcd->x*VIDEO_FONT_WIDTH ;
+
+        if( 0 == checked_transp ){
+           transparent_back = (0 != getenv("transp_lcdtext") );
+           checked_transp = 1 ;
+        }
 	for (row=0;  row < VIDEO_FONT_HEIGHT;  ++row, dest += lcd->info.xres, src++ ){
-      uchar mask = '\x80' ;
-      uchar bits = *src ;
-      uchar *d = dest ;
-      while( mask ){
-         *d++ = (bits & mask) ? lcd->fg : lcd->bg ;
-         mask >>= 1 ;
-      }
+		uchar mask = '\x80' ;
+		uchar bits = *src ;
+		uchar *d = dest ;
+		while( mask ){
+			if(bits & mask)
+				*d = lcd->fg ;
+			else if(!transparent_back)
+				*d = lcd->bg ;
+			d++ ;
+			mask >>= 1 ;
+		}
 	}
 }
 

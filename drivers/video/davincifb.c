@@ -155,7 +155,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	i = gd->bd->bi_dram[0].size;
 	if (i > (128<<20)) i = (128<<20);
 	lcd->fbAddr = (void *)( gd->bd->bi_dram[0].start + i - fbBytes );
-        memset(lcd->fbAddr,0,fbBytes);
+        memset(lcd->fbAddr,0xff,fbBytes);
 
 	lcd->fg = 0 ;
 	lcd->bg = 255 ;
