@@ -133,7 +133,6 @@ uchar default_environment[] = {
 #ifdef  CONFIG_EXTRA_ENV_SETTINGS
 	CONFIG_EXTRA_ENV_SETTINGS
 #endif
-	"transp_lcdtext=1\0"
 	"\0"
 };
 
