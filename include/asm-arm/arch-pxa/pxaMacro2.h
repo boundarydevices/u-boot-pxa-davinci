@@ -73,6 +73,18 @@
 	.equiv	MDREF_K1FREE_K1DB2_K1RUN, MDREF_K1FREE_K1DB2|MDREF_K1RUN
 
 // *******************************************************************************************
+.macro mac_align32
+	.ifdef __ARMASM
+		LCLA cnt
+cnt SETA (.-StartUp)
+		WHILE ((cnt :AND: 0x1c)<>0)
+			NOP
+cnt SETA (.-StartUp)
+		WEND
+	.else
+		.balignl        32,0xe1a00000   //nop code
+	.endif
+.endm
 
 //In: c-0 try 64meg, c-1 try 32meg
 // or if 16 bit mode
@@ -92,6 +104,8 @@
 
 	BigMov	\rTemp,((BM_MDREFR_VAL)&0xfff)|MDREF_K1FREE_K1DB2_SLFRSH
 	BigEor2Cs \rTemp,((BM_MDREFR_VAL)^(SM_MDREFR_VAL))&0xfff
+
+	mac_align32
 	strpl	\rTemp,[\rBase,#MDREFR]
 	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
@@ -100,7 +114,7 @@
 	strpl	\rTemp,[\rBase,#MDREFR]
 	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
-	bic	\rTemp,\rTemp,#(1<<22)				//disable slfrsh
+	bic	\rTemp,\rTemp,#MDREF_SLFRSH	//disable slfrsh
 	strpl	\rTemp,[\rBase,#MDREFR]
 	ldrpl	\rTemp,[\rBase,#MDREFR]		//wait for completion
 
@@ -114,8 +128,18 @@
 	.if RomWidthIsRamWidth
 	BigOrr2Ne \rTemp,(1<<2)			//select 16 bit width
 	.endif
+
+	mac_align32
+LNOP:
+//5-8 works
+//4 prints "Reset A0008000" then stops
+//2-3 works
+//0,1 prints single space then stops
+	nop
+	nop
 	strpl	\rTemp,[\rBase,#MDCNFG]		//Configure, but don't enable
 	ldrpl	\rTemp,[\rBase,#MDCNFG]		//wait for completion
+	add	\rTemp,\rTemp,#1	//force wait on read instead of throwing away
 	movpl	\rTemp,#0x10000
 	bmi	92f
 91:	subs	\rTemp,\rTemp,#1
