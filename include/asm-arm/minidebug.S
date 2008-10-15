@@ -2605,6 +2605,10 @@ InitializeCont1:
 	InitIC_Clocks	r0,sp,CPU_CLOCK
 	InitUARTs	r0,sp,BAUDRATE,BAUDRATE,9600
 	InitChangeCPUSpeed r0,r1,sp
+//	CP15_CONTROL mrc,r1		//get the control register
+//	orr	r1,r1,#0x1000		//set bit 12 -- the I bit
+//	CP15_CONTROL mcr,r1		//set the control register
+//	CPWAIT	r0
 	InitMemory	r0,sp,r1
 	BigMov	r1,MACH_TYPE_SCANPASS
 	SaveRegisters	r0,sp
