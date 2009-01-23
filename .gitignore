@@ -57,3 +57,4 @@ select.mk
 *.bin
 u-boot
 *.zip
+tools/env_embedded.c
