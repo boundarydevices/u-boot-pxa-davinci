@@ -198,6 +198,23 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	active: 1,
 	crt:0
 }, {
+	name: "urt_480x272",
+	pixclock: 12000000,
+	xres: 480,
+	yres: 272,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 0,
+	oepol_actl: 1,
+	hsync_len: 41,
+	left_margin: 42,
+	right_margin: 42,
+	vsync_len: 10,
+	upper_margin: 1,
+	lower_margin: 6,
+	active: 1,
+	crt:0
+}, {
 	name: "qvga_portrait",
 	pixclock: 0,
 	xres: 240,
