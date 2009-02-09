@@ -12,22 +12,22 @@ fi
 
 if fatload mmc 0 a2000000 uim* ; then
 	lecho 'load Linux'
-	if fatload mmc 0 a2200000 mmcinitrd* ; then
+	if fatload mmc 0 a2300000 mmcinitrd* ; then
 		echo 'using initrd' ;
 		lecho "Booting Linux"
 		set bootargs root=/dev/ram0 console=ttyS0,115200 debug=7 mtdparts=physmap-flash.0:1024k(armboot),256k(params),-(rootfs1)
 		if test 1 -eq $sd1bit ; then set bootargs $bootargs pxamci.use1bit=1 ; fi
-		bootm a2000000 a2200000
+		bootm a2000000 a2300000
 	else
 		echo 'testing cramfs img' ;
-		if fatload mmc 0 a2200000 cramfs* ; then
-			if cmp.b 00140000 a2200000 $filesize ; then
+		if fatload mmc 0 a2300000 cramfs* ; then
+			if cmp.b 00140000 a2300000 $filesize ; then
 				echo 'cramfs images match' ;
 			else
 				lecho 'filesystems differ...' ;
 				protect off all ;
 				erase 00140000 01ffffff ;
-				cp.b a2200000 00140000 $filesize ;
+				cp.b a2300000 00140000 $filesize ;
 			fi
 
 			set bootargs console=ttyS0,115200 debug=7 mtdparts=phys_mapped_flash:1024k(armboot),256k(params),-(rootfs1) root=/dev/mtdblock3 rootfstype=cramfs

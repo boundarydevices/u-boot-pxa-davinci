@@ -12,13 +12,13 @@ fi
 
 if fatload mmc 0 a2000000 uim* ; then
 	lecho 'load Linux'
-	if fatload mmc 0 a2200000 mmcinitrd* ; then
+	if fatload mmc 0 a2300000 mmcinitrd* ; then
 		echo 'using initrd' ;
 		lecho "Booting Linux"
 	        set bootargs root=/dev/ram0 console=ttyS0,115200 mtdparts=physmap-flash.0:1024k(armboot),256k(ubparam),256k(params),-(rootfs1)
                 set bootargs $bootargs  ucb1400_ts.ts_eat_head=2 ucb1400_ts.ts_delay=20
 		if test 1 -eq $sd1bit ; then set bootargs $bootargs pxamci.use1bit=1 ; fi
-		bootm a2000000 a2200000
+		bootm a2000000 a2300000
 	else
 		echo 'missing mmcinitrd.u-boot' ;
 	fi
