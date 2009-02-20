@@ -15,25 +15,6 @@
 // 1st define platform specific overrides
 // Then, provide defaults
 //
-	SPEC_GP1 9,PLAT_GP_IN_LOW_BATTERY,IN,HIGH,0	//Low battery
-	SPEC_GP1 10,PLAT_GP_IN_MMC_WP,IN,HIGH,0		//MMC card detect
-	SPEC_GP1 12,PLAT_GP_USB_CLIENT_READY,IN,HIGH,0	//float means USB Slave not ready to accept data
-							//out 1 means ready (D+ signal)
-	SPEC_GP1 12,PLAT_GP_IN_IRQ_AX88796,IN,HIGH,0	//HYDROGEN, MicroAVL AX88796B IRQ input
-	SPEC_GP1 13,PLAT_GP_IN_MAGSTRIPE1,IN,HIGH,0	//MicroAVL MagStripe
-	SPEC_GP1 22,PLAT_GP_IN_IRQ_SM501,IN,HIGH,0	//Neon270 SM501 interrupt
-	SPEC_GP1 36,PLAT_GP_IN_FF_DCD,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4) 4 output Vbus Enable
-	SPEC_GP1 40,PLAT_GP_OUT_FF_DTR,OUT,HIGH,2	//(out alt 2:FF_DTR)
-	SPEC_GP1 88,PLAT_GP_IN_USB_OVER_CURRENT,IN,HIGH,1	//port 1 usb power over current
-	SPEC_GP1 89,PLAT_GP_OUT_USB_POWER_ENABLE,OUT,HIGH,0	//port 1 usb power enable (driver needs to enable usb power (LOW,2)
-	SPEC_GP1 98,PLAT_GP_IN_MAGSTRIPE2,IN,HIGH,0		//MicroAVL MagStripe
-	SPEC_GP1 99,PLAT_GP_IN_MAGSTRIPE3,IN,HIGH,0		//MicroAVL MagStripe
-	SPEC_GP1 100,PLAT_GP_IN_MAGSTRIPE4,IN,HIGH,0		//MicroAVL MagStripe
-	SPEC_GP1 105,PLAT_GP_IN_USB_OVER_CURRENT105,IN,HIGH,0	//USB Overcurrent
-	SPEC_GP1 115,PLAT_GP_IN_MBREQ,IN,HIGH,0			//MC_MBREQ, alternate function 3 AFTER PSSR[RDH] is cleared
-	SPEC_GP1 116,PLAT_GP_OUT_MBGNT,OUT,HIGH,3		//MC_MBGNT, only NEON270 has SM501 for Bus Mastering
-
-
 	SPEC_GP  0,IN,HIGH,0		//UCB1400 interrupt
 	SPEC_GP  1,IN,HIGH,0		//nRESET_GPIO, usb client connect interrupt
 	SPEC_GP  2,IN,HIGH,0		//SYS_EN
@@ -51,7 +32,7 @@
 	SPEC_GP  13,OUT,HIGH,0		//NC
 	SPEC_GP  14,OUT,HIGH,0		//NC
 	SPEC_GP  15,OUT,HIGH,2		//nCS1, NC
-	SPEC_GP  16,OUT,PLAT_GP_OUT_BACKLIGHT_PWM_LEVEL,0	//LCD backlight brightness control (Argon/Okaya want GP16 low)
+	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control (Argon/Okaya want GP16 low)
 	SPEC_GP  17,OUT,HIGH,0		//LCD backlight ON/OFF
 	SPEC_GP  18,IN,HIGH,1		//MC_RDY, VIO_READY
 	SPEC_GP  19,OUT,HIGH,0		//NC

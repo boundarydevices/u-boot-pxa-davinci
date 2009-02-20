@@ -187,6 +187,9 @@
 .macro BigAdd2Ne dest,val
 	Big2CC addne,\dest,\val
 .endm
+.macro BigAdd2Cs dest,val
+	Big2CC addcs,\dest,\val
+.endm
 
 .macro BigSub2 dest,val
 	Big2CC sub,\dest,\val

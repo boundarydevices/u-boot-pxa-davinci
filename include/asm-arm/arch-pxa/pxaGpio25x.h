@@ -20,26 +20,6 @@
 // 1st define platform specific overrides
 // Then, provide defaults
 //
-	SPEC_GP1  2,PLAT_GP_IN_USB_CLIENT_STATUS,IN,HIGH,0	//USB client connection status
-	SPEC_GP1  3,PLAT_GP_USB_CLIENT_READY,IN,HIGH,0		//float means USB Slave not ready to accept data
-								//out 1 means ready (D+ signal)
-	SPEC_GP1  4,PLAT_GP_OUT_I2C_POWER,OUT,LOW,0		//low means don't provide 12 volts to I2C bus
-	SPEC_GP1  4,PLAT_GP_IN_IRQ_UCB1400,IN,HIGH,0		//UCB1400 irq on NEON board
-	SPEC_GP1  11,PLAT_GP_OUT_J12_PIN1,OUT,HIGH,0		//CP_3600KHZ, NEON:J12,pin1
-	SPEC_GP1  13,PLAT_GP_OUT_MBGNT,OUT,HIGH,2		//MC_MBGNT
-	SPEC_GP1  14,PLAT_GP_IN_MBREQ,IN,HIGH,1			//MC_MBREQ
-	SPEC_GP1  15,PLAT_GP_OUT_nCS1,OUT,HIGH,2		//MC_nCS1, NEONB eeprom
-	SPEC_GP1  16,PLAT_GP_OUT_BACKLIGHT_PWM,OUT,HIGH,0	//LCD backlight brightness control
-	SPEC_GP1  17,PLAT_GP_OUT_BACKLIGHT_ENABLE,OUT,HIGH,0	//LCD backlight ON/OFF
-	SPEC_GP1  18,PLAT_GP_IN_VIO_READY,IN,HIGH,1		//MC_RDY, VIO_READY
-	SPEC_GP1  19,PLAT_GP_IN_DREQ1,IN,HIGH,1			//MC_DREQ1, DMA request for USB DC
-	SPEC_GP1  20,PLAT_GP_IN_DREQ0,IN,HIGH,1			//MC_DREQ0, DMA request for USB HC
-	SPEC_GP1  23,PLAT_GP_IN_IRQP_UCB1400,IN,LOW,0		//UCB1400 irq for NEONB, nc for NEW NEON
-	SPEC_GP1  24,PLAT_GP_IN_IRQ_SMSC,IN,LOW,0		//SSP_SFRM, SMSC interrupt (active high)
-	SPEC_GP1  44,PLAT_GP_IN_J12_PIN2,IN,HIGH,0		//BT_CTS, NEON:J12,pin 2
-	SPEC_GP1  46,PLAT_GP_IN_J12_PIN3,IN,HIGH,0		//ST_RXD, NEON:J12,pin 3
-
-
 	SPEC_GP  0,IN,HIGH,0		//        flash ready low 16, or magStripe T1 Clk(SMC)
 	SPEC_GP  1,IN,HIGH,0		//CP_RST, flash ready high 16, or magStripe T2 Clk(SMC)
 	SPEC_GP  2,OUT,LOW,0		//output to transistor (unused), OUT_DRY_CONTACT2
@@ -59,7 +39,7 @@
 					//MC_nCS1, !!! amber led
 	SPEC_GP  16,IN,HIGH,0		//SIU_PWM0, !!! feedback2, left in
 	SPEC_GP  17,IN,HIGH,0		//SIU_PWM1, !!! feedback1, right in
-	SPEC_GP  18,OUT,HIGH,0		//MC_RDY, !!! turnstile
+	SPEC_GP  18,IN,HIGH,1		//MC_RDY, VIO_READY
 	SPEC_GP  19,OUT,HIGH,0		//MC_DREQ1, nc
 	SPEC_GP  20,OUT,HIGH,1		//MC_DREQ0, nc
 	SPEC_GP  21,IN,HIGH,0		//	pcmcia card detect

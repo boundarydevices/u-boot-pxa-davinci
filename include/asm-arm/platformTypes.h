@@ -17,6 +17,7 @@
 #define OXYGEN				15
 #define MERCURY				16
 #define DAVINCI				17
+#endif
 
 #if (PLATFORM_TYPE==NEON)
 #include "plat_NEON.h"
@@ -52,6 +53,4 @@
 #include "plat_MERCURY.h"
 #elif (PLATFORM_TYPE==DAVINCI)
 #include "plat_DAVINCI.h"
-#endif
-
 #endif

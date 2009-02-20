@@ -1,5 +1,3 @@
-#include "../platformTypes.h"
-
 #define IN 0
 #define OUT 1
 
@@ -15,16 +13,6 @@ SPEC_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
 	.set	SPEC_\gp_,\dir+(\level<<8)+(\alt<<16)
 .endm
 	.endif
-// *****************************************************************************************
-.macro	SPEC_GP1 gp_,gp_test,dir,level,alt
-	.if (\gp_test >= 0)
-		.if (\gp_==\gp_test)
-			SPEC_GP2 \gp_,\dir,\level,\alt
-		.else
-			aaa	\gp_, \gp_test, \dir,\level,\alt
-		.endif
-	.endif
-.endm
 // *****************************************************************************************
 .macro	SPEC_GP gp_,dir,level,alt
 	.ifndef SPEC_\gp_
@@ -145,6 +133,8 @@ SPEC_\gp_	EQU	\dir+(\level<<8)+(\alt<<16)
 	.endif
 .endm
 
+#define __DEFINE_GPIO_OVERRIDES 1
+#include "../platformTypes.h"
 #if (PLAT_GAME==1)
 #include "pxaGpioGame.h"
 #else
