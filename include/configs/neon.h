@@ -183,7 +183,7 @@
 #else
 
 #define CONFIG_BOOTDELAY	3
-#define CONFIG_BOOTCOMMAND	"mmcinit && fatload mmc 0 a0001000 init.scr && autoscr a0001000"
+#define CONFIG_BOOTCOMMAND	"if [ mmcinit || mmcinit ]; then fatload mmc 0 a0001000 init.scr && autoscr a0001000 ; fi"
 #endif
 
 #define CONFIG_BOOTARGS		"console=ttyS0,115200 DEBUG=1 ENV=/etc/bashrc init=/linuxrc rw mtdparts=phys:1024k(armboot),256k(params),-(rootfs1) root=/dev/mtdblock3 rootfstype=cramfs"

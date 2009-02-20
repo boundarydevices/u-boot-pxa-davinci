@@ -2661,7 +2661,7 @@ halogen_config	:	unconfig
 
 hydrogen_config	:	unconfig
 	@./mkconfig halogen arm pxa halogen
-	./Configure --PLATFORM_TYPE=HYDROGEN --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=okaya_480x272
+	./Configure --PLATFORM_TYPE=HYDROGEN --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=urt_480x272
 
 microavl_config	:	unconfig
 	@./mkconfig halogen arm pxa halogen

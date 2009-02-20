@@ -486,6 +486,44 @@ int do_askenv ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 #endif
 
 /************************************************************************
+ * Set a new environment variable from RAM.
+ * Requires three arguments: the variable name, a memory address and a length.
+ *
+ * Deletes the environment variable if the length is 
+ */
+int do_ramenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	unsigned long len, i;
+	char *addr;
+
+	if (argc != 4) {
+		printf ("Usage:\n%s\n", cmdtp->usage);
+		return 1;
+	}
+	addr = (char *)simple_strtol(argv[2], NULL, 16);
+	len = simple_strtol(argv[3], NULL, 16);
+	if (!addr || !len) {
+		printf ("Usage:\n%s\n", cmdtp->usage);
+		return 1;
+	}
+	addr[len] = '\0';
+	for (i=0; i<len; i++) {
+		/* turn newlines into semicolon */
+		if (addr[i]=='\n') addr[i] = ';';
+		/* ignore dos-style newlines */
+		if (addr[i]=='\r') addr[i] = ' ';
+		/* accept sh-comments and discard them */
+		if (addr[i]=='#') {
+			while (addr[i] && addr[i] != '\n')
+				addr[i++] = ' ';
+			i--;
+		}
+	}
+	setenv(argv[1], addr);
+	return 0;
+}
+
+/************************************************************************
  * Look up variable from environment,
  * return address of storage for that variable,
  * or NULL if not found
@@ -593,6 +631,14 @@ U_BOOT_CMD(
 	"setenv name\n"
 	"    - delete environment variable 'name'\n"
 );
+
+U_BOOT_CMD(
+	ramenv, 4, 0, do_ramenv,
+	"ramenv  - get environment variable from ram\n",
+	"name addr maxlen\n"
+	"    - set environment variable 'name' from addr 'addr'\n"
+	"    - delete environment variable if maxlen is 0\n"
+);  
 
 #if ((defined(CFG_ENV_IS_IN_NVRAM) || defined(CFG_ENV_IS_IN_EEPROM) \
     || (defined(CONFIG_CMD_ENV) && defined(CONFIG_CMD_FLASH)) \

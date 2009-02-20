@@ -198,6 +198,23 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	active: 1,
 	crt:0
 }, {
+	name: "urt_480x272",
+	pixclock: 12000000,
+	xres: 480,
+	yres: 272,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 0,
+	oepol_actl: 1,
+	hsync_len: 41,
+	left_margin: 42,
+	right_margin: 42,
+	vsync_len: 10,
+	upper_margin: 1,
+	lower_margin: 6,
+	active: 1,
+	crt:0
+}, {
 	name: "qvga_portrait",
 	pixclock: 0,
 	xres: 240,
@@ -546,6 +563,40 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	lower_margin: 42,
 	active: 1,
 	crt: 0
+}, {
+	name: "lg1360x398",  //             LG:81000000,1360,398,1,0,1,0,50,268,420,1,214,21,1,0
+	pixclock: 81000000,
+	xres: 1360,
+	yres: 398,
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 50,
+	left_margin: 268,
+	right_margin: 420,
+	vsync_len: 1,
+	upper_margin: 214,
+	lower_margin: 21,
+	active: 1,
+	crt: 1
+}, {
+	name: "lg1360x480",  //             LG:84750000,1360,480,1,0,1,208,72,136,5,291,22,1,1
+	pixclock: 81000000,
+	xres: 1360,
+	yres: 480,
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 50,
+	left_margin: 268,
+	right_margin: 420,
+	vsync_len: 1,
+	upper_margin: 124,
+	lower_margin: 21,
+	active: 1,
+	crt: 1
 }
 };
 
