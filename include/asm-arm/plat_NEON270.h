@@ -1,3 +1,5 @@
+#ifndef __PLAT_H__
+#define __PLAT_H__ 1
 #define PLAT_SELECTED		1
 #define PLAT_GAME		0
 #define PLAT_PHYS_FLASH_BASE	0x0
@@ -35,36 +37,22 @@
 #define PLAT_IS_PXA27X		1
 #define PLAT_IS_PXA2XX		1
 
-#define PLAT_GP_IN_USB_CLIENT_STATUS	-1
-#define PLAT_GP_USB_CLIENT_READY	12
-#define PLAT_GP_OUT_I2C_POWER		-1
-#define PLAT_GP_IN_IRQ_UCB1400		-1
-#define PLAT_GP_IN_IRQP_UCB1400		-1
-#define PLAT_GP_OUT_J12_PIN1		-1
-#define PLAT_GP_OUT_MBGNT		116
 #define PLAT_GP_IN_MBREQ		115
-#define PLAT_GP_OUT_nCS1		-1
-#define PLAT_GP_OUT_BACKLIGHT_PWM	16
-#define PLAT_GP_OUT_BACKLIGHT_PWM_LEVEL	1
-#define PLAT_GP_OUT_BACKLIGHT_ENABLE	17
 #define PLAT_GP_IN_VIO_READY		18
-#define PLAT_GP_IN_DREQ1		-1
-#define PLAT_GP_IN_DREQ0		-1
-#define PLAT_GP_IN_IRQ_SMSC		-1
-#define PLAT_GP_IN_J12_PIN2		-1
-#define PLAT_GP_IN_J12_PIN3		-1
+#endif
 
-#define PLAT_GP_IN_LOW_BATTERY		9
-#define PLAT_GP_IN_MMC_WP		10
-#define PLAT_GP_IN_IRQ_AX88796		-1
-#define PLAT_GP_IN_MAGSTRIPE1		-1
-#define PLAT_GP_IN_MAGSTRIPE2		-1
-#define PLAT_GP_IN_MAGSTRIPE3		-1
-#define PLAT_GP_IN_MAGSTRIPE4		-1
-#define PLAT_GP_IN_IRQ_SM501		22
-#define PLAT_GP_OUT_SMSC_RESET		23
-#define PLAT_GP_IN_FF_DCD		36
-#define PLAT_GP_OUT_FF_DTR		-1
-#define PLAT_GP_IN_USB_OVER_CURRENT	88
-#define PLAT_GP_IN_USB_OVER_CURRENT105	-1
-#define PLAT_GP_OUT_USB_POWER_ENABLE	89
+#ifdef __DEFINE_GPIO_OVERRIDES
+	SPEC_GP  9,IN,HIGH,0		//Low battery
+	SPEC_GP  10,IN,HIGH,0		//MMC card detect
+	SPEC_GP  12,IN,HIGH,0		//float means USB Slave not ready to accept data
+					//out 1 means ready (D+ signal)
+	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control (Argon/Hydrogen/Microavl - Okaya panel want GP16 low)
+	SPEC_GP  22,IN,HIGH,0		//SM501 interrupt
+	SPEC_GP  23,OUT,HIGH,0		//lan91c111 reset (high active on chip, but inverted by transistor)
+	SPEC_GP  36,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4) 4 output Vbus Enable
+	SPEC_GP  88,IN,HIGH,1		//port 1 usb power over current
+	SPEC_GP  89,OUT,HIGH,0		//port 1 usb power enable (driver needs to enable usb power (LOW,2)
+	SPEC_GP  93,OUT,LOW,0		//smartcard eject
+	SPEC_GP  115,IN,HIGH,0		//MC_MBREQ, alternate function 3 AFTER PSSR[RDH] is cleared
+	SPEC_GP  116,OUT,HIGH,3		//MC_MBGNT, only NEON270 has SM501 for Bus Mastering
+#endif

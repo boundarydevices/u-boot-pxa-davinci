@@ -993,7 +993,7 @@
 	CP15_TTBR1 mrcne,r1
 	bic	r1,r1,#0xff		//clear caching attributes, and shared memory flag
 
-	BigAdd2cs r1,\physToVirtOffset	//convert this physical address to a virtual address if relocation vector ON
+	BigAdd2Cs r1,\physToVirtOffset	//convert this physical address to a virtual address if relocation vector ON
 .endm
 
 .macro SetupTTBR rBase,rTmp

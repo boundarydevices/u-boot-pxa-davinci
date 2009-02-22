@@ -1,3 +1,5 @@
+#ifndef __PLAT_H__
+#define __PLAT_H__ 1
 #define PLAT_SELECTED		1
 #define PLAT_GAME		0
 #define PLAT_PHYS_FLASH_BASE	0x0
@@ -35,20 +37,11 @@
 #define PLAT_IS_PXA27X		0
 #define PLAT_IS_PXA2XX		1
 
-#define PLAT_GP_IN_USB_CLIENT_STATUS	-1
-#define PLAT_GP_USB_CLIENT_READY	-1
-#define PLAT_GP_OUT_I2C_POWER		-1
-#define PLAT_GP_IN_IRQ_UCB1400		-1
-#define PLAT_GP_IN_IRQP_UCB1400		-1
-#define PLAT_GP_OUT_J12_PIN1		-1
-#define PLAT_GP_OUT_MBGNT		-1
 #define PLAT_GP_IN_MBREQ		-1
-#define PLAT_GP_OUT_nCS1		-1
-#define PLAT_GP_OUT_BACKLIGHT_PWM	-1
-#define PLAT_GP_OUT_BACKLIGHT_ENABLE	-1
 #define PLAT_GP_IN_VIO_READY		18
-#define PLAT_GP_IN_DREQ1		19
-#define PLAT_GP_IN_DREQ0		20
-#define PLAT_GP_IN_IRQ_SMSC		-1
-#define PLAT_GP_IN_J12_PIN2		-1
-#define PLAT_GP_IN_J12_PIN3		-1
+#endif
+
+#ifdef __DEFINE_GPIO_OVERRIDES
+	SPEC_GP  19,IN,HIGH,1			//MC_DREQ1, DMA request for USB DC
+	SPEC_GP  20,IN,HIGH,1			//MC_DREQ0, DMA request for USB HC
+#endif

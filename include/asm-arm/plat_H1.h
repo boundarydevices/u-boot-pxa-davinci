@@ -1,3 +1,5 @@
+#ifndef __PLAT_H__
+#define __PLAT_H__ 1
 #define PLAT_SELECTED		1
 #define PLAT_GAME		0
 #define PLAT_PHYS_FLASH_BASE	0x0
@@ -35,36 +37,12 @@
 #define PLAT_IS_PXA27X		1
 #define PLAT_IS_PXA2XX		1
 
-#define PLAT_GP_IN_USB_CLIENT_STATUS	-1
-#define PLAT_GP_USB_CLIENT_READY	-1
-#define PLAT_GP_OUT_I2C_POWER		-1
-#define PLAT_GP_IN_IRQ_UCB1400		-1
-#define PLAT_GP_IN_IRQP_UCB1400		-1
-#define PLAT_GP_OUT_J12_PIN1		-1
-#define PLAT_GP_OUT_MBGNT		-1
 #define PLAT_GP_IN_MBREQ		-1
-#define PLAT_GP_OUT_nCS1		-1
-#define PLAT_GP_OUT_BACKLIGHT_PWM	16
-#define PLAT_GP_OUT_BACKLIGHT_PWM_LEVEL	1
-#define PLAT_GP_OUT_BACKLIGHT_ENABLE	17
 #define PLAT_GP_IN_VIO_READY		18
-#define PLAT_GP_IN_DREQ1		-1
-#define PLAT_GP_IN_DREQ0		-1
-#define PLAT_GP_IN_IRQ_SMSC		-1
-#define PLAT_GP_IN_J12_PIN2		-1
-#define PLAT_GP_IN_J12_PIN3		-1
+#endif
 
-#define PLAT_GP_IN_LOW_BATTERY		-1
-#define PLAT_GP_IN_MMC_WP		-1
-#define PLAT_GP_IN_IRQ_AX88796		-1
-#define PLAT_GP_IN_MAGSTRIPE1		-1
-#define PLAT_GP_IN_MAGSTRIPE2		-1
-#define PLAT_GP_IN_MAGSTRIPE3		-1
-#define PLAT_GP_IN_MAGSTRIPE4		-1
-#define PLAT_GP_IN_IRQ_SM501		-1
-#define PLAT_GP_OUT_SMSC_RESET		-1
-#define PLAT_GP_IN_FF_DCD		-1
-#define PLAT_GP_OUT_FF_DTR		40
-#define PLAT_GP_IN_USB_OVER_CURRENT	-1
-#define PLAT_GP_IN_USB_OVER_CURRENT105	105
-#define PLAT_GP_OUT_USB_POWER_ENABLE	-1
+#ifdef __DEFINE_GPIO_OVERRIDES
+	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control (Argon/Okaya want GP16 low)
+	SPEC_GP  40,OUT,HIGH,2		//(out alt 2:FF_DTR)
+	SPEC_GP  105,IN,HIGH,0		//USB Overcurrent
+#endif

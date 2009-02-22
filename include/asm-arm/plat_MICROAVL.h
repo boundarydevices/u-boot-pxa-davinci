@@ -1,3 +1,5 @@
+#ifndef __PLAT_H__
+#define __PLAT_H__ 1
 #define PLAT_SELECTED		1
 #define PLAT_GAME		0
 #define PLAT_PHYS_FLASH_BASE	0x0
@@ -35,36 +37,18 @@
 #define PLAT_IS_PXA27X		1
 #define PLAT_IS_PXA2XX		1
 
-#define PLAT_GP_IN_USB_CLIENT_STATUS	-1
-#define PLAT_GP_USB_CLIENT_READY	-1
-#define PLAT_GP_OUT_I2C_POWER		-1
-#define PLAT_GP_IN_IRQ_UCB1400		-1
-#define PLAT_GP_IN_IRQP_UCB1400		-1
-#define PLAT_GP_OUT_J12_PIN1		-1
-#define PLAT_GP_OUT_MBGNT		-1
 #define PLAT_GP_IN_MBREQ		-1
-#define PLAT_GP_OUT_nCS1		-1
-#define PLAT_GP_OUT_BACKLIGHT_PWM	16
-#define PLAT_GP_OUT_BACKLIGHT_PWM_LEVEL	0
-#define PLAT_GP_OUT_BACKLIGHT_ENABLE	17
 #define PLAT_GP_IN_VIO_READY		18
-#define PLAT_GP_IN_DREQ1		-1
-#define PLAT_GP_IN_DREQ0		-1
-#define PLAT_GP_IN_IRQ_SMSC		-1
-#define PLAT_GP_IN_J12_PIN2		-1
-#define PLAT_GP_IN_J12_PIN3		-1
+#endif
 
-#define PLAT_GP_IN_LOW_BATTERY		-1
-#define PLAT_GP_IN_MMC_WP		10
-#define PLAT_GP_IN_IRQ_AX88796		12
-#define PLAT_GP_IN_MAGSTRIPE1		13
-#define PLAT_GP_IN_MAGSTRIPE2		98
-#define PLAT_GP_IN_MAGSTRIPE3		99
-#define PLAT_GP_IN_MAGSTRIPE4		100
-#define PLAT_GP_IN_IRQ_SM501		-1
-#define PLAT_GP_OUT_SMSC_RESET		-1
-#define PLAT_GP_IN_FF_DCD		36
-#define PLAT_GP_OUT_FF_DTR		-1
-#define PLAT_GP_IN_USB_OVER_CURRENT	-1
-#define PLAT_GP_IN_USB_OVER_CURRENT105	-1
-#define PLAT_GP_OUT_USB_POWER_ENABLE	89
+#ifdef __DEFINE_GPIO_OVERRIDES
+	SPEC_GP  10,IN,HIGH,0		//MMC card detect
+	SPEC_GP  12,IN,HIGH,0		//AX88796B IRQ input
+	SPEC_GP  13,IN,HIGH,0		//MagStripe
+	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control (Argon/Hydrogen/Microavl - Okaya panel want GP16 low)
+	SPEC_GP  36,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4) 4 output Vbus Enable
+	SPEC_GP  89,OUT,HIGH,0		//port 1 usb power enable (driver needs to enable usb power (LOW,2)
+	SPEC_GP  98,IN,HIGH,0		//MagStripe
+	SPEC_GP  99,IN,HIGH,0		//MagStripe
+	SPEC_GP  100,IN,HIGH,0		//MagStripe
+#endif

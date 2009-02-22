@@ -1,3 +1,5 @@
+#ifndef __PLAT_H__
+#define __PLAT_H__ 1
 #define PLAT_SELECTED		1
 #define PLAT_GAME		0
 #define PLAT_PHYS_FLASH_BASE	0x0
@@ -34,20 +36,22 @@
 #define PLAT_IS_PXA27X		0
 #define PLAT_IS_PXA2XX		1
 
-#define PLAT_GP_IN_USB_CLIENT_STATUS	2
-#define PLAT_GP_USB_CLIENT_READY	3
-#define PLAT_GP_OUT_I2C_POWER		-1
-#define PLAT_GP_IN_IRQ_UCB1400		4
-#define PLAT_GP_IN_IRQP_UCB1400		23
-#define PLAT_GP_OUT_J12_PIN1		11
-#define PLAT_GP_OUT_MBGNT		13
 #define PLAT_GP_IN_MBREQ		14
-#define PLAT_GP_OUT_nCS1		-1
-#define PLAT_GP_OUT_BACKLIGHT_PWM	16
-#define PLAT_GP_OUT_BACKLIGHT_ENABLE	17
 #define PLAT_GP_IN_VIO_READY		18
-#define PLAT_GP_IN_DREQ1		-1
-#define PLAT_GP_IN_DREQ0		-1
-#define PLAT_GP_IN_IRQ_SMSC		24
-#define PLAT_GP_IN_J12_PIN2		44
-#define PLAT_GP_IN_J12_PIN3		46
+#endif
+
+#ifdef __DEFINE_GPIO_OVERRIDES
+	SPEC_GP  2,IN,HIGH,0		//USB client connection status
+	SPEC_GP  3,IN,HIGH,0		//float means USB Slave not ready to accept data
+					//out 1 means ready (D+ signal)
+	SPEC_GP  4,IN,HIGH,0		//UCB1400 irq on NEON board
+	SPEC_GP  11,OUT,HIGH,0		//CP_3600KHZ, NEON:J12,pin1
+	SPEC_GP  13,OUT,HIGH,2		//MC_MBGNT
+	SPEC_GP  14,IN,HIGH,1		//MC_MBREQ
+	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control
+	SPEC_GP  17,OUT,HIGH,0		//LCD backlight ON/OFF
+	SPEC_GP  23,IN,LOW,0		//UCB1400 irq for NEONB, nc for NEW NEON
+	SPEC_GP  24,IN,LOW,0		//SSP_SFRM, SMSC interrupt (active high)
+	SPEC_GP  44,IN,HIGH,0		//BT_CTS, NEON:J12,pin 2
+	SPEC_GP  46,IN,HIGH,0		//ST_RXD, NEON:J12,pin 3
+#endif
