@@ -188,7 +188,7 @@
 #define CONFIG_CMD_ASKENV
 #define CONFIG_CMD_DHCP
 #define CONFIG_CMD_DIAG
-//#define CONFIG_CMD_I2C
+#define CONFIG_CMD_I2C
 #define CONFIG_CMD_MII
 #define CONFIG_CMD_PING
 #define CONFIG_CMD_SAVES
@@ -217,7 +217,7 @@
 #ifdef CONFIG_CMD_I2C
 #define CONFIG_HARD_I2C
 #define CONFIG_DRIVER_DAVINCI_I2C
-#define CFG_I2C_SPEED		80000	/* 100Kbps won't work, silicon bug */
+#define CFG_I2C_SPEED		100000
 #define CFG_I2C_SLAVE		10	/* Bogus, master-only in U-Boot */
 #endif
 /*=======================*/
