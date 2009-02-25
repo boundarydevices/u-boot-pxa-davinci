@@ -367,9 +367,11 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 		i2c_field(0x79,word>>8,0,5);
 		printf( "saved left margin and hsync_len to registers 0x79..0x7a\n" );
 
-		byte = ((info->vsyn_acth<<0)|(info->hsyn_acth<<1)) ^ 0x40;
+		byte = ((0!=info->vsyn_acth)<<1)|((0!=info->hsyn_acth)<<0);
 		byte |= (byte & 3) << 3;
+                byte |= 0x40 ;
 		i2c_write(THS8200_ADDR, 0x82, 1, &byte, 1);
+		printf( "changed polarities to %d/%d\n", info->vsyn_acth, info->hsyn_acth );
 	}
 #endif
 	return lcd ;
