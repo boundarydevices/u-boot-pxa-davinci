@@ -38,6 +38,29 @@ extern phy_t	phy;
 
 #define MAC_VARIABLE "ethaddr"
 
+#define GP_BANK0_OFFSET	0x10
+#define GP_BANK_LENGTH	0x28
+#define GP_DIR 0x00
+#define GP_OUT 0x04
+#define GP_SET 0x08
+#define GP_CLR 0x0C
+#define GP_IN  0x10
+#define GPIO_DISPLAY_SELECT 45
+#define GPIO_THS_ENABLE 42
+
+void gpio_set_val(unsigned int gp, int val)
+{
+	unsigned int mask = (1 << (gp & 0x1f));
+	unsigned int bank = (gp >> 5);
+	volatile unsigned int* p = (unsigned int*)
+		(DAVINCI_GPIO_BASE+GP_BANK0_OFFSET+(bank * GP_BANK_LENGTH));
+	if (val)
+		p[GP_SET >> 2] = mask;
+	else
+		p[GP_CLR >> 2] = mask;
+	p[GP_DIR >> 2] &= ~mask;
+}
+
 /* Works on Always On power domain only (no PD argument) */
 void lpsc_on(unsigned int id)
 {
@@ -164,6 +187,9 @@ int board_init(void)
 
 	timer_init();
 
+#ifdef CONFIG_CMD_I2C
+	gpio_set_val(GPIO_THS_ENABLE, 0);
+#endif
 	return(0);
 }
 
@@ -195,6 +221,9 @@ int misc_init_r (void)
 	setenv ("videostd", ((i  & 0x80) ? "pal" : "ntsc"));
 #endif
 	setenv ("version", version_string );
+#ifdef CONFIG_CMD_I2C
+	gpio_set_val(GPIO_DISPLAY_SELECT, getenv("vmux_select_davinci") ? 1 : 0);
+#endif
 	return(0);
 }
 
