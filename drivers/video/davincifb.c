@@ -17,6 +17,9 @@
 #include "asm/arch/davinci_vpbe.h"
 #include "exports.h"
 #include "asm/arch/hardware.h"
+#ifdef CONFIG_CMD_I2C
+#include <i2c.h>
+#endif
 
 static unsigned long palette[] = {
 	0x000000,0x800000,0x008000,0x808000,0x000080,0x800080,0x008080,0xC0C0C0,
@@ -141,6 +144,47 @@ static void setPixClock( unsigned long mhz )
 	REGVALUE(PLL2_CMD) = 1 ;
 }
 
+#ifdef CONFIG_CMD_I2C
+struct i2c_registers_t {
+	unsigned char regno ;
+	unsigned char value ;
+};
+static struct i2c_registers_t const i2c_static_regs[] = {
+   { 0x1c, 0x00 }		// data path control
+,  { 0x38, 0x87 }		// dtg on/mode VESA slave
+,  { 0x4a, 0x89 }		// CSM clipping/scaling/mult factors
+,  { 0x4b, 0x11 }
+,  { 0x4c, 0x80 }
+,  { 0x4d, 0x80 }
+,  { 0x4e, 0x80 }
+,  { 0x4f, 0xc0 }
+};
+static unsigned num_static_i2c = sizeof(i2c_static_regs)/sizeof(i2c_static_regs[0]);
+
+#define THS8200_ADDR 0x21
+
+static int i2c_field(unsigned char regno, unsigned value, unsigned startbit, unsigned numbits)
+{
+	unsigned mask = (1<<numbits)-1 ;
+	unsigned char byte ;
+	int rval ;
+	value &= mask ;
+	mask <<= startbit ;
+	if( 0 == (rval = i2c_read(THS8200_ADDR,regno,1,&byte,1) ) ){
+		byte &= ~mask ;
+		byte |= (value<<startbit);
+		if( 0 != (rval = i2c_write(THS8200_ADDR,regno,1,&byte,1) ) ){
+			printf( "Error writing value of 0x%02x to THS8200 register 0x%02x\n", byte, regno );
+		}
+	}
+	else
+		printf( "Error reading THS8200 reg 0x%02x\n", regno );
+
+	return rval ;
+}
+
+#endif
+
 struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 {
 	unsigned i ;
@@ -149,6 +193,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	int gbit;
 	unsigned fbBytes = info->xres*info->yres ;
 	struct lcd_t *lcd = (struct lcd_t *)malloc(sizeof(struct lcd_t));
+	unsigned short totalh, totalv ;
 
         DECLARE_GLOBAL_DATA_PTR;
 	memcpy(&lcd->info, info,sizeof(lcd->info));
@@ -198,13 +243,15 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(VPSS_CLKCTL) = 0x09 ;	//disable DAC clock
 	REGVALUE(VPBE_PCR) = 0 ;		//not divided by 2
 	REGVALUE(VENC_VIDCTL) =((info->pclk_redg^1)<<14)|(1<<13);
-	REGVALUE(VENC_SYNCCTL) = (info->vsyn_acth<<3)|(info->hsyn_acth<<2)|0x03;
+	REGVALUE(VENC_SYNCCTL) = (info->vsyn_acth<<3)|(info->hsyn_acth<<2)^0x0f;
 	REGVALUE(VENC_HSPLS) = info->hsync_len*encPerPixel;
 	REGVALUE(VENC_VSPLS) = info->vsync_len ;
-	REGVALUE(VENC_HINT) = (info->xres+info->hsync_len+info->left_margin+info->right_margin-1)*encPerPixel;
+        totalh = info->xres+info->hsync_len+info->left_margin+info->right_margin ;
+	REGVALUE(VENC_HINT) = (totalh-1)*encPerPixel;
 	REGVALUE(VENC_HSTART) = info->left_margin*encPerPixel;
 	REGVALUE(VENC_HVALID) = info->xres*encPerPixel;
-	REGVALUE(VENC_VINT) = (info->yres+info->vsync_len+info->upper_margin+info->lower_margin-1);
+        totalv = info->yres+info->vsync_len+info->upper_margin+info->lower_margin ;
+	REGVALUE(VENC_VINT) = (totalv-1);
 	REGVALUE(VENC_VSTART) = info->upper_margin ;
 	REGVALUE(VENC_VVALID) = info->yres ;
 	REGVALUE(VENC_HSDLY) = 0 ;
@@ -238,9 +285,9 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 
 	REGVALUE(VENC_DCLKHS) = 0 ;
 	REGVALUE(VENC_DCLKHSA) = 0 ;
-	REGVALUE(VENC_DCLKHR) = info->xres+info->hsync_len+info->left_margin+info->right_margin ;
+	REGVALUE(VENC_DCLKHR) = totalh ;
 	REGVALUE(VENC_DCLKVS) = 0 ;
-	REGVALUE(VENC_DCLKVR) = info->yres+info->vsync_len+info->upper_margin+info->lower_margin ;
+	REGVALUE(VENC_DCLKVR) = totalv ;
 
 	val[0] = 0;
 	bit = 0;
@@ -259,5 +306,71 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 				| OSD_OSDWIN0MD_OACT0 ;
 
 	printf( "%s: %ux%u @%p (%s)\n", __FUNCTION__, info->xres, info->yres, lcd->fbAddr, info->name );
+
+#ifdef CONFIG_CMD_I2C
+
+	if( i2c_probe(THS8200_ADDR) == 0){
+		unsigned char byte ;
+		unsigned short word ;
+
+
+		printf( "Found THS8200 at address 0x%x\n", THS8200_ADDR );
+		for( i = 0 ; i < num_static_i2c ; i++ ){
+                        struct i2c_registers_t const *reg = i2c_static_regs+i;
+			if (i2c_write(THS8200_ADDR, reg->regno, 1, (uchar *)&reg->value, 1) != 0)
+				printf ("Error writing 0x%02x to address %02x\n", reg->value, reg->regno );
+		}
+		printf( "wrote %u static registers to THS8200\n", num_static_i2c );
+
+		// set horizontal total length
+		i2c_write(THS8200_ADDR, 0x35, 1, (uchar *)&totalh, 1 );
+		i2c_field(0x34, totalh>>8, 0, 4);
+		printf( "set horizontal total to 0x%x (regs 0x34/0x35)\n", totalh );
+
+		// set vertical total length
+		i2c_write(THS8200_ADDR, 0x3a, 1, (uchar *)&totalv, 1);
+		i2c_field(0x39, (totalv>>8), 4, 3);
+		printf( "set vertical total length to 0x%x (regs 0x39/0x3a)\n", totalv );
+
+		totalv += 1 ;
+		i2c_write(THS8200_ADDR, 0x3b, 1, (uchar *)&totalv, 1);
+		i2c_field(0x39, (totalv>>8), 0, 3);
+		printf( "set vertical field1 length to 0x%x (regs 0x39/0x3b)\n", totalv );
+
+		// set horizontal pulse width and offset
+		i2c_write(THS8200_ADDR, 0x70, 1, (uchar *)&info->hsync_len, 1 );
+		byte = ((info->hsync_len>>8)&3)<<6 ;
+		i2c_write(THS8200_ADDR, 0x72, 1, (uchar *)&info->left_margin, 1 );
+		byte |= (info->left_margin>>8)&0x0f ;
+		i2c_write(THS8200_ADDR, 0x71, 1, (uchar *)&byte, 1 );
+		printf( "set hsync_len to %u (0x%x), offset %u (0x%x) in regs 0x70..0x72\n", info->hsync_len, info->hsync_len, info->left_margin, info->left_margin );
+
+		byte = info->vsync_len+1 ;
+		i2c_write(THS8200_ADDR, 0x73, 1, (uchar *)&byte, 1);
+		printf( "wrote vsync len of %u(0x%x) to register 0x73\n", info->vsync_len,info->vsync_len);
+
+		i2c_write(THS8200_ADDR,0x75,1,(uchar *)&info->yres,1);
+		i2c_field(0x74,info->yres>>8,0,3);
+		printf( "wrote vsync offset %u (0x%x) to registers 0x74..0x75\n", info->yres, info->yres );
+
+		i2c_field(0x7b,0,0,3);
+		byte = 0 ;
+		i2c_write(THS8200_ADDR,0x7c,1,(uchar *)&byte,1);
+		printf( "cleared input vertical delay fields\n" );
+
+		i2c_write(THS8200_ADDR,0x72,1,(uchar *)&info->xres,1);
+		i2c_field(0x71,info->xres>>8,0,5);
+		printf( "save xres to registers 0x71..0x72\n" );
+
+		word = info->left_margin - 2 ;
+		i2c_write(THS8200_ADDR,0x7a,1,(uchar *)&word,1);
+		i2c_field(0x79,word>>8,0,5);
+		printf( "saved left margin and hsync_len to registers 0x79..0x7a\n" );
+
+		byte = ((info->vsyn_acth<<0)|(info->hsyn_acth<<1)) ^ 0x40;
+		byte |= (byte & 3) << 3;
+		i2c_write(THS8200_ADDR, 0x82, 1, &byte, 1);
+	}
+#endif
 	return lcd ;
 }
