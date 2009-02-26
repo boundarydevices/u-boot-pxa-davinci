@@ -191,7 +191,8 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	unsigned short val[4];
 	int bit;
 	int gbit;
-	unsigned fbBytes = info->xres*info->yres ;
+	unsigned stride = ((info->xres + 0x1f) & ~0x1f);
+	unsigned fbBytes =  stride * info->yres ;
 	struct lcd_t *lcd = (struct lcd_t *)malloc(sizeof(struct lcd_t));
 	unsigned short totalh, totalv ;
 
@@ -222,7 +223,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	for( i = 0 ; i < NUM_WINDOWS ; i++ ){
                 // first two windows are 2 bytes/pixel, second two are 1 byte
 		unsigned bytesPerPixel = 2-(i/2);
-		REGVALUE(OSD_WINOFST(i)) = info->xres/(32/bytesPerPixel);
+		REGVALUE(OSD_WINOFST(i)) = stride /(32/bytesPerPixel);
                 REGVALUE(OSD_WINXP(i)) = 0 ;
                 REGVALUE(OSD_WINYP(i)) = 0 ;
 		REGVALUE(OSD_WINXL(i)) = info->xres ;
@@ -362,12 +363,12 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 		i2c_field(0x71,info->xres>>8,0,5);
 		printf( "save xres to registers 0x71..0x72\n" );
 
-		word = info->left_margin - 2 ;
+		word = info->hsync_len + info->left_margin - 2 ;
 		i2c_write(THS8200_ADDR,0x7a,1,(uchar *)&word,1);
 		i2c_field(0x79,word>>8,0,5);
 		printf( "saved left margin and hsync_len to registers 0x79..0x7a\n" );
 
-		byte = ((info->vsyn_acth<<0)|(info->hsyn_acth<<1)) ^ 0x40;
+		byte = ((info->hsyn_acth<<0)|(info->vsyn_acth<<1)) | 0x40;
 		byte |= (byte & 3) << 3;
 		i2c_write(THS8200_ADDR, 0x82, 1, &byte, 1);
 	}
