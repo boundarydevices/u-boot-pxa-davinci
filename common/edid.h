@@ -1,3 +1,6 @@
+#define I2C_MONITOR_EDID 0x50
+#define EDID_FEATURE_REG 0x18
+#define EDID_DETAILED_TIMING_DESCRIPTIONS_START      0x36
 
 struct edid_detailed_timings
 {

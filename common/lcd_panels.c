@@ -76,7 +76,10 @@
 #include <common.h>
 #include <asm/string.h>
 #include <malloc.h>
-
+#ifdef CONFIG_CMD_I2C
+#include <i2c.h>
+#include "edid.h"
+#endif
 /*
 Settings for Hitachi 5.7
 		PANEL_HORIZONTAL_TOTAL, 01c00160);    // should be 34+320+1+64-1= 418 = 0x1A2 (Hex)
@@ -1011,23 +1014,76 @@ int fb_find_mode_cvt(struct fb_videomode *mode, int margins, int rb)
 
 	return 0;
 }
+#ifdef CONFIG_CMD_I2C
+int fb_find_edid(struct lcd_panel_info_t *panel)
+{
+	struct edid_detailed_timings edt;
+	unsigned char byte;
+	unsigned int refresh;
+#if 1
+	int ret = i2c_probe(I2C_MONITOR_EDID);
+	if (ret)
+		return ret;
+	ret = i2c_read(I2C_MONITOR_EDID, EDID_FEATURE_REG, 1, &byte, 1);
+	if (ret)
+		return ret;
+	if ((byte & 2) == 0)
+		return -1;
+	ret = i2c_read(I2C_MONITOR_EDID, EDID_DETAILED_TIMING_DESCRIPTIONS_START, 1,
+			(unsigned char *)&edt, sizeof(struct edid_detailed_timings));
+	if (ret)
+		return ret;
+#else
+	unsigned char temp[] = {0x21, 0x39,
+				0x90, 0x30, 0x62, 0x1a, 0x27, 0x40, 0x68, 0xb0,
+				0x36, 0x00, 0xda, 0x28, 0x11, 0x00, 0x00, 0x1c};
+	memcpy(&edt, temp, sizeof(struct edid_detailed_timings));
+
+#endif
+	panel->xres = edt_xres(&edt);
+	panel->yres = edt_yres(&edt);
+	panel->pixclock = edt_pixel_clock(&edt);
+	panel->left_margin = edt_leftmargin(&edt);
+	panel->right_margin = edt_rightmargin(&edt);
+	panel->hsync_len = edt_hsync_width(&edt);
+	panel->upper_margin = edt_uppermargin(&edt);
+	panel->lower_margin = edt_lowermargin(&edt);
+	panel->vsync_len = edt_vsync_width(&edt);
+	panel->hsyn_acth = (edt.flags & EDT_FLAGS_HSYNC_POLARITY) ? 1 : 0;
+	panel->vsyn_acth = (edt.flags & EDT_FLAGS_VSYNC_POLARITY) ? 1 : 0;
+	refresh = panel->pixclock /
+		((panel->left_margin + panel->right_margin + panel->hsync_len) *
+		(panel->upper_margin + panel->lower_margin + panel->vsync_len));
+	printf("edid: %ux%u at %u Hz\n", panel->xres, panel->yres, refresh);
+	printf("left=%u, right=%u, hsync=%u hacth=%u upper=%u lower=%u vsync=%u vacth=%u",
+			panel->left_margin, panel->right_margin, panel->hsync_len, panel->hsyn_acth,
+			panel->upper_margin, panel->lower_margin, panel->vsync_len, panel->vsyn_acth);
+	return 0;
+}
+#else
+#define fb_find_edid(a) 1
+#endif
+
 
 #define UPCASE(c) ((c)&~0x20)
-int parse_panel_info( char const			  *panelInfo, // input
-					  struct lcd_panel_info_t *panel )	// output
+int parse_panel_info( char const *panelInfo, // input
+		struct lcd_panel_info_t *panel )	// output
 {
    memset( panel, 0, sizeof(*panel));
    char const *nameEnd=strchr(panelInfo,':');
-   if( ('V' == UPCASE(*panelInfo))
-	   &&
-	   (nameEnd == panelInfo+4) ){
+   if (nameEnd == panelInfo+4) {
+      panel->pclk_redg = 1;
+      panel->oepol_actl = 0;
+      panel->active = 1 ;
+      panel->rotation = 0 ;
+      if ('V' == UPCASE(*panelInfo)) {
 	  // Use VESA GTF
 	  char temp[40];
 	  char *term ;
-	  strcpy(temp,nameEnd+1);
-	  char *nextIn ;
 	  struct fb_videomode mode ;
 	  memset( &mode, 0, sizeof(mode) );
+	  strcpy(temp,nameEnd+1);
+	  char *nextIn ;
 	  nameEnd++ ;
 	  term = strchr(temp, 'x');
 	  if( !term )
@@ -1047,10 +1103,9 @@ int parse_panel_info( char const			  *panelInfo, // input
 
 	  if( 0 != fb_find_mode_cvt(&mode, 0, 0) ){
 		 printf( "Error finding mode\n" );
-	 goto bail ;
+		 goto bail ;
 	  }
-
-	  panel->name = "vesafb" ; // don't call it VESA!
+	  panel->name = "vesafb";	// don't call it VESA!
 	  panel->xres = mode.xres ;
 	  panel->yres = mode.yres ;
 	  panel->pixclock = mode.pixclock ;
@@ -1058,17 +1113,24 @@ int parse_panel_info( char const			  *panelInfo, // input
 	  panel->right_margin = mode.right_margin ;
 	  panel->upper_margin = mode.upper_margin ;
 	  panel->lower_margin = mode.lower_margin ;
-	  panel->hsync_len	= mode.hsync_len ;
-	  panel->vsync_len	= mode.vsync_len ;
-	  panel->pclk_redg= 1;
-	  panel->hsyn_acth= 0;
-	  panel->vsyn_acth= 1;
-	  panel->oepol_actl= 0;
-	  panel->active = 1 ;
-	  panel->crt = term && ('C' == UPCASE(*term));
-	  panel->rotation = 0 ;
-	  return 1 ;
-   } else if( nameEnd && *nameEnd ){
+	  panel->hsync_len = mode.hsync_len ;
+	  panel->vsync_len = mode.vsync_len ;
+	  panel->hsyn_acth = (mode.sync & FB_SYNC_HOR_HIGH_ACT) ? 1 : 0;
+	  panel->vsyn_acth = (mode.sync & FB_SYNC_VERT_HIGH_ACT) ? 1 : 0;
+	  panel->crt = (term && (UPCASE(*term) == 'C')) ? 1 : 0;
+	  return 1;
+      } else if ('E' == UPCASE(*panelInfo)) {
+	  nameEnd++;
+	  panel->name = "edidfb";
+	  panel->crt = (UPCASE(*nameEnd) == 'C') ? 1 : 0;
+	  if (fb_find_edid(panel)) {
+		 printf( "Error finding edid\n" );
+		 goto bail;
+	  }
+	  return 1;
+      }
+   }
+   if( nameEnd && *nameEnd ){
 	  char const *nextIn = nameEnd+1 ;
 	  unsigned const numValues = 15 ;
 	  unsigned long values[numValues];
