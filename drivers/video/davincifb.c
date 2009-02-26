@@ -244,7 +244,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(VPSS_CLKCTL) = 0x09 ;	//disable DAC clock
 	REGVALUE(VPBE_PCR) = 0 ;		//not divided by 2
 	REGVALUE(VENC_VIDCTL) =((info->pclk_redg^1)<<14)|(1<<13);
-	REGVALUE(VENC_SYNCCTL) = (info->vsyn_acth<<3)|(info->hsyn_acth<<2)^0x0f;
+	REGVALUE(VENC_SYNCCTL) = ((info->vsyn_acth <<3 ) | (info->hsyn_acth << 2)) ^ 0x0f;
 	REGVALUE(VENC_HSPLS) = info->hsync_len*encPerPixel;
 	REGVALUE(VENC_VSPLS) = info->vsync_len ;
         totalh = info->xres+info->hsync_len+info->left_margin+info->right_margin ;
