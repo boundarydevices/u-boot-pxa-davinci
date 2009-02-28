@@ -201,7 +201,7 @@ static int bmp_display(ulong addr, int x, int y)
 	ushort i, j;
 	uchar *fb;
 	uchar *bmap;
-	ushort padded_line;
+	unsigned stride;
 	unsigned long width, height;
 	unsigned colors,bpix;
 	unsigned long compression;
@@ -278,7 +278,7 @@ printf( "current LCD: %ux%u at %p\n", lcd->info.xres, lcd->info.yres, lcd->fbAdd
       lcd->bg = bgCol ;
       lcd->fg = fgCol ;
 
-	padded_line = (width+3)&~0x3;
+	stride = lcd->stride;
 	if ((x + width)>lcd->info.xres)
 		width = lcd->info.xres - x;
 	if ((y + height)>lcd->info.yres)
@@ -291,7 +291,7 @@ printf( "current LCD: %ux%u at %p\n", lcd->info.xres, lcd->info.yres, lcd->fbAdd
 	for (i = 0; i < height; ++i) {
 		for (j = 0; j < width ; j++)
 			*fb++=*bmap++;
-		bmap += (padded_line-width);
+		bmap += (stride-width);
 		fb   -= (width + lcd->info.xres);
 	}
 	}

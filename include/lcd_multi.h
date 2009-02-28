@@ -19,6 +19,7 @@
 struct lcd_t {
    void                     *fbAddr ;
    unsigned                  fbMemSize ;
+   unsigned		     stride;
    struct lcd_panel_info_t   info ;
    unsigned                  x ;
    unsigned                  y ;

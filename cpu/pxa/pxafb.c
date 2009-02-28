@@ -372,7 +372,7 @@ static int pxafb_init_mem (void *lcdbase, vidinfo_t *vid)
 {
 	u_long palette_mem_size;
 	struct pxafb_info *fbi = &vid->pxa;
-	int fb_size = vid->vl_row * (vid->vl_col * NBITS (vid->vl_bpix)) / 8;
+	int fb_size = vid->vl_row * vid->vl_lcd_line_length;
 
 	fbi->screen = (u_long)lcdbase;
 
@@ -520,9 +520,8 @@ static int pxafb_init (vidinfo_t *vid)
 	fbi->dmadesc_fbhigh = (struct pxafb_dma_descriptor *)((unsigned int)fbi->palette - 2*16);
 	fbi->dmadesc_palette = (struct pxafb_dma_descriptor *)((unsigned int)fbi->palette - 1*16);
 
-	#define BYTES_PER_PANEL	((fbi->reg_lccr0 & LCCR0_SDS) ? \
-		(vid->vl_col * vid->vl_row * NBITS(vid->vl_bpix) / 8 / 2) : \
-		(vid->vl_col * vid->vl_row * NBITS(vid->vl_bpix) / 8))
+#define BYTES_PER_PANEL	( (vid->vl_lcd_line_length * vid->vl_row) >> \
+		((fbi->reg_lccr0 & LCCR0_SDS) ? 1 : 0))
 
 	/* populate descriptors */
 	fbi->dmadesc_fblow->fdadr = (u_long)fbi->dmadesc_fblow;
@@ -642,6 +641,7 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    vidinfo_t panel_info ;
 #endif
    int pixClock = panel->pixclock;
+   int stride = (((panel->xres * NBITS(LCD_BPP)) >> 3) + 3) & ~3;
 
    panel_info.vl_col = panel->xres ;
    panel_info.vl_row = panel->yres ;
@@ -651,7 +651,7 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    panel_info.vl_oepol_actl  = panel->oepol_actl;
    panel_info.vl_dp   = panel->pclk_redg ;
    panel_info.vl_bpix = LCD_BPP ;
-   panel_info.vl_lcd_line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) >> 3;
+   panel_info.vl_lcd_line_length = stride;
    panel_info.vl_lbw  = 1 ;
    panel_info.vl_splt = 0 ;
    panel_info.vl_clor = 1 ;
@@ -663,7 +663,7 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    panel_info.vl_bfw = panel->upper_margin ;
    panel_info.vl_efw = panel->lower_margin ;
 
-   panel_info.pxa.screen = CFG_DRAM_BASE+CFG_DRAM_SIZE-(panel->xres*panel->yres+1024+4096);
+   panel_info.pxa.screen = CFG_DRAM_BASE+CFG_DRAM_SIZE-(stride * panel->yres+1024+4096);
 #if !defined(CONFIG_LCD_MULTI)
    lcd_base = (void *)(panel_info.pxa.screen);
 #endif
@@ -699,6 +699,7 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    lcd->disable = disable ;
    lcd->bg = 0xff ;
    lcd->fg = 0 ;
+   lcd->stride = stride;
 #else
    cur_lcd_panel = panel ;
 #endif
@@ -711,8 +712,8 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
 ulong calc_fbsize(void)
 {
 	ulong size;
-	int line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) >> 3;
-	size = line_length * panel_info.vl_row;
+	int stride = panel_info.vl_lcd_line_length;
+	size = stride * panel_info.vl_row;
 	return size;
 }
 #endif

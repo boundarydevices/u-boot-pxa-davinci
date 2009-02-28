@@ -768,7 +768,8 @@ void init_sm501_lcd( struct lcd_t *lcd )
    }
    printf( "SM-501 LCD at %p\n", lcd->fbAddr );
    STUFFREG(fbAddrReg, ((unsigned long)lcd->fbAddr) - ((unsigned long)fbStart) );
-   lcd->fbMemSize = panel->xres*panel->yres ;
+   lcd->stride = (panel->xres + 3) & ~3;
+   lcd->fbMemSize = lcd->stride * panel->yres ;
 
    lcd->set_palette = sm501_lcd_set_palette ;
    lcd->get_palette_color = sm501_lcd_get_palette_color ;

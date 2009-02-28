@@ -82,7 +82,7 @@ void addPanel(struct lcd_t *lcd)
 static void console_scrollup( struct lcd_t *lcd )
 {
 	/* Copy up rows ignoring the first one */
-   unsigned lineSize = lcd->info.xres ;
+   unsigned lineSize = lcd->stride ;
 	memcpy( lcd->fbAddr, (char *)lcd->fbAddr + lineSize, lcd->fbMemSize-lineSize);
 
 	/* Clear the last one */
@@ -112,8 +112,8 @@ static inline void console_back( struct lcd_t *lcd )
 	ushort row;
 
       lcd->x-- ;
-	dest = (uchar *)lcd->fbAddr + (lcd->info.xres*VIDEO_FONT_HEIGHT*lcd->y) + lcd->x*VIDEO_FONT_WIDTH ;
-	for (row=0;  row < VIDEO_FONT_HEIGHT;  ++row, dest += lcd->info.xres ){
+	dest = (uchar *)lcd->fbAddr + (lcd->stride*VIDEO_FONT_HEIGHT*lcd->y) + lcd->x*VIDEO_FONT_WIDTH ;
+	for (row=0;  row < VIDEO_FONT_HEIGHT;  ++row, dest += lcd->stride ){
          memset(dest,lcd->bg,VIDEO_FONT_WIDTH);
       }
    }
@@ -127,13 +127,13 @@ static void lcd_drawchar8( struct lcd_t *lcd, char c )
 	uchar *dest;
 	ushort row;
 	uchar *src = video_fontdata + c * VIDEO_FONT_HEIGHT ;
-	dest = (uchar *)lcd->fbAddr + (lcd->info.xres*VIDEO_FONT_HEIGHT*lcd->y) + lcd->x*VIDEO_FONT_WIDTH ;
+	dest = (uchar *)lcd->fbAddr + (lcd->stride*VIDEO_FONT_HEIGHT*lcd->y) + lcd->x*VIDEO_FONT_WIDTH ;
 
         if( 0 == checked_transp ){
            transparent_back = (0 != getenv("transp_lcdtext") );
            checked_transp = 1 ;
         }
-	for (row=0;  row < VIDEO_FONT_HEIGHT;  ++row, dest += lcd->info.xres, src++ ){
+	for (row=0;  row < VIDEO_FONT_HEIGHT;  ++row, dest += lcd->stride, src++ ){
 		uchar mask = '\x80' ;
 		uchar bits = *src ;
 		uchar *d = dest ;

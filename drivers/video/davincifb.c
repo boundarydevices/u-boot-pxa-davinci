@@ -210,6 +210,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	lcd->set_palette = set_palette ;
 	lcd->get_palette_color = get_palette_color ;
 	lcd->disable = disable ;
+	lcd->stride = stride;
 
 	REGVALUE(VPSS_CLKCTL) = 0x18 ;
 
