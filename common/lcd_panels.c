@@ -1015,42 +1015,69 @@ int fb_find_mode_cvt(struct fb_videomode *mode, int margins, int rb)
 	return 0;
 }
 #ifdef CONFIG_CMD_I2C
-int fb_find_edid(struct lcd_panel_info_t *panel)
+static int read_edid_block(unsigned char * buf)
 {
-	struct edid_detailed_timings edt;
-	unsigned char byte;
 #if 1
-	int ret = i2c_probe(I2C_MONITOR_EDID);
-	if (ret)
-		return ret;
-	ret = i2c_read(I2C_MONITOR_EDID, EDID_FEATURE_REG, 1, &byte, 1);
-	if (ret)
-		return ret;
-	if ((byte & 2) == 0)
-		return -1;
-	ret = i2c_read(I2C_MONITOR_EDID, EDID_DETAILED_TIMING_DESCRIPTIONS_START, 1,
-			(unsigned char *)&edt, sizeof(struct edid_detailed_timings));
-	if (ret)
-		return ret;
+	int ret;
+	int failures = 0;
+	do {
+		ret = i2c_read(I2C_MONITOR_EDID, 0, 1, buf, 128);
+		if (ret == 0) {
+			/* validate checksum */
+			unsigned char sum = 0;
+			unsigned char* p = buf;
+			int count;
+			for (count=0; count<128; count++)
+				sum += *buf++;
+			if (sum==0) {
+				if (failures)
+					printf("%s: success after %i failures\n", __func__, failures);
+				return 0;
+			}
+		} else {
+			/* read from invalid address expecting NACK, to cleanup bus */
+			unsigned i;
+			for (i=0; i<8; i++)
+				i2c_read(0x42, 0, 0, buf, 1);
+		}
+		failures++;
+	} while (failures <= 10);
+	printf("%s: failed\n", __func__);
+	return -1;
 #else
 //1680x1050
-	unsigned char temp[] = {0x21, 0x39,
-				0x90, 0x30, 0x62, 0x1a, 0x27, 0x40, 0x68, 0xb0,
-				0x36, 0x00, 0xda, 0x28, 0x11, 0x00, 0x00, 0x1c};
-	memcpy(&edt, temp, sizeof(struct edid_detailed_timings));
-
+	unsigned char edt1680[] = {0x21, 0x39,
+		0x90, 0x30, 0x62, 0x1a, 0x27, 0x40, 0x68, 0xb0,
+		0x36, 0x00, 0xda, 0x28, 0x11, 0x00, 0x00, 0x1c};
+	memcpy(&buf[EDID_DETAILED_TIMING_DESCRIPTIONS_START], edt1680,
+		sizeof(struct edid_detailed_timings));
+	buf[2] = 2;
+	return 0;
 #endif
-	panel->xres = edt_xres(&edt);
-	panel->yres = edt_yres(&edt);
-	panel->pixclock = edt_pixel_clock(&edt);
-	panel->left_margin = edt_leftmargin(&edt);
-	panel->right_margin = edt_rightmargin(&edt);
-	panel->hsync_len = edt_hsync_width(&edt);
-	panel->upper_margin = edt_uppermargin(&edt);
-	panel->lower_margin = edt_lowermargin(&edt);
-	panel->vsync_len = edt_vsync_width(&edt);
-	panel->hsyn_acth = (edt.flags & EDT_FLAGS_HSYNC_POLARITY) ? 1 : 0;
-	panel->vsyn_acth = (edt.flags & EDT_FLAGS_VSYNC_POLARITY) ? 1 : 0;
+}
+
+static int fb_find_edid(struct lcd_panel_info_t *panel)
+{
+	unsigned char buf[128];
+	struct edid_detailed_timings* edt;
+	int ret = read_edid_block(buf);
+	if (ret)
+		return ret;
+	if ((buf[EDID_FEATURE_REG] & 2) == 0)
+		return -1;
+	edt = (struct edid_detailed_timings *)
+		(&buf[EDID_DETAILED_TIMING_DESCRIPTIONS_START]);
+	panel->xres = edt_xres(edt);
+	panel->yres = edt_yres(edt);
+	panel->pixclock = edt_pixel_clock(edt);
+	panel->left_margin = edt_leftmargin(edt);
+	panel->right_margin = edt_rightmargin(edt);
+	panel->hsync_len = edt_hsync_width(edt);
+	panel->upper_margin = edt_uppermargin(edt);
+	panel->lower_margin = edt_lowermargin(edt);
+	panel->vsync_len = edt_vsync_width(edt);
+	panel->hsyn_acth = (edt->flags & EDT_FLAGS_HSYNC_POLARITY) ? 1 : 0;
+	panel->vsyn_acth = (edt->flags & EDT_FLAGS_VSYNC_POLARITY) ? 1 : 0;
 	if (0) {
 		unsigned int refresh = panel->pixclock /
 			((panel->left_margin + panel->xres + panel->right_margin + panel->hsync_len) *
