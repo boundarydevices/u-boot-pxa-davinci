@@ -198,10 +198,10 @@ static int bmp_display(ulong addr, int x, int y)
 {
 	bmp_image_t *bmp=(bmp_image_t *)addr ;
 #if defined(CONFIG_LCD_MULTI)
-	ushort i, j;
+	ushort i;
 	uchar *fb;
 	uchar *bmap;
-	unsigned stride;
+	unsigned stride, bmp_stride;
 	unsigned long width, height;
 	unsigned colors,bpix;
 	unsigned long compression;
@@ -228,6 +228,7 @@ static int bmp_display(ulong addr, int x, int y)
 	}
 
 	width = le32_to_cpu (bmp->header.width);
+	bmp_stride = (width + 3) & ~3;
 	height = le32_to_cpu (bmp->header.height);
 	colors = 1<<le16_to_cpu (bmp->header.bit_count);
 	compression = le32_to_cpu (bmp->header.compression);
@@ -286,13 +287,12 @@ printf( "current LCD: %ux%u at %p\n", lcd->info.xres, lcd->info.yres, lcd->fbAdd
 
 	bmap = (uchar *)bmp + le32_to_cpu (bmp->header.data_offset);
 	fb   = ((uchar *)lcd->fbAddr) +((y + height - 1) * lcd->info.xres) + x;
-   //	printf("fb:0x%p,lcd_base:0x%p,x:%i,y:%i,width:%i,height:%i,colums:%i\n",
-   //		fb,lcd_base,x,y,width,height,panel_info.vl_lcd_line_length);
+//	printf("fb:0x%p,lcd_base:0x%p,x:%i,y:%i,width:%i,height:%i,stride:%i\n",
+//		fb,lcd_base,x,y,width,height,stride);
 	for (i = 0; i < height; ++i) {
-		for (j = 0; j < width ; j++)
-			*fb++=*bmap++;
-		bmap += (stride-width);
-		fb   -= (width + lcd->info.xres);
+		memcpy(fb, bmap, width);
+		fb -= stride;
+		bmap += bmp_stride;
 	}
 	}
    else
