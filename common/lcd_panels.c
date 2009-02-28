@@ -1019,7 +1019,6 @@ int fb_find_edid(struct lcd_panel_info_t *panel)
 {
 	struct edid_detailed_timings edt;
 	unsigned char byte;
-	unsigned int refresh;
 #if 1
 	int ret = i2c_probe(I2C_MONITOR_EDID);
 	if (ret)
@@ -1034,6 +1033,7 @@ int fb_find_edid(struct lcd_panel_info_t *panel)
 	if (ret)
 		return ret;
 #else
+//1680x1050
 	unsigned char temp[] = {0x21, 0x39,
 				0x90, 0x30, 0x62, 0x1a, 0x27, 0x40, 0x68, 0xb0,
 				0x36, 0x00, 0xda, 0x28, 0x11, 0x00, 0x00, 0x1c};
@@ -1051,13 +1051,15 @@ int fb_find_edid(struct lcd_panel_info_t *panel)
 	panel->vsync_len = edt_vsync_width(&edt);
 	panel->hsyn_acth = (edt.flags & EDT_FLAGS_HSYNC_POLARITY) ? 1 : 0;
 	panel->vsyn_acth = (edt.flags & EDT_FLAGS_VSYNC_POLARITY) ? 1 : 0;
-	refresh = panel->pixclock /
-		((panel->left_margin + panel->right_margin + panel->hsync_len) *
-		(panel->upper_margin + panel->lower_margin + panel->vsync_len));
-	printf("edid: %ux%u at %u Hz\n", panel->xres, panel->yres, refresh);
-	printf("left=%u, right=%u, hsync=%u hacth=%u upper=%u lower=%u vsync=%u vacth=%u",
+	if (0) {
+		unsigned int refresh = panel->pixclock /
+			((panel->left_margin + panel->xres + panel->right_margin + panel->hsync_len) *
+			(panel->upper_margin + panel->yres + panel->lower_margin + panel->vsync_len));
+		printf("edid: %ux%u at %u Hz\n", panel->xres, panel->yres, refresh);
+		printf("left=%u, right=%u, hsync=%u hacth=%u upper=%u lower=%u vsync=%u vacth=%u",
 			panel->left_margin, panel->right_margin, panel->hsync_len, panel->hsyn_acth,
 			panel->upper_margin, panel->lower_margin, panel->vsync_len, panel->vsyn_acth);
+	}
 	return 0;
 }
 #else
