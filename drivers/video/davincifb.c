@@ -162,25 +162,12 @@ static struct i2c_registers_t const i2c_static_regs[] = {
 static unsigned num_static_i2c = sizeof(i2c_static_regs)/sizeof(i2c_static_regs[0]);
 
 #define THS8200_ADDR 0x21
-
-static int i2c_field(unsigned char regno, unsigned value, unsigned startbit, unsigned numbits)
+static int ths_write(u_int32_t addr, int alen, u_int8_t *buf, int len)
 {
-	unsigned mask = (1<<numbits)-1 ;
-	unsigned char byte ;
-	int rval ;
-	value &= mask ;
-	mask <<= startbit ;
-	if( 0 == (rval = i2c_read(THS8200_ADDR,regno,1,&byte,1) ) ){
-		byte &= ~mask ;
-		byte |= (value<<startbit);
-		if( 0 != (rval = i2c_write(THS8200_ADDR,regno,1,&byte,1) ) ){
-			printf( "Error writing value of 0x%02x to THS8200 register 0x%02x\n", byte, regno );
-		}
-	}
-	else
-		printf( "Error reading THS8200 reg 0x%02x\n", regno );
-
-	return rval ;
+	int retval = i2c_write(THS8200_ADDR, addr, 1, buf, len);
+	if (retval)
+		printf ("%s: Error setting reg %02x = \n", __func__, addr, buf[0]);
+	return retval;
 }
 
 #endif
@@ -313,67 +300,77 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 
 	if( i2c_probe(THS8200_ADDR) == 0){
 		unsigned char byte ;
-		unsigned short word ;
+		unsigned vsync_length ;
+		unsigned hs_in_dly;
+		unsigned vs_in_dly;
+		unsigned field_size;
+		uchar buf[13];	/* 0x70-0x7c */
 
 
 		printf( "Found THS8200 at address 0x%x\n", THS8200_ADDR );
 		for( i = 0 ; i < num_static_i2c ; i++ ){
                         struct i2c_registers_t const *reg = i2c_static_regs+i;
-			if (i2c_write(THS8200_ADDR, reg->regno, 1, (uchar *)&reg->value, 1) != 0)
-				printf ("Error writing 0x%02x to address %02x\n", reg->value, reg->regno );
+			ths_write(reg->regno, 1, (uchar *)&reg->value, 1);
 		}
-		printf( "wrote %u static registers to THS8200\n", num_static_i2c );
 
 		// set horizontal total length
-		i2c_write(THS8200_ADDR, 0x35, 1, (uchar *)&totalh, 1 );
-		i2c_field(0x34, totalh>>8, 0, 4);
-		printf( "set horizontal total to 0x%x (regs 0x34/0x35)\n", totalh );
+		buf[0x34 - 0x34] = (uchar)((totalh & 0x1f00) >> 8);
+		buf[0x35 - 0x34] = (uchar)totalh;
+		ths_write(0x34, 1, buf, 2);
 
 		// set vertical total length
-		i2c_write(THS8200_ADDR, 0x3a, 1, (uchar *)&totalv, 1);
-		i2c_field(0x39, (totalv>>8), 4, 3);
-		printf( "set vertical total length to 0x%x (regs 0x39/0x3a)\n", totalv );
-
-		totalv += 1 ;
-		i2c_write(THS8200_ADDR, 0x3b, 1, (uchar *)&totalv, 1);
-		i2c_field(0x39, (totalv>>8), 0, 3);
-		printf( "set vertical field1 length to 0x%x (regs 0x39/0x3b)\n", totalv );
+		field_size = totalv + 1;
+		buf[0x39 - 0x39] = (uchar)(((totalv & 0x700) >> 4) |
+				((field_size & 0x700) >> 8));
+		buf[0x3a - 0x39] = (uchar)totalv;
+		buf[0x3b - 0x39] = (uchar)field_size;
+		ths_write(0x39, 1, buf, 3);
 
 		// set horizontal pulse width and offset
-		i2c_write(THS8200_ADDR, 0x70, 1, (uchar *)&info->hsync_len, 1 );
-		byte = ((info->hsync_len>>8)&3)<<6 ;
-		i2c_write(THS8200_ADDR, 0x72, 1, (uchar *)&info->left_margin, 1 );
-		byte |= (info->left_margin>>8)&0x0f ;
-		i2c_write(THS8200_ADDR, 0x71, 1, (uchar *)&byte, 1 );
-		printf( "set hsync_len to %u (0x%x), offset %u (0x%x) in regs 0x70..0x72\n", info->hsync_len, info->hsync_len, info->left_margin, info->left_margin );
-
-		byte = info->vsync_len+1 ;
-		i2c_write(THS8200_ADDR, 0x73, 1, (uchar *)&byte, 1);
-		printf( "wrote vsync len of %u(0x%x) to register 0x73\n", info->vsync_len,info->vsync_len);
-
-		i2c_write(THS8200_ADDR,0x75,1,(uchar *)&info->yres,1);
-		i2c_field(0x74,info->yres>>8,0,3);
-		printf( "wrote vsync offset %u (0x%x) to registers 0x74..0x75\n", info->yres, info->yres );
-
-		i2c_field(0x7b,0,0,3);
-		byte = 0 ;
-		i2c_write(THS8200_ADDR,0x7c,1,(uchar *)&byte,1);
-		printf( "cleared input vertical delay fields\n" );
-
-		i2c_write(THS8200_ADDR,0x72,1,(uchar *)&info->xres,1);
-		i2c_field(0x71,info->xres>>8,0,5);
-		printf( "save xres to registers 0x71..0x72\n" );
-
-		word = info->hsync_len + info->left_margin - 2 ;
-		i2c_write(THS8200_ADDR,0x7a,1,(uchar *)&word,1);
-		i2c_field(0x79,word>>8,0,5);
-		printf( "saved left margin and hsync_len to registers 0x79..0x7a\n" );
+/* hlength 7:0 */
+		buf[0x70 - 0x70] = (uchar)info->hsync_len;
+		buf[0x71 - 0x70] = (uchar)
+/* hlength 9:8 */
+			(((info->hsync_len & 0x300) >> 2) |
+/* hdly 12:8 */
+			((info->xres & 0x1f00) >> 8));
+/* hdly 7:0 */
+		buf[0x72 - 0x70] = (uchar)info->xres;
+		vsync_length = (info->vsync_len + 1 - 1);
+/* vlength1 7:0 */
+		buf[0x73 - 0x70] = (uchar)vsync_length;
+		buf[0x74 - 0x70] = (uchar)
+/* vlength1 9:8 */
+			(((vsync_length & 0x300) >> 2) |
+/* vdly1 10:8 */
+			((info->yres & 0x700) >> 8));
+/* vdly1 7:0 */
+		buf[0x75 - 0x70] = (uchar)info->yres;
+/* vlength2 7:0 */
+		buf[0x76 - 0x70] = (uchar)0;
+		buf[0x77 - 0x70] = (uchar)
+/* vlength2 9:8 */
+			(((0 & 0x300) >> 2) |
+/* vdly2 10:8*/
+			((0x7ff & 0x700) >> 8));
+/* vdly2 7:0 */
+		buf[0x78 - 0x70] = (uchar)0x7ff;
+		hs_in_dly = info->hsync_len + info->left_margin - 2;
+/* hs_in_dly 12:8 */
+		buf[0x79 - 0x70] = (uchar)((hs_in_dly & 0x1f00) >> 8);
+/* hs_in_dly 7:0 */
+		buf[0x7a - 0x70] = (uchar)hs_in_dly;
+		vs_in_dly = info->vsync_len + info->upper_margin - 2;
+/* vs_in_dly 10:8 */
+		buf[0x7b - 0x70] = (uchar)((vs_in_dly & 0x1f00) >> 8);
+/* vs_in_dly 7:0 */
+		buf[0x7c - 0x70] = (uchar)vs_in_dly;
+		ths_write(0x70, 1, buf, 13);
 
 		byte = ((0!=info->vsyn_acth)<<1)|((0!=info->hsyn_acth)<<0);
 		byte |= (byte & 3) << 3;
-                byte |= 0x40 ;
-		i2c_write(THS8200_ADDR, 0x82, 1, &byte, 1);
-		printf( "changed polarities to %d/%d\n", info->vsyn_acth, info->hsyn_acth );
+		byte |= 0x40 ;
+		ths_write(0x82, 1, &byte, 1);
 	}
 #endif
 	return lcd ;
