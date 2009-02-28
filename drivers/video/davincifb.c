@@ -150,10 +150,10 @@ struct i2c_registers_t {
 	unsigned char value ;
 };
 static struct i2c_registers_t const i2c_static_regs[] = {
-   { 0x1c, 0x00 }		// data path control
+   { 0x1c, 0x38 }		// data path control: no ifir filters
 ,  { 0x38, 0x87 }		// dtg on/mode VESA slave
-,  { 0x4a, 0x89 }		// CSM clipping/scaling/mult factors
-,  { 0x4b, 0x11 }
+,  { 0x4a, 0x8A }		// CSM clipping/scaling/mult factors
+,  { 0x4b, 0x22 }		// multiplication constants: (0.7V/1.3V)*1024 == 0x2e... brightened til U-Boot shadow disappears
 ,  { 0x4c, 0x80 }
 ,  { 0x4d, 0x80 }
 ,  { 0x4e, 0x80 }
