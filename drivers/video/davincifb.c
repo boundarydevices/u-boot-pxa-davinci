@@ -152,8 +152,8 @@ struct i2c_registers_t {
 static struct i2c_registers_t const i2c_static_regs[] = {
    { 0x1c, 0x38 }		// data path control: no ifir filters
 ,  { 0x38, 0x87 }		// dtg on/mode VESA slave
-,  { 0x4a, 0x8A }		// CSM clipping/scaling/mult factors
-,  { 0x4b, 0x22 }		// multiplication constants: (0.7V/1.3V)*1024 == 0x2e... brightened til U-Boot shadow disappears
+,  { 0x4a, 0x89 }		// CSM clipping/scaling/mult factors (0x8a, for u-boot shadow)
+,  { 0x4b, 0x11 }		// multiplication constants: (0.7V/1.3V)*1024 == 0x2e... brightened til U-Boot shadow disappears (0x22)
 ,  { 0x4c, 0x80 }
 ,  { 0x4d, 0x80 }
 ,  { 0x4e, 0x80 }
@@ -188,6 +188,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	i = gd->bd->bi_dram[0].size;
 	if (i > (128<<20)) i = (128<<20);
 	lcd->fbAddr = (void *)( gd->bd->bi_dram[0].start + i - fbBytes );
+	lcd->fbMemSize = fbBytes;
         memset(lcd->fbAddr,0xff,fbBytes);
 
 	lcd->fg = 0 ;
@@ -288,14 +289,6 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(VENC_OSDCLK0) = bit-1 ;
 	REGVALUE(VENC_OSDCLK1) = val[0];
 	REGVALUE(VENC_OSDHAD) = 0 ;
-	REGVALUE(VENC_VMOD) = (VENC_VMOD_VDMD_RGB666<<VENC_VMOD_VDMD_SHIFT)|VENC_VMOD_VMD|VENC_VMOD_VENC ;
-
-	REGVALUE(OSD_OSDWIN0MD) = (3<<OSD_OSDWIN0MD_BMW0_SHIFT)
-				| (7<<OSD_OSDWIN0MD_BLND0_SHIFT)
-				| OSD_OSDWIN0MD_OACT0 ;
-
-	printf( "%s: %ux%u @%p (%s)\n", __FUNCTION__, info->xres, info->yres, lcd->fbAddr, info->name );
-
 #ifdef CONFIG_CMD_I2C
 
 	if( i2c_probe(THS8200_ADDR) == 0){
@@ -308,6 +301,9 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 
 
 		printf( "Found THS8200 at address 0x%x\n", THS8200_ADDR );
+		/* put in reset state */
+		byte = 0;
+		ths_write(0x03, 1, (uchar *)&byte, 1);
 		for( i = 0 ; i < num_static_i2c ; i++ ){
                         struct i2c_registers_t const *reg = i2c_static_regs+i;
 			ths_write(reg->regno, 1, (uchar *)&reg->value, 1);
@@ -343,9 +339,9 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 /* vlength1 9:8 */
 			(((vsync_length & 0x300) >> 2) |
 /* vdly1 10:8 */
-			((info->yres & 0x700) >> 8));
+			((1 & 0x700) >> 8));
 /* vdly1 7:0 */
-		buf[0x75 - 0x70] = (uchar)info->yres;
+		buf[0x75 - 0x70] = 1;
 /* vlength2 7:0 */
 		buf[0x76 - 0x70] = (uchar)0;
 		buf[0x77 - 0x70] = (uchar)
@@ -360,7 +356,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 		buf[0x79 - 0x70] = (uchar)((hs_in_dly & 0x1f00) >> 8);
 /* hs_in_dly 7:0 */
 		buf[0x7a - 0x70] = (uchar)hs_in_dly;
-		vs_in_dly = info->vsync_len + info->upper_margin - 2;
+		vs_in_dly = info->upper_margin - 2;
 /* vs_in_dly 10:8 */
 		buf[0x7b - 0x70] = (uchar)((vs_in_dly & 0x1f00) >> 8);
 /* vs_in_dly 7:0 */
@@ -369,9 +365,20 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 
 		byte = ((0!=info->vsyn_acth)<<1)|((0!=info->hsyn_acth)<<0);
 		byte |= (byte & 3) << 3;
-		byte |= 0x40 ;
+		byte |= 0x4;
 		ths_write(0x82, 1, &byte, 1);
+		/* release from reset state */
+		byte = 1;
+		ths_write(0x03, 1, (uchar *)&byte, 1);
 	}
 #endif
+	REGVALUE(VENC_VMOD) = (VENC_VMOD_VDMD_RGB666<<VENC_VMOD_VDMD_SHIFT)|VENC_VMOD_VMD|VENC_VMOD_VENC ;
+
+	REGVALUE(OSD_OSDWIN0MD) = (3<<OSD_OSDWIN0MD_BMW0_SHIFT)
+				| (7<<OSD_OSDWIN0MD_BLND0_SHIFT)
+				| OSD_OSDWIN0MD_OACT0 ;
+
+	printf( "%s: %ux%u @%p (%s)\n", __FUNCTION__, info->xres, info->yres, lcd->fbAddr, info->name );
+
 	return lcd ;
 }
