@@ -910,8 +910,8 @@ static void fb_cvt_convert_to_mode(struct fb_cvt_data *cvt,
 {
 	mode->refresh = cvt->f_refresh;
 	mode->pixclock = cvt->pixclock ;
-	mode->left_margin = cvt->h_front_porch;
-	mode->right_margin = cvt->h_back_porch;
+	mode->left_margin = cvt->h_back_porch;
+	mode->right_margin = cvt->h_front_porch;
 	mode->hsync_len = cvt->hsync;
 	mode->upper_margin = cvt->v_back_porch;
 	mode->lower_margin = cvt->v_front_porch;
@@ -1007,9 +1007,9 @@ int fb_find_mode_cvt(struct fb_videomode *mode, int margins, int rb)
 	cvt.h_back_porch = cvt.hblank/2 + cvt.h_margin;
 	cvt.h_front_porch = cvt.hblank - cvt.hsync - cvt.h_back_porch +
 		2 * cvt.h_margin;
-	cvt.v_back_porch = 3 + cvt.v_margin;
-	cvt.v_front_porch = cvt.vtotal - cvt.yres/cvt.interlace -
-		cvt.v_back_porch - cvt.vsync;
+	cvt.v_front_porch = 3 + cvt.v_margin;
+	cvt.v_back_porch = cvt.vtotal - cvt.yres/cvt.interlace -
+		cvt.v_front_porch - cvt.vsync;
 	fb_cvt_convert_to_mode(&cvt, mode);
 
 	return 0;
