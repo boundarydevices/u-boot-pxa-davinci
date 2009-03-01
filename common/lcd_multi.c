@@ -200,11 +200,13 @@ void lcd_puts (const char *s)
 
 int lcd_ClearScreen(void)
 {
-   struct lcd_t *p = getPanel(getCurrentPanel());
-   if( p && p->fbAddr )
-   memset( (char *)p->fbAddr, p->fbMemSize, p->bg );
-
-   return 0 ;
+	struct lcd_t *lcd = getPanel(getCurrentPanel());
+	if (lcd && lcd->fbAddr ) {
+		memset( (char *)lcd->fbAddr, lcd->bg, lcd->fbMemSize);
+		lcd->x = 0;
+		lcd->y = 0;
+	}
+	return 0 ;
 }
 
 static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
@@ -267,7 +269,6 @@ int lcd_multi_init(void)
    char *panelName = getenv( "panel" );
    printf("panel env variable : %s\n\n", panelName);
    if( panelName ){
-      int found = 0 ;
       do {
          struct lcd_panel_info_t const *panel ;
          char *cur = panelName ;
