@@ -182,6 +182,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	unsigned fbBytes =  stride * info->yres ;
 	struct lcd_t *lcd = (struct lcd_t *)malloc(sizeof(struct lcd_t));
 	unsigned short totalh, totalv ;
+	unsigned hstart, vstart;
 
         DECLARE_GLOBAL_DATA_PTR;
 	memcpy(&lcd->info, info,sizeof(lcd->info));
@@ -225,8 +226,10 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	/* Field Inversion Workaround */
 	REGVALUE(OSD_MODE) = 0x280 ;
 
-	REGVALUE(OSD_BASEPX) = info->left_margin ;
-	REGVALUE(OSD_BASEPY) = info->upper_margin ;
+	hstart = info->hsync_len + info->left_margin;
+	vstart = info->vsync_len + info->upper_margin;
+	REGVALUE(OSD_BASEPX) = hstart;
+	REGVALUE(OSD_BASEPY) = vstart;
 
 	/* Reset video encoder module */
 	REGVALUE(VENC_VMOD) = 0 ;
@@ -238,12 +241,13 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(VENC_VSPLS) = info->vsync_len ;
         totalh = info->xres+info->hsync_len+info->left_margin+info->right_margin ;
 	REGVALUE(VENC_HINT) = (totalh-1)*encPerPixel;
-	REGVALUE(VENC_HSTART) = info->left_margin*encPerPixel;
+	REGVALUE(VENC_HSTART) = hstart * encPerPixel;
 	REGVALUE(VENC_HVALID) = info->xres*encPerPixel;
         totalv = info->yres+info->vsync_len+info->upper_margin+info->lower_margin ;
 	REGVALUE(VENC_VINT) = (totalv-1);
-	REGVALUE(VENC_VSTART) = info->upper_margin ;
-	REGVALUE(VENC_VVALID) = info->yres ;
+
+	REGVALUE(VENC_VSTART) = info->upper_margin + info->vsync_len;
+	REGVALUE(VENC_VVALID) = info->yres;
 	REGVALUE(VENC_HSDLY) = 0 ;
 	REGVALUE(VENC_VSDLY) = 0 ;
 	REGVALUE(VENC_RGBCTL) = 0 ;
@@ -294,11 +298,15 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	if( i2c_probe(THS8200_ADDR) == 0){
 		unsigned char byte ;
 		unsigned vsync_length ;
-		unsigned hs_in_dly;
-		unsigned vs_in_dly;
+		unsigned hs_in_dly, vs_in_dly;
+		unsigned hdly, vdly;
 		unsigned field_size;
 		uchar buf[13];	/* 0x70-0x7c */
 
+		hs_in_dly = info->hsync_len + info->left_margin;
+		vs_in_dly = info->vsync_len + info->upper_margin;
+		hdly = info->xres + info->right_margin;
+		vdly = info->yres + info->lower_margin;
 
 		printf( "Found THS8200 at address 0x%x\n", THS8200_ADDR );
 		/* put in reset state */
@@ -329,19 +337,19 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 /* hlength 9:8 */
 			(((info->hsync_len & 0x300) >> 2) |
 /* hdly 12:8 */
-			((info->xres & 0x1f00) >> 8));
+			((hdly & 0x1f00) >> 8));
 /* hdly 7:0 */
-		buf[0x72 - 0x70] = (uchar)info->xres;
-		vsync_length = (info->vsync_len + 1 - 1);
+		buf[0x72 - 0x70] = (uchar)hdly;
+		vsync_length = (info->vsync_len);
 /* vlength1 7:0 */
 		buf[0x73 - 0x70] = (uchar)vsync_length;
 		buf[0x74 - 0x70] = (uchar)
 /* vlength1 9:8 */
 			(((vsync_length & 0x300) >> 2) |
 /* vdly1 10:8 */
-			((1 & 0x700) >> 8));
+			((vdly & 0x700) >> 8));
 /* vdly1 7:0 */
-		buf[0x75 - 0x70] = 1;
+		buf[0x75 - 0x70] = (uchar)vdly;
 /* vlength2 7:0 */
 		buf[0x76 - 0x70] = (uchar)0;
 		buf[0x77 - 0x70] = (uchar)
@@ -351,12 +359,10 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 			((0x7ff & 0x700) >> 8));
 /* vdly2 7:0 */
 		buf[0x78 - 0x70] = (uchar)0x7ff;
-		hs_in_dly = info->hsync_len + info->left_margin - 2;
 /* hs_in_dly 12:8 */
 		buf[0x79 - 0x70] = (uchar)((hs_in_dly & 0x1f00) >> 8);
 /* hs_in_dly 7:0 */
 		buf[0x7a - 0x70] = (uchar)hs_in_dly;
-		vs_in_dly = info->upper_margin - 2;
 /* vs_in_dly 10:8 */
 		buf[0x7b - 0x70] = (uchar)((vs_in_dly & 0x1f00) >> 8);
 /* vs_in_dly 7:0 */
@@ -365,7 +371,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 
 		byte = ((0!=info->vsyn_acth)<<1)|((0!=info->hsyn_acth)<<0);
 		byte |= (byte & 3) << 3;
-		byte |= 0x4;
+		byte |= 0x44;
 		ths_write(0x82, 1, &byte, 1);
 		/* release from reset state */
 		byte = 1;
