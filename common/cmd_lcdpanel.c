@@ -233,6 +233,18 @@ int set_p(struct lcd_panel_info_t const *panel)
 #endif
 }
 
+static void announce_panel(char *panelname)
+{
+	cmd_tbl_t *lecho_cmd = find_cmd("lecho");
+        if(lecho_cmd){
+                char *args[2] = {
+                        lecho_cmd->name,
+                        panelname
+                };
+                lecho_cmd->cmd(lecho_cmd, 0, 2, args);
+	}
+}
+
 char* find_set_panel(char* next, int* pmatched)
 {
 	int matched = 0;
@@ -251,8 +263,10 @@ char* find_set_panel(char* next, int* pmatched)
 //		printf( "parse LCD panel <%s> here\n", cur );
 		newP = (struct lcd_panel_info_t *)malloc( sizeof(struct lcd_panel_info_t) );
 		if (parse_panel_info( cur, newP) ){
-			if (set_p(newP))
+			if (set_p(newP)){
 				matched++;
+				announce_panel(cur);
+			}
 		} else {
 			printf( "Error parsing panel\n" );
 			free(newP);
@@ -268,6 +282,7 @@ char* find_set_panel(char* next, int* pmatched)
 }
 
 void disable_lcd_panel(void);
+
 
 static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
@@ -300,8 +315,10 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			{
 				struct lcd_t *lcd = newPanel(panel);
 				if( lcd ) {
+					char *panelname = build_panel_name(panel);
 					addPanel(lcd);
-					setenv( "panel", build_panel_name(panel) );
+					setenv( "panel", panelname );
+                                        announce_panel(panelname);
 				}
 			}
 #else
