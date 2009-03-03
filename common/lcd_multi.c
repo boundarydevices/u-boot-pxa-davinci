@@ -82,7 +82,7 @@ void addPanel(struct lcd_t *lcd)
 static void console_scrollup( struct lcd_t *lcd )
 {
 	/* Copy up rows ignoring the first one */
-   unsigned lineSize = lcd->stride ;
+   unsigned lineSize = lcd->stride * VIDEO_FONT_HEIGHT;
 	memcpy( lcd->fbAddr, (char *)lcd->fbAddr + lineSize, lcd->fbMemSize-lineSize);
 
 	/* Clear the last one */
