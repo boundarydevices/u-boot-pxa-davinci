@@ -31,6 +31,7 @@ SOBJS-y	+= _divsi3.o
 SOBJS-y	+= _modsi3.o
 SOBJS-y	+= _udivsi3.o
 SOBJS-y	+= _umodsi3.o
+SOBJS-y	+= memcpy.o
 
 COBJS-y	+= board.o
 COBJS-y	+= bootm.o
