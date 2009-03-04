@@ -1028,7 +1028,7 @@ static int read_edid_block(unsigned char * buf)
 			unsigned char* p = buf;
 			int count;
 			for (count=0; count<128; count++)
-				sum += *buf++;
+				sum += *p++;
 			if (sum==0) {
 				if (failures)
 					printf("%s: success after %i failures\n", __func__, failures);
