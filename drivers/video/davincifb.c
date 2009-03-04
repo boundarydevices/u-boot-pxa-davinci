@@ -306,6 +306,12 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 		hs_in_dly = info->hsync_len + info->left_margin;
 		vs_in_dly = info->vsync_len + info->upper_margin;
 		hdly = info->xres + info->right_margin;
+		/*
+		 * hdly += 1 if mult used (if 0x4a bit 7, 0x4f bit 7,6 == 1)
+		 * hdly += 8 if CSC used (if 0x19 bit 1 == 0)
+		 * hdly += 36 (if ifir12 not bypassed)(if 0x1c bit 5 == 0)
+		 * hdly += 18 if 2x interpolation used (if ifir35 not bypassed)(if 0x1c bit 4 == 0)
+		 */
 		vdly = info->yres + info->lower_margin;
 
 		printf( "Found THS8200 at address 0x%x\n", THS8200_ADDR );
