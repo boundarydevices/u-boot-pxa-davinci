@@ -268,8 +268,10 @@ struct lcd_t * addPanel(struct lcd_panel_info_t const *panel, const char *msg)
 
 			sprintf(buffer, "panel %u\n", panel_num);
 			lcd_puts_panel(lcd, buffer);
-			if (msg)
+			if (msg) {
 				lcd_puts_panel(lcd, msg);
+				console_newline(lcd);
+			}
 			print_panel_info(panel);
 		}
 	}
