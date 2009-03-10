@@ -191,10 +191,9 @@ static struct lcd_panel_info_t const *prompt_for_panel( void )
 	return panel ;
 }
 
-static char *build_panel_name(struct lcd_panel_info_t const *panel)
+void build_panel_name(char* buffer, struct lcd_panel_info_t const *panel)
 {
-   char tempBuf[512];
-   sprintf( tempBuf, "%s:%lu,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u"
+   sprintf(buffer, "%s:%lu,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u"
            , panel->name
            , panel->pixclock
            , panel->xres
@@ -211,38 +210,25 @@ static char *build_panel_name(struct lcd_panel_info_t const *panel)
            , panel->lower_margin
            , panel->active
            , panel->crt );
-   return strdup(tempBuf);
 }
 
 #if defined(CONFIG_LCD) || defined(CONFIG_LCD_MULTI)
 
 int set_p(struct lcd_panel_info_t const *panel)
 {
-	print_panel_info( panel );
+	char panelname[512];
+	build_panel_name(panelname, panel);
 #if defined(CONFIG_LCD_MULTI)
-	struct lcd_t *lcd = newPanel(panel);
-	if( lcd ){
-		addPanel(lcd);
+	if (addPanel(panel, panelname))
 		return 1;
-	}
-	printf( "error from newPanel()\n" );
+	printf( "error from addPanel()\n" );
 	return 0;
 #else
+	print_panel_info( panel );
 	set_lcd_panel(panel);
+	lcd_puts(panelname);
 	return 1;
 #endif
-}
-
-static void announce_panel(char *panelname)
-{
-	cmd_tbl_t *lecho_cmd = find_cmd("lecho");
-        if(lecho_cmd){
-                char *args[2] = {
-                        lecho_cmd->name,
-                        panelname
-                };
-                lecho_cmd->cmd(lecho_cmd, 0, 2, args);
-	}
 }
 
 char* find_set_panel(char* next, int* pmatched)
@@ -265,7 +251,6 @@ char* find_set_panel(char* next, int* pmatched)
 		if (parse_panel_info( cur, newP) ){
 			if (set_p(newP)){
 				matched++;
-				announce_panel(cur);
 			}
 		} else {
 			printf( "Error parsing panel\n" );
@@ -310,20 +295,16 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	} else if( '+' == *argv[1] ) {
 		struct lcd_panel_info_t const *panel = prompt_for_panel();
 		if( panel ) {
-			print_panel_info( panel );
+			char panelname[512];
+			build_panel_name(panelname, panel);
 #if defined(CONFIG_LCD_MULTI)
-			{
-				struct lcd_t *lcd = newPanel(panel);
-				if( lcd ) {
-					char *panelname = build_panel_name(panel);
-					addPanel(lcd);
-					setenv( "panel", panelname );
-                                        announce_panel(panelname);
-				}
-			}
+			if (addPanel(panel, panelname))
+				setenv( "panel", panelname );
 #else
+			print_panel_info( panel );
 			set_lcd_panel( panel );
-			setenv( "panel", build_panel_name(panel) );
+			setenv( "panel", panelname );
+			lcd_puts(panelname);
 #endif
 		}
 	} else if( '?' == *argv[1] ) {
