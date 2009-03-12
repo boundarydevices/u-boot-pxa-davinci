@@ -268,7 +268,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 60,
 	lower_margin: 32,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt640x400_85",
 	pixclock: 832*445*85,
@@ -285,7 +285,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 41,
 	lower_margin: 1,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt720x400_85",
 	pixclock: 936*446*85,
@@ -302,7 +302,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 42,
 	lower_margin: 1,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt640x480_60",
 	pixclock: 800*525*60,
@@ -319,7 +319,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 33,
 	lower_margin: 10,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt640x480_72",
 	pixclock: 832*520*72,
@@ -336,7 +336,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 28,
 	lower_margin: 9,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt640x480_75",
 	pixclock: 840*500*75,
@@ -353,7 +353,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 16,
 	lower_margin: 1,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt640x480_85",
 	pixclock: 832*509*85,
@@ -370,7 +370,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 25,
 	lower_margin: 1,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt800x600_56",
 	pixclock: 1024*625*56,
@@ -387,7 +387,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 22,
 	lower_margin: 1,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt800x600_60",
 	pixclock: 1056*628*60,
@@ -404,7 +404,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 23,
 	lower_margin: 1,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt800x600_72",
 	pixclock: 1040*666*72,
@@ -421,7 +421,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 23,
 	lower_margin: 37,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt800x600_75",
 	pixclock: 1056*625*75,
@@ -438,7 +438,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 21,
 	lower_margin: 1,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt800x600_85",
 	pixclock: 1048*631*85,
@@ -455,7 +455,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 27,
 	lower_margin: 1,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt1024x768_60",
 	pixclock: 1344*806*60,
@@ -472,7 +472,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 29,
 	lower_margin: 3,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt1024x768_70",
 	pixclock: 1328*806*70,
@@ -489,7 +489,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 29,
 	lower_margin: 3,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt1024x768_75",
 	pixclock: 1312*800*75,
@@ -506,7 +506,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 28,
 	lower_margin: 1,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt1024x768_85",
 	pixclock: 1376*808*85,
@@ -523,7 +523,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 36,
 	lower_margin: 1,
 	active: 1,
-	crt: 0
+	crt: 1
 }, {
 	name: "dmt1280x768_60r",
 	pixclock: 1440*790*60,
@@ -540,7 +540,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	upper_margin: 12,
 	lower_margin: 3,
 	active: 1,
-	crt: 0
+	crt: 1
 //cvt compliant 1280x768@60 //1664=1280+128+192+64 //798=768+7+20+3
 //lcdp "vesa:1280x768@60" or
 //lcdp "v:79672320,1280,768,1,0,1,0,128,192,64,7,20,3,1,1"
