@@ -84,9 +84,9 @@
 Settings for Hitachi 5.7
 		PANEL_HORIZONTAL_TOTAL, 01c00160);    // should be 34+320+1+64-1= 418 = 0x1A2 (Hex)
                                                + 0x13f+16
-		PANEL_HORIZONTAL_SYNC, 00400161);            hsync_len == 64    lmargin=0x161-0x13f=34
+		PANEL_HORIZONTAL_SYNC, 00400161);            hsync_len == 64    right_margin=0x161-0x13f=34
 		PANEL_VERTICAL_TOTAL, 0x010800f0);
-		PANEL_VERTICAL_SYNC, 0x00020104);     vsync=2,  upper_margin=0x0104-0xf0-1= 19
+		PANEL_VERTICAL_SYNC, 0x00020104);     vsync=2,  lower_margin=0x0104-0xf0-1= 19
 
 In bdlogo.bmp - offset 436 is pixel data
 
@@ -94,9 +94,9 @@ Sharp 5.7 active
 
    STUFFREG( hTotalReg,      0x01800140 );  // should be 16+320+1+8-1 == 0x158
                                              + 0x13f (width-1)
-   STUFFREG( hSyncReg,       0x0008014f );         hsync_len == 8    lmargin=0x14f-0x13f=16
+   STUFFREG( hSyncReg,       0x0008014f );         hsync_len == 8    right_margin=0x14f-0x13f=16
    STUFFREG( vTotalReg,      0x010700F0 );
-   STUFFREG( vSyncReg,       0x00020100 );     vsync=2,  upper_margin=0x0100-0xf0+1= 17
+   STUFFREG( vSyncReg,       0x00020100 );     vsync=2,  lower_margin=0x0100-0xf0+1= 17
 
 static unsigned const hTotalReg      = 0x00080024 ;  //  015F0140
 static unsigned const hSyncReg       = 0x00080028 ;  //  0008014f
@@ -140,8 +140,8 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 64,
-	left_margin:  1,
-	right_margin: 16,
+	left_margin:  2,
+	right_margin: 15,
 	vsync_len: 20,
 	upper_margin: 8,
 	lower_margin: 3,
@@ -157,8 +157,8 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 20,		/* 8    */
-	left_margin: 1,		/* 16   */
-	right_margin: 30,	/* 1    */
+	left_margin: 2,		/* 16   */
+	right_margin: 29,	/* 1    */
 	vsync_len: 4,		/* 20   */
 	upper_margin: 17,
 	lower_margin: 3,
@@ -175,8 +175,8 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 0,
 	oepol_actl: 0,
 	hsync_len: 30,
-	left_margin: 37,
-	right_margin: 38,
+	left_margin: 38,
+	right_margin: 37,
 	vsync_len: 3,
 	upper_margin: 16,
 	lower_margin: 15,
@@ -193,8 +193,8 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 0,
 	oepol_actl: 0,
 	hsync_len: 41,
-	left_margin: 1,
-	right_margin: 2,
+	left_margin: 2,
+	right_margin: 1,
 	vsync_len: 10,
 	upper_margin: 3,
 	lower_margin: 2,
@@ -210,8 +210,8 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 0,
 	oepol_actl: 1,
 	hsync_len: 41,
-	left_margin: 42,
-	right_margin: 42,
+	left_margin: 43,
+	right_margin: 41,
 	vsync_len: 10,
 	upper_margin: 1,
 	lower_margin: 6,
@@ -252,6 +252,298 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	lower_margin: 3,
 	active: 1,
 	crt: 0
+}, {
+	name: "dmt640x350_85",
+	pixclock: 832*445*85,
+	xres: 640,		//832 = 640+64+96+32
+	yres: 350,		//445 = 350+3+60+32
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 96,
+	right_margin: 32,
+	vsync_len: 3,
+	upper_margin: 60,
+	lower_margin: 32,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt640x400_85",
+	pixclock: 832*445*85,
+	xres: 640,		//832 = 640+64+96+32
+	yres: 400,		//445 = 400+3+41+1
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 96,
+	right_margin: 32,
+	vsync_len: 3,
+	upper_margin: 41,
+	lower_margin: 1,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt720x400_85",
+	pixclock: 936*446*85,
+	xres: 720,		//936 = 720+72+108+36
+	yres: 400,		//446 = 400+3+42+1
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 72,
+	left_margin: 108,
+	right_margin: 36,
+	vsync_len: 3,
+	upper_margin: 42,
+	lower_margin: 1,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt640x480_60",
+	pixclock: 800*525*60,
+	xres: 640,		//800 = 640+96+48+16
+	yres: 480,		//525 = 480+2+33+10
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 96,
+	left_margin: 48,
+	right_margin: 16,
+	vsync_len: 2,
+	upper_margin: 33,
+	lower_margin: 10,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt640x480_72",
+	pixclock: 832*520*72,
+	xres: 640,		//832 = 640+40+128+24
+	yres: 480,		//520 = 480+3+28+9
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 40,
+	left_margin: 128,
+	right_margin: 24,
+	vsync_len: 3,
+	upper_margin: 28,
+	lower_margin: 9,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt640x480_75",
+	pixclock: 840*500*75,
+	xres: 640,		//840 = 640+64+120+16
+	yres: 480,		//500 = 480+3+16+1
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 120,
+	right_margin: 16,
+	vsync_len: 3,
+	upper_margin: 16,
+	lower_margin: 1,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt640x480_85",
+	pixclock: 832*509*85,
+	xres: 640,		//832 = 640+56+80+56
+	yres: 480,		//509 = 480+3+25+1
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 56,
+	left_margin: 80,
+	right_margin: 56,
+	vsync_len: 3,
+	upper_margin: 25,
+	lower_margin: 1,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt800x600_56",
+	pixclock: 1024*625*56,
+	xres: 800,		//1024 = 800+72+128+24
+	yres: 600,		//625 = 600+2+22+1
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 72,
+	left_margin: 128,
+	right_margin: 24,
+	vsync_len: 2,
+	upper_margin: 22,
+	lower_margin: 1,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt800x600_60",
+	pixclock: 1056*628*60,
+	xres: 800,		//1056 = 800+128+88+40
+	yres: 600,		//628 = 600+4+23+1
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 128,
+	left_margin: 88,
+	right_margin: 40,
+	vsync_len: 4,
+	upper_margin: 23,
+	lower_margin: 1,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt800x600_72",
+	pixclock: 1040*666*72,
+	xres: 800,		//1040 = 800+120+64+56
+	yres: 600,		//666 = 600+6+23+37
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 120,
+	left_margin: 64,
+	right_margin: 56,
+	vsync_len: 6,
+	upper_margin: 23,
+	lower_margin: 37,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt800x600_75",
+	pixclock: 1056*625*75,
+	xres: 800,		//1056 = 800+80+160+16
+	yres: 600,		//625 = 600+3+21+1
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 80,
+	left_margin: 160,
+	right_margin: 16,
+	vsync_len: 3,
+	upper_margin: 21,
+	lower_margin: 1,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt800x600_85",
+	pixclock: 1048*631*85,
+	xres: 800,		//1048 = 800+64+152+32
+	yres: 600,		//631 = 600+3+27+1
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 64,
+	left_margin: 152,
+	right_margin: 32,
+	vsync_len: 3,
+	upper_margin: 27,
+	lower_margin: 1,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt1024x768_60",
+	pixclock: 1344*806*60,
+	xres: 1024,		//1344 = 1024+136+160+24
+	yres: 768,		//806 = 768+6+29+3
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 136,
+	left_margin: 160,
+	right_margin: 24,
+	vsync_len: 6,
+	upper_margin: 29,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt1024x768_70",
+	pixclock: 1328*806*70,
+	xres: 1024,		//1328 = 1024+136+144+24
+	yres: 768,		//806 = 768+6+29+3
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 136,
+	left_margin: 144,
+	right_margin: 24,
+	vsync_len: 6,
+	upper_margin: 29,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt1024x768_75",
+	pixclock: 1312*800*75,
+	xres: 1024,		//1312 = 1024+96+176+16
+	yres: 768,		//800 = 768+3+28+1
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 96,
+	left_margin: 176,
+	right_margin: 16,
+	vsync_len: 3,
+	upper_margin: 28,
+	lower_margin: 1,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt1024x768_85",
+	pixclock: 1376*808*85,
+	xres: 1024,		//1376 = 1024+96+208+48
+	yres: 768,		//808 = 768+3+36+1
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 96,
+	left_margin: 208,
+	right_margin: 48,
+	vsync_len: 3,
+	upper_margin: 36,
+	lower_margin: 1,
+	active: 1,
+	crt: 0
+}, {
+	name: "dmt1280x768_60r",
+	pixclock: 1440*790*60,
+	xres: 1280,		//1440 = 1280+32+80+48
+	yres: 768,		//790 = 768+7+12+3
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 0,
+	oepol_actl: 0,
+	hsync_len: 32,
+	left_margin: 80,
+	right_margin: 48,
+	vsync_len: 7,
+	upper_margin: 12,
+	lower_margin: 3,
+	active: 1,
+	crt: 0
+//cvt compliant 1280x768@60 //1664=1280+128+192+64 //798=768+7+20+3
+//lcdp "vesa:1280x768@60" or
+//lcdp "v:79672320,1280,768,1,0,1,0,128,192,64,7,20,3,1,1"
 }, {
 	name: "sharp_vga",
 	pixclock: 1,
@@ -296,8 +588,8 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 64,
-	left_margin: 1,
-	right_margin: 39,
+	left_margin: 39,
+	right_margin: 1,
 	vsync_len: 20,
 	upper_margin: 8,
 	lower_margin: 3,
@@ -313,11 +605,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 64,
-	left_margin: 32,
-	right_margin: 152,
+	left_margin: 152,
+	right_margin: 32,
 	vsync_len: 3,
-	upper_margin: 1,
-	lower_margin: 27,
+	upper_margin: 27,
+	lower_margin: 1,
 	active: 1,
 	crt: 1
 }, {
@@ -330,11 +622,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 64,
-	left_margin: 32,
-	right_margin: 16,
+	left_margin: 16,
+	right_margin: 32,
 	vsync_len: 8,
-	upper_margin: 3,
-	lower_margin: 2,
+	upper_margin: 2,
+	lower_margin: 3,
 	active: 1,
 	crt: 1
 }, {
@@ -347,11 +639,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 64,
-	left_margin: 32,
-	right_margin: 152,
+	left_margin: 152,
+	right_margin: 32,
 	vsync_len: 3,
-	upper_margin:1,
-	lower_margin: 27,
+	upper_margin: 27,
+	lower_margin: 1,
 	active: 1,
 	crt: 0
 }, {
@@ -367,11 +659,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 0,
 	oepol_actl: 0,
 	hsync_len: 136,
-	left_margin: 24,
-	right_margin: 160,
+	left_margin: 160,
+	right_margin: 24,
 	vsync_len: 6,
-	upper_margin: 3,
-	lower_margin: 29,
+	upper_margin: 29,
+	lower_margin: 3,
 	active: 0,
 	crt: 1
 }, {
@@ -384,11 +676,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 64,
-	left_margin: 1,
-	right_margin: 39,
+	left_margin: 39,
+	right_margin: 1,
 	vsync_len: 20,
-	upper_margin: 8,
-	lower_margin: 3,
+	upper_margin: 3,
+	lower_margin: 8,
 	active: 1,
 	crt: 0
 }, {
@@ -402,11 +694,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 64,
-	left_margin: 24,
-	right_margin: 16,
+	left_margin: 16,
+	right_margin: 24,
 	vsync_len: 20,
-	upper_margin: 8,
-	lower_margin: 3,
+	upper_margin: 3,
+	lower_margin: 8,
 	active: 1,
 	crt: 0
 }, {
@@ -419,11 +711,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 0,
 	oepol_actl: 0,
 	hsync_len: 200,
-	left_margin: 37,
-	right_margin: 228,
+	left_margin: 228,
+	right_margin: 37,
 	vsync_len: 6,
-	upper_margin: 3,
-	lower_margin: 29,
+	upper_margin: 29,
+	lower_margin: 3,
 	active: 0,
 	crt: 1
 }, {
@@ -436,11 +728,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 120,
-	left_margin: 64,
-	right_margin: 264,
+	left_margin: 264,
+	right_margin: 64,
 	vsync_len: 4,
-	upper_margin: 2,
-	lower_margin: 44,
+	upper_margin: 44,
+	lower_margin: 2,
 	active: 1,
 	crt: 1
 }, {
@@ -453,11 +745,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 120,
-	left_margin: 64,
-	right_margin: 264,
+	left_margin: 264,
+	right_margin: 64,
 	vsync_len: 4,
-	upper_margin: 2,
-	lower_margin: 44,
+	upper_margin: 44,
+	lower_margin: 2,
 	active: 1,
 	crt: 0
 }, {
@@ -506,11 +798,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 0,
 	oepol_actl: 0,
 	hsync_len: 104,
-	left_margin: 56,
-	right_margin: 160,
+	left_margin: 160,
+	right_margin: 56,
 	vsync_len: 3,
-	upper_margin: 201,
-	lower_margin: 11,
+	upper_margin: 11,
+	lower_margin: 201,
 	active: 1,
 	crt: 1
 #else
@@ -524,11 +816,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 64,
-	left_margin: 1,
-	right_margin: 39,
+	left_margin: 39,
+	right_margin: 1,
 	vsync_len: 20,
-	upper_margin: 8,
-	lower_margin: 3,
+	upper_margin: 3,
+	lower_margin: 8,
 	active: 1,
 	crt: 0
 #endif
@@ -542,11 +834,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 104,
-	left_margin: 128,
-	right_margin: 264,
+	left_margin: 264,
+	right_margin: 128,
 	vsync_len: 4,
-	upper_margin: 2,
-	lower_margin: 44,
+	upper_margin: 44,
+	lower_margin: 2,
 	active: 1,
 	crt: 0
 }, {
@@ -559,15 +851,15 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 0,
 	oepol_actl: 0,
 	hsync_len: 95,
-	left_margin: 16,
-	right_margin: 49,
+	left_margin: 49,
+	right_margin: 16,
 	vsync_len: 1,
-	upper_margin: 2,
-	lower_margin: 42,
+	upper_margin: 42,
+	lower_margin: 2,
 	active: 1,
 	crt: 0
 }, {
-	name: "lg1360x398",  //             LG:81000000,1360,398,1,0,1,0,50,268,420,1,214,21,1,0
+	name: "lg1360x398",  //             LG:81000000,1360,398,1,0,1,0,50,420,268,1,21,214,1,1
 	pixclock: 81000000,
 	xres: 1360,
 	yres: 398,
@@ -576,15 +868,15 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 50,
-	left_margin: 268,
-	right_margin: 420,
+	left_margin: 420,
+	right_margin: 268,
 	vsync_len: 1,
-	upper_margin: 214,
-	lower_margin: 21,
+	upper_margin: 21,
+	lower_margin: 214,
 	active: 1,
 	crt: 1
 }, {
-	name: "lg1360x480",  //             LG:84750000,1360,480,1,0,1,208,72,136,5,291,22,1,1
+	name: "lg1360x480",  //             LG:81000000,1360,480,1,0,1,0,50,420,268,1,21,124,1,1
 	pixclock: 81000000,
 	xres: 1360,
 	yres: 480,
@@ -593,11 +885,11 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	vsyn_acth: 1,
 	oepol_actl: 0,
 	hsync_len: 50,
-	left_margin: 268,
-	right_margin: 420,
+	left_margin: 420,
+	right_margin: 268,
 	vsync_len: 1,
-	upper_margin: 124,
-	lower_margin: 21,
+	upper_margin: 21,
+	lower_margin: 124,
 	active: 1,
 	crt: 1
 }
