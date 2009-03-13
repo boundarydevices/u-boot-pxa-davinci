@@ -120,28 +120,46 @@ static void setPixClock( unsigned long mhz )
 	unsigned long divisor, high, low ;
 	unsigned long pllIn = 27000000*(REGVALUE(PLL2_PLLM)+1);
 	char *enc_spec = getenv( "encperpix" );
-	if( enc_spec ){
-		encPerPixel = simple_strtoul(enc_spec,0,0);
-		if( 0 == encPerPixel ){
+	unsigned enc = 1;
+	if (enc_spec){
+		enc = simple_strtoul(enc_spec,0,0);
+		if( 0 == enc ){
 			printf( "Invalid enc_per_pixel" );
-			encPerPixel = 1 ;
+			enc = 1 ;
 		}
 	}
-	divisor = pllIn/(encPerPixel*mhz);
+	do {
+		divisor = pllIn/(enc*mhz);
+		if (divisor <= 16)
+			break;
+		if (enc == 1)
+			enc = 2;
+		else if ((divisor & 1) == 0)
+			enc <<= 1;
+		else if ((divisor % 3) == 0)
+			enc *= 3;
+		else if ((divisor % 5) == 0)
+			enc *= 5;
+		else if ((divisor % 7) == 0)
+			enc *= 7;
+		else
+			enc += 2;
+	} while (1);
 
 	// choose nearest
 	if( divisor < 16 ){
-		high = pllIn/(encPerPixel*divisor);
-		low = pllIn/(encPerPixel*(divisor+1));
+		high = pllIn/(enc*divisor);
+		low = pllIn/(enc*(divisor+1));
 		highError = high-mhz ;
 		lowError = mhz-low ;
 		if( lowError < highError )
 			divisor++ ;
 	}
-	printf( "Pixel clock %lu/%u/%u == %lu\n", pllIn, divisor, encPerPixel, pllIn/(encPerPixel*divisor) );
+	printf( "Pixel clock %lu/%u/%u == %lu\n", pllIn, divisor, enc, pllIn/(enc*divisor) );
 	divisor-- ; // register value is divisor-1
 	REGVALUE(PLL2_DIV1) = 0x8000 + divisor ;
 	REGVALUE(PLL2_CMD) = 1 ;
+	encPerPixel = enc;
 }
 
 #ifdef CONFIG_CMD_I2C
