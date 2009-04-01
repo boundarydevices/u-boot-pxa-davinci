@@ -98,10 +98,10 @@ static unsigned const fbHeightReg    = 0x00080018 ;  // (yres<<16),
 static unsigned const brLocateReg    = 0x00080020 ;  // ((yres-1)<<16)+(xres-1),
 static unsigned const hTotalReg      = 0x00080024 ;  // (left_margin+xres+right_margin+hsync_len-1) << 16
                                                      // + xres
-static unsigned const hSyncReg       = 0x00080028 ;  //  (hsync_len<<16)  + (xres+left_margin-1)
-static unsigned const vTotalReg      = 0x0008002c ;  // (top_margin+yres+lower_margin+vsync_len-1) << 16
+static unsigned const hSyncReg       = 0x00080028 ;  //  ((hsync_len-1)<<16)  + (xres+right_margin-1)
+static unsigned const vTotalReg      = 0x0008002c ;  // (upper_margin+yres+lower_margin+vsync_len-1) << 16
                                                      // + yres-1
-static unsigned const vSyncReg       = 0x00080030 ;  // (vsync_len<<16) + yres+top_margin-1
+static unsigned const vSyncReg       = 0x00080030 ;  // ((vsync_len-1)<<16) + yres+lower_margin-1
 
 /*
  * CRT regs
@@ -406,7 +406,8 @@ unsigned long GetPolarities(struct lcd_panel_info_t const *panel)
 	if (panel->oepol_actl) val |= (1<<26);	//output enable polarity
 	if (!panel->hsyn_acth) val |= (1<<12);	//horizontal sync polarity
 	if (!panel->vsyn_acth) val |= (1<<13);	//vertical sync polarity
-	if (!panel->pclk_redg) val |= (1<<14);	//pixel clock polarity
+	//Documentation is wrong for pixclk polarity
+	if (panel->pclk_redg) val |= (1<<14);	//pixel clock polarity
 	return val;
 }
 
@@ -455,14 +456,14 @@ static void updateCRT( unsigned long const           *freq,
                             +panel->right_margin
                             +panel->hsync_len - 1) << 16 )
                           + panel->xres-1 );
-   STUFFREG( crtFbHSynReg, (panel->hsync_len<<16)+ (panel->xres+panel->left_margin-1) );
+   STUFFREG( crtFbHSynReg, ((panel->hsync_len-1)<<16)+ (panel->xres+panel->right_margin-1) );
    STUFFREG( crtFbVTotReg, (( panel->upper_margin
                             +panel->yres
                             +panel->lower_margin
                             +panel->vsync_len-1 ) << 16 )
                           + panel->yres-1 );
-   STUFFREG( crtFbVSynReg,(panel->vsync_len<<16)
-                          + panel->yres+panel->upper_margin-1 );
+   STUFFREG( crtFbVSynReg,((panel->vsync_len-1)<<16)
+                          + panel->yres+panel->lower_margin-1 );
    STUFFREG( crtctrlReg, crtCtrl );    // enable
 
    reg = READREG( miscCtrl ) & ~0x1000 ;
@@ -488,14 +489,16 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
                             +panel->right_margin
                             +panel->hsync_len - 1) << 16 )
                           + panel->xres-1 );
-   STUFFREG( hSyncReg,    (panel->hsync_len<<16)+ (panel->xres+panel->left_margin-1) );
+   /* Documentation is wrong, need -1 for hsync_len */
+   STUFFREG( hSyncReg,    ((panel->hsync_len-1)<<16)+ (panel->xres+panel->right_margin-1) );
    STUFFREG( vTotalReg,   (( panel->upper_margin
                             +panel->yres
                             +panel->lower_margin
                             +panel->vsync_len-1 ) << 16 )
                           + panel->yres-1 );
-   STUFFREG( vSyncReg,    (panel->vsync_len<<16)
-                          + panel->yres+panel->upper_margin-1 );
+   /* Documentation is wrong, need -1 for vsync_len */
+   STUFFREG( vSyncReg,    ((panel->vsync_len-1)<<16)
+                          + panel->yres+panel->lower_margin-1 );
 
    if( panel->pixclock < numClockRegs )
    {
@@ -721,14 +724,16 @@ void init_sm501_lcd( struct lcd_t *lcd )
                             +panel->right_margin
                             +panel->hsync_len - 1) << 16 )
                           + panel->xres-1 );
-   STUFFREG( hSyncReg,    (panel->hsync_len<<16)+ (panel->xres+panel->left_margin-1) );
+   /* Documentation is wrong, need -1 for hsync_len */
+   STUFFREG( hSyncReg,    ((panel->hsync_len-1)<<16)+ (panel->xres+panel->right_margin-1) );
    STUFFREG( vTotalReg,   (( panel->upper_margin
                             +panel->yres
                             +panel->lower_margin
                             +panel->vsync_len-1 ) << 16 )
                           + panel->yres-1 );
-   STUFFREG( vSyncReg,    (panel->vsync_len<<16)
-                          + panel->yres+panel->upper_margin-1 );
+   /* Documentation is wrong, need -1 for vsync_len */
+   STUFFREG( vSyncReg,    ((panel->vsync_len-1)<<16)
+                          + panel->yres+panel->lower_margin-1 );
 
    if( panel->pixclock < numClockRegs )
    {
@@ -815,14 +820,16 @@ void init_sm501_crt_separate( struct lcd_t *lcd )
                             +panel->right_margin
                             +panel->hsync_len - 1) << 16 )
                           + panel->xres-1 );
-   STUFFREG( crtFbHSynReg, (panel->hsync_len<<16)+ (panel->xres+panel->left_margin-1) );
+   /* Documentation is wrong, need -1 for hsync_len */
+   STUFFREG( crtFbHSynReg, ((panel->hsync_len-1)<<16)+ (panel->xres+panel->right_margin-1) );
    STUFFREG( crtFbVTotReg, (( panel->upper_margin
                             +panel->yres
                             +panel->lower_margin
                             +panel->vsync_len-1 ) << 16 )
                           + panel->yres-1 );
-   STUFFREG( crtFbVSynReg,(panel->vsync_len<<16)
-                          + panel->yres+panel->upper_margin-1 );
+   /* Documentation is wrong, need -1 for vsync_len */
+   STUFFREG( crtFbVSynReg,((panel->vsync_len-1)<<16)
+                          + panel->yres+panel->lower_margin-1 );
    STUFFREG( crtctrlReg, crtCtrl );    // enable
 
    reg = READREG( miscCtrl ) & ~0x1000 ;

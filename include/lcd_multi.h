@@ -62,7 +62,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info );
 /*
  * Internal call from cmd_lcdpanel.c
  */
-void addPanel(struct lcd_t *lcd);
+struct lcd_t * addPanel(struct lcd_panel_info_t const *panel, const char *msg);
 
 /*
  * After initialization, these routines should be used to

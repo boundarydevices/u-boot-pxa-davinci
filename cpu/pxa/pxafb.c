@@ -641,7 +641,9 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    vidinfo_t panel_info ;
 #endif
    int pixClock = panel->pixclock;
-   int stride = (((panel->xres * NBITS(LCD_BPP)) >> 3) + 3) & ~3;
+   unsigned stride = (((panel->xres * NBITS(LCD_BPP)) >> 3) + 3) & ~3;
+   unsigned fbMemSize = stride * panel->yres;
+   int fix = 0;
 
    panel_info.vl_col = panel->xres ;
    panel_info.vl_row = panel->yres ;
@@ -657,13 +659,22 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    panel_info.vl_clor = 1 ;
    panel_info.vl_tft = panel->active ;
    panel_info.vl_hpw = panel->hsync_len ;
-   panel_info.vl_blw = panel->left_margin ;
-   panel_info.vl_elw = panel->right_margin ;
+   /*
+    * The horizontal sync signal should be valid
+    * on the same pixel clock edge as the data.
+    * Unfortunately, active mode panels on the pxa
+    * have the sync signals valid on the opposite edge.
+    * Since the sync signal is 1/2 clk early, left_margin is 1/2 clock too long.
+    */
+   if (panel->left_margin >= 2)
+	   fix = 1;
+   panel_info.vl_blw = panel->left_margin - fix;
+   panel_info.vl_elw = panel->right_margin + fix;
    panel_info.vl_vpw = panel->vsync_len ;
    panel_info.vl_bfw = panel->upper_margin ;
    panel_info.vl_efw = panel->lower_margin ;
 
-   panel_info.pxa.screen = CFG_DRAM_BASE+CFG_DRAM_SIZE-(stride * panel->yres+1024+4096);
+   panel_info.pxa.screen = CFG_DRAM_BASE + CFG_DRAM_SIZE - (fbMemSize + 1024 + 4096);
 #if !defined(CONFIG_LCD_MULTI)
    lcd_base = (void *)(panel_info.pxa.screen);
 #endif
@@ -694,6 +705,7 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
 #if defined(CONFIG_LCD_MULTI)
    lcd_palette = (void *)panel_info.pxa.palette ;
    lcd->fbAddr = frame_buffer = (void *)panel_info.pxa.screen ;
+   lcd->fbMemSize = fbMemSize;
    lcd->set_palette = set_palette ;
    lcd->get_palette_color = get_palette_color ;
    lcd->disable = disable ;

@@ -112,7 +112,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
    }
 
    rval = (struct lcd_t *)malloc(sizeof(struct lcd_t));
-   memset( rval, 0, sizeof(rval) );
+   memset( rval, 0, sizeof(*rval) );
    memcpy( &rval->info, info, sizeof(rval->info) );
 
    if( info->crt ){

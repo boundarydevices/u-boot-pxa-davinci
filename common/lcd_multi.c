@@ -69,14 +69,6 @@ void disablePanels( void )
    numPanels_ = curPanel_ = 0 ;
 }
 
-void addPanel(struct lcd_t *lcd)
-{
-   if( MAX_PANELS > getPanelCount() ){
-      panels_[numPanels_++] = lcd ;
-   }
-}
-
-
 /************************************************************************/
 /*----------------------------------------------------------------------*/
 static void console_scrollup( struct lcd_t *lcd )
@@ -147,55 +139,65 @@ static void lcd_drawchar8( struct lcd_t *lcd, char c )
 		}
 	}
 }
-
-void lcd_putc (const char c)
+static void lcd_putc_panel(struct lcd_t *lcd, const char c)
 {
-   struct lcd_t *p = getPanel(getCurrentPanel());
    unsigned maxCols ;
-	if (!p) {
+	if (!lcd) {
 		serial_putc(c);
 		return;
 	}
 
-   maxCols = (p->info.xres/VIDEO_FONT_WIDTH);
+   maxCols = (lcd->info.xres/VIDEO_FONT_WIDTH);
 
 	switch (c) {
-	case '\r':	p->x = 0;
+	case '\r':	lcd->x = 0;
 			break;
 
-	case '\n':	console_newline(p);
+	case '\n':	console_newline(lcd);
 			break;
 
 	case '\t':	/* Tab (8 chars alignment) */
-			p->x +=  8;
-			p->x &= ~7;
+			lcd->x +=  8;
+			lcd->x &= ~7;
 
-			if (p->x >= maxCols) {
-				console_newline(p);
+			if (lcd->x >= maxCols) {
+				console_newline(lcd);
 			}
 			break;
 
 	case '\b':
-         console_back(p);
+         console_back(lcd);
 			break;
 
    case ' ' :
 
-	default:	lcd_drawchar8(p, c);
-			if (++p->x >= maxCols) {
-				console_newline(p);
+	default:	lcd_drawchar8(lcd, c);
+			if (++lcd->x >= maxCols) {
+				console_newline(lcd);
 			}
 			break;
 	}
 }
 
-void lcd_puts (const char *s)
+static void lcd_puts_panel(struct lcd_t *lcd, const char *s)
 {
-   if( s ){
-      while( *s ){
-         lcd_putc(*s++ );
-      }
-   }
+	if( s ){
+		while( *s ){
+			lcd_putc_panel(lcd, *s++);
+		}
+	}
+}
+
+void lcd_putc (const char c)
+{
+	struct lcd_t *lcd = getPanel(getCurrentPanel());
+	lcd_putc_panel(lcd, c);
+}
+
+void lcd_puts(const char *s)
+{
+	struct lcd_t *lcd = getPanel(getCurrentPanel());
+	lcd_puts_panel(lcd, s);
 }
 
 int lcd_ClearScreen(void)
@@ -253,42 +255,54 @@ U_BOOT_CMD(
 	"curpanel N - set current panel to n\n"
 );
 
-static void addOne( struct lcd_panel_info_t const *panel )
+struct lcd_t * addPanel(struct lcd_panel_info_t const *panel, const char *msg)
 {
-	struct lcd_t *lcd ;
-	print_panel_info( panel );
-	lcd = newPanel(panel);
-	if( lcd ){
-		addPanel(lcd);
+	struct lcd_t *lcd = NULL;
+	int panel_num = getPanelCount();
+	if (panel_num < MAX_PANELS) {
+		lcd = newPanel(panel);
+		if (lcd) {
+			char buffer[32];
+			panels_[panel_num] = lcd ;
+			numPanels_++;
+
+			sprintf(buffer, "panel %u\n", panel_num);
+			lcd_puts_panel(lcd, buffer);
+			if (msg) {
+				lcd_puts_panel(lcd, msg);
+				console_newline(lcd);
+			}
+			print_panel_info(panel);
+		}
 	}
+	return lcd;
 }
+
+void build_panel_name(char* buffer, struct lcd_panel_info_t const *panel);
 
 int lcd_multi_init(void)
 {
-   unsigned i = 0 ;
    char *panelName = getenv( "panel" );
    printf("panel env variable : %s\n\n", panelName);
    if( panelName ){
       do {
-         struct lcd_panel_info_t const *panel ;
-         char *cur = panelName ;
+	 struct lcd_panel_info_t const *panel;
+	 struct lcd_panel_info_t panel_info;
+	 char *cur = panelName;
+	 char panel_str[512];
          panelName = strchr(panelName,'&');
          if( panelName )
             *panelName = '\0';
          panel = find_lcd_panel( cur );
-         if( panel ) {
-            printf( "panel %s found: %u x %u\n", panel->name, panel->xres, panel->yres );
-            addOne( panel );
-            printf( "ADDED PANEL : %s\n", panel->name );
-         }
-         else if ( strchr( cur, ':' ) ) {
-	    struct lcd_panel_info_t panel_info ;
-	    if( parse_panel_info( cur, &panel_info ) ){
-               addOne( &panel_info );
-               printf( "ADDED PANEL : %s\n", panel_info.name );
-	    }
-         }
-         else {
+         if (!panel)
+            if (strchr( cur, ':' ))
+	       if (parse_panel_info(cur, &panel_info))
+	          panel = &panel_info;
+         if (panel) {
+            build_panel_name(panel_str, panel);
+            if (addPanel(panel, panel_str))
+	       printf( "ADDED PANEL : %s\n", panel->name );
+         } else {
             char const *rv = strchr( cur, ':' );
             printf( "panel <%s> not found (%p)\n", cur, rv );
          }
@@ -296,23 +310,6 @@ int lcd_multi_init(void)
          if ( panelName )
              *panelName++ = '&';
       } while( panelName );
-
-      for( i = 0 ; i < getPanelCount(); i++ )
-      {
-         char cTemp[20];
-         struct lcd_t *lcd = getPanel(i);
-         setCurrentPanel(i);
-
-         sprintf( cTemp, "panel %u\n  ", i );
-         lcd_puts(cTemp);
-
-         lcd_puts(lcd->info.name);
-         sprintf( cTemp, "\n  %u x %u", lcd->info.xres, lcd->info.yres );
-         lcd_puts(cTemp);
-      }
-
-      if( 0 < getPanelCount() )
-         setCurrentPanel(0);
    } // panel defined
    return 0 ;
 }
