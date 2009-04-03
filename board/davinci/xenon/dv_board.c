@@ -222,7 +222,7 @@ int misc_init_r (void)
 #endif
 	setenv ("version", version_string );
 #ifdef CONFIG_CMD_I2C
-	gpio_set_val(GPIO_DISPLAY_SELECT, getenv("vmux_select_davinci") ? 1 : 0);
+	gpio_set_val(GPIO_DISPLAY_SELECT, getenv("vmux_select_davinci") ? 0 : 1);
 #endif
 	return(0);
 }

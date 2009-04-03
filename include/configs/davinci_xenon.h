@@ -145,6 +145,10 @@
 #define CFG_ENV_SECT_SIZE	CFG_FLASH_SECT_SZ	/* Env sector Size */
 #endif
 
+#define CONFIG_EXTRA_ENV_SETTINGS					\
+	"gameVid=mw.l 0x01c67040 0x2000\0"     				\
+	"xenonVid=mw.l 0x01c67044 0x2000\0"
+
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
 #endif
