@@ -192,6 +192,7 @@
 #define CONFIG_CMD_MII
 #define CONFIG_CMD_PING
 #define CONFIG_CMD_SAVES
+#define CONFIG_CMD_NOT
 #define CONFIG_CMD_XMODEM
 #define CONFIG_CMD_ECHO
 #define CONFIG_CMD_STRCPY
@@ -219,6 +220,14 @@
 #define CONFIG_DRIVER_DAVINCI_I2C
 #define CFG_I2C_SPEED		100000
 #define CFG_I2C_SLAVE		10	/* Bogus, master-only in U-Boot */
+#if 1
+#define CONFIG_GP_HSYNC 14
+#define CONFIG_GP_VSYNC 11
+#else
+//jumpered testing board
+#define CONFIG_GP_HSYNC 12
+#define CONFIG_GP_VSYNC 40
+#endif
 #endif
 /*=======================*/
 /* KGDB support (if any) */

@@ -37,28 +37,82 @@ extern int	eth_hw_init(void);
 extern phy_t	phy;
 
 #define MAC_VARIABLE "ethaddr"
-
+#define GP_BINTEN 0x08
 #define GP_BANK0_OFFSET	0x10
 #define GP_BANK_LENGTH	0x28
-#define GP_DIR 0x00
-#define GP_OUT 0x04
-#define GP_SET 0x08
-#define GP_CLR 0x0C
-#define GP_IN  0x10
+#define GP_DIR			0x00
+#define GP_OUT			0x04
+#define GP_SET			0x08
+#define GP_CLR			0x0C
+#define GP_IN			0x10
+#define GP_SET_RISING_EDGE	0x14
+#define GP_CLR_RISING_EDGE	0x18
+#define GP_SET_FALLING_EDGE	0x1c
+#define GP_CLR_FALLING_EDGE	0x20
+#define GP_INT_STAT		0x24
 #define GPIO_DISPLAY_SELECT 45
 #define GPIO_THS_ENABLE 42
 
-void gpio_set_val(unsigned int gp, int val)
+void gpio_set_val(u32 gp, int val)
 {
-	unsigned int mask = (1 << (gp & 0x1f));
-	unsigned int bank = (gp >> 5);
-	volatile unsigned int* p = (unsigned int*)
-		(DAVINCI_GPIO_BASE+GP_BANK0_OFFSET+(bank * GP_BANK_LENGTH));
+	u32 mask = (1 << (gp & 0x1f));
+	u32 bank = (gp >> 5);
+	volatile u32 *p = (u32 *)(DAVINCI_GPIO_BASE+GP_BANK0_OFFSET +
+			(bank * GP_BANK_LENGTH));
 	if (val)
 		p[GP_SET >> 2] = mask;
 	else
 		p[GP_CLR >> 2] = mask;
 	p[GP_DIR >> 2] &= ~mask;
+}
+
+#define DIR_IN 1
+#define DIR_OUT 0
+void gpio_set_dir(u32 gp, int in)
+{
+	u32 mask = (1 << (gp & 0x1f));
+	u32 bank = (gp >> 5);
+	volatile u32 *p = (u32 *)(DAVINCI_GPIO_BASE + GP_BANK0_OFFSET +
+			GP_DIR + (bank * GP_BANK_LENGTH));
+	if (in)
+		*p |= mask;
+	else
+		*p &= ~mask;
+}
+
+volatile u32 *gpio_get_in_ptr(u32 gp)
+{
+	u32 bank = (gp >> 5);
+	volatile u32 *p = (u32 *)(DAVINCI_GPIO_BASE + GP_BANK0_OFFSET + GP_IN +
+			(bank * GP_BANK_LENGTH));
+//	gpio_set_dir(gp, DIR_IN);
+	return p;
+}
+u32 gpio_get_val(u32 gp)
+{
+	volatile u32 *p = gpio_get_in_ptr(gp);
+	return (*p >> (gp & 0x1f)) & 1;
+}
+
+
+volatile u32 *gpio_get_stat_ptr(unsigned gp, int edge)
+{
+	u32 mask = (1 << (gp & 0x1f));
+	u32 bank = (gp >> 5);
+	volatile u32 *p = (u32 *)(DAVINCI_GPIO_BASE + GP_BINTEN);
+	*p |= 1 << (bank >> 1);	/* enable proper bank */
+
+	p = (u32 *)(DAVINCI_GPIO_BASE + GP_BANK0_OFFSET +
+		(bank * GP_BANK_LENGTH));
+	if (edge & 1)
+		p[GP_SET_RISING_EDGE >> 2] = mask;
+	else
+		p[GP_CLR_RISING_EDGE >> 2] = mask;
+	if (edge & 2)
+		p[GP_SET_FALLING_EDGE >> 2] = mask;
+	else
+		p[GP_CLR_FALLING_EDGE >> 2] = mask;
+	return &p[GP_INT_STAT >> 2];
 }
 
 /* Works on Always On power domain only (no PD argument) */
@@ -189,6 +243,10 @@ int board_init(void)
 
 #ifdef CONFIG_CMD_I2C
 	gpio_set_val(GPIO_THS_ENABLE, 0);
+#endif
+#ifdef CONFIG_GP_HSYNC
+	gpio_set_dir(CONFIG_GP_HSYNC, DIR_IN);
+	gpio_set_dir(CONFIG_GP_VSYNC, DIR_IN);
 #endif
 	return(0);
 }

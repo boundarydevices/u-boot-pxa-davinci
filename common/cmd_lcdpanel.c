@@ -97,6 +97,12 @@ void print_panel_info( struct lcd_panel_info_t const *panel )
    printf( "lower_margin   : %u\n", panel->lower_margin );
    printf( "active         : %u\n", panel->active );
    printf( "CRT            ? %u\n", panel->crt);
+   printf( "%s:%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
+	panel->name, panel->pixclock, panel->xres, panel->yres,
+	panel->pclk_redg, panel->hsyn_acth, panel->vsyn_acth, panel->oepol_actl,
+	panel->hsync_len, panel->left_margin, panel->right_margin,
+	panel->vsync_len, panel->upper_margin, panel->lower_margin,
+	panel->active, panel->crt);
 }
 
 static void short_panel_info( struct lcd_panel_info_t const *panel )
@@ -335,6 +341,8 @@ static int lcdpanel(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			setCurrentPanel(0);
 #endif
 			setenv( "panel", argv[1] );
+		} else {
+			return 1;
 		}
 	}
 	return 0;

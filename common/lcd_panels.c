@@ -254,7 +254,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 0
 }, {
 	name: "dmt640x350_85",
-	pixclock: 832*445*85,
+	pixclock: 31500000,
 	xres: 640,		//832 = 640+64+96+32
 	yres: 350,		//445 = 350+3+60+32
 	pclk_redg: 1,
@@ -271,7 +271,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt640x400_85",
-	pixclock: 832*445*85,
+	pixclock: 31500000,
 	xres: 640,		//832 = 640+64+96+32
 	yres: 400,		//445 = 400+3+41+1
 	pclk_redg: 1,
@@ -288,7 +288,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt720x400_85",
-	pixclock: 936*446*85,
+	pixclock: 35500000,
 	xres: 720,		//936 = 720+72+108+36
 	yres: 400,		//446 = 400+3+42+1
 	pclk_redg: 1,
@@ -305,7 +305,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt640x480_60",
-	pixclock: 800*525*60,
+	pixclock: 25175000,
 	xres: 640,		//800 = 640+96+48+16
 	yres: 480,		//525 = 480+2+33+10
 	pclk_redg: 1,
@@ -322,7 +322,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt640x480_72",
-	pixclock: 832*520*72,
+	pixclock: 31500000,
 	xres: 640,		//832 = 640+40+128+24
 	yres: 480,		//520 = 480+3+28+9
 	pclk_redg: 1,
@@ -339,7 +339,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt640x480_75",
-	pixclock: 840*500*75,
+	pixclock: 31500000,
 	xres: 640,		//840 = 640+64+120+16
 	yres: 480,		//500 = 480+3+16+1
 	pclk_redg: 1,
@@ -356,7 +356,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt640x480_85",
-	pixclock: 832*509*85,
+	pixclock: 36000000,
 	xres: 640,		//832 = 640+56+80+56
 	yres: 480,		//509 = 480+3+25+1
 	pclk_redg: 1,
@@ -373,7 +373,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt800x600_56",
-	pixclock: 1024*625*56,
+	pixclock: 36000000,
 	xres: 800,		//1024 = 800+72+128+24
 	yres: 600,		//625 = 600+2+22+1
 	pclk_redg: 1,
@@ -390,7 +390,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt800x600_60",
-	pixclock: 1056*628*60,
+	pixclock: 40000000,
 	xres: 800,		//1056 = 800+128+88+40
 	yres: 600,		//628 = 600+4+23+1
 	pclk_redg: 1,
@@ -407,7 +407,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt800x600_72",
-	pixclock: 1040*666*72,
+	pixclock: 50000000,
 	xres: 800,		//1040 = 800+120+64+56
 	yres: 600,		//666 = 600+6+23+37
 	pclk_redg: 1,
@@ -424,7 +424,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt800x600_75",
-	pixclock: 1056*625*75,
+	pixclock: 49500000,
 	xres: 800,		//1056 = 800+80+160+16
 	yres: 600,		//625 = 600+3+21+1
 	pclk_redg: 1,
@@ -441,7 +441,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt800x600_85",
-	pixclock: 1048*631*85,
+	pixclock: 56250000,
 	xres: 800,		//1048 = 800+64+152+32
 	yres: 600,		//631 = 600+3+27+1
 	pclk_redg: 1,
@@ -457,8 +457,25 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	active: 1,
 	crt: 1
 }, {
+	name: "dmt848x480_60",
+	pixclock: 33750000,
+	xres: 848,
+	yres: 480,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 112,
+	left_margin: 112,
+	right_margin: 16,
+	vsync_len: 8,
+	upper_margin: 23,
+	lower_margin: 6,
+	active: 1,
+	crt: 1
+}, {
 	name: "dmt1024x768_60",
-	pixclock: 1344*806*60,
+	pixclock: 65000000,
 	xres: 1024,		//1344 = 1024+136+160+24
 	yres: 768,		//806 = 768+6+29+3
 	pclk_redg: 1,
@@ -475,7 +492,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt1024x768_70",
-	pixclock: 1328*806*70,
+	pixclock: 75000000,
 	xres: 1024,		//1328 = 1024+136+144+24
 	yres: 768,		//806 = 768+6+29+3
 	pclk_redg: 1,
@@ -492,7 +509,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt1024x768_75",
-	pixclock: 1312*800*75,
+	pixclock: 78750000,
 	xres: 1024,		//1312 = 1024+96+176+16
 	yres: 768,		//800 = 768+3+28+1
 	pclk_redg: 1,
@@ -509,7 +526,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	crt: 1
 }, {
 	name: "dmt1024x768_85",
-	pixclock: 1376*808*85,
+	pixclock: 94500000,
 	xres: 1024,		//1376 = 1024+96+208+48
 	yres: 768,		//808 = 768+3+36+1
 	pclk_redg: 1,
@@ -525,8 +542,65 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	active: 1,
 	crt: 1
 }, {
+	name: "dmt1152x864_75",
+	pixclock: 108000000,
+	xres: 1152,
+	yres: 864,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 128,
+	left_margin: 256,
+	right_margin: 64,
+	vsync_len: 3,
+	upper_margin: 32,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
+}, {
+//#define INCLUDE_GTF_SETTINGS
+#ifdef INCLUDE_GTF_SETTINGS
+//This is a GTF formula
+	name: "gtf1152x864_60",
+	pixclock: 1520*895*60,	//81624000
+	xres: 1152,		//1520=1152+120+184+64
+	yres: 864,		//895=864+3+27+1
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 120,
+	left_margin: 184,
+	right_margin: 64,
+	vsync_len: 3,
+	upper_margin: 27,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
+}, {
+//This is a GTF formula
+	name: "gtf1176x664_60",
+	pixclock: 1528*688*60,	//63075840
+	xres: 1176,	//1528=1176+120+176+56
+	yres: 664,	//688=664+3+20+1
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 120,
+	left_margin: 176,
+	right_margin: 56,
+	vsync_len: 3,
+	upper_margin: 20,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
+}, {
+#endif
+//The should be same as CVT reduced
 	name: "dmt1280x768_60r",
-	pixclock: 1440*790*60,
+	pixclock: 68250000, //ROUND_QM(1440*790*60)
 	xres: 1280,		//1440 = 1280+32+80+48
 	yres: 768,		//790 = 768+7+12+3
 	pclk_redg: 1,
@@ -544,6 +618,165 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 //cvt compliant 1280x768@60 //1664=1280+128+192+64 //798=768+7+20+3
 //lcdp "vesa:1280x768@60" or
 //lcdp "v:79672320,1280,768,1,0,1,0,128,192,64,7,20,3,1,1"
+}, {
+#ifdef INCLUDE_GTF_SETTINGS
+//This is a GTF formula
+	name: "gtf1280x720_60",
+	pixclock: 1664*746*60,	//74480640
+	xres: 1280,		//1664 = 1280+136+192+56
+	yres: 720,		//746 = 720+3+22+1
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 136,
+	left_margin: 192,
+	right_margin: 56,
+	vsync_len: 3,
+	upper_margin: 22,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
+}, {
+#endif
+	name: "dmt1280x960_60",
+	pixclock: 108000000,
+	xres: 1280,
+	yres: 960,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 112,
+	left_margin: 312,
+	right_margin: 96,
+	vsync_len: 3,
+	upper_margin: 36,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
+}, {
+	name: "dmt1280x960_85",
+	pixclock: 148500000,
+	xres: 1280,
+	yres: 960,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 160,
+	left_margin: 224,
+	right_margin: 64,
+	vsync_len: 3,
+	upper_margin: 47,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
+}, {
+	name: "dmt1280x1024_60",
+	pixclock: 108000000,
+	xres: 1280,
+	yres: 1024,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 112,
+	left_margin: 248,
+	right_margin: 48,
+	vsync_len: 3,
+	upper_margin: 38,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
+}, {
+	name: "dmt1280x1024_75",
+	pixclock: 135000000,
+	xres: 1280,
+	yres: 1024,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 144,
+	left_margin: 248,
+	right_margin: 16,
+	vsync_len: 3,
+	upper_margin: 38,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
+}, {
+	name: "dmt1280x1024_85",
+	pixclock: 157500000,
+	xres: 1280,
+	yres: 1024,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 160,
+	left_margin: 224,
+	right_margin: 64,
+	vsync_len: 3,
+	upper_margin: 44,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
+}, {
+	name: "dmt1360x768_60",
+	pixclock: 85500000,
+	xres: 1360,
+	yres: 768,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 112,
+	left_margin: 256,
+	right_margin: 64,
+	vsync_len: 6,
+	upper_margin: 18,
+	lower_margin: 3,
+	active: 1,
+	crt: 1
+}, {
+#ifdef INCLUDE_GTF_SETTINGS
+//This is a GTF formula
+	name: "gtf1600x1024_60",
+	pixclock: 2144*1060*60,	//136358400
+	xres: 1600,		//2144=1600+168+272+104
+	yres: 1024,		//1060=1024+3+32+1
+	pclk_redg: 1,
+	hsyn_acth: 0,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 168,
+	left_margin: 272,
+	right_margin: 104,
+	vsync_len: 3,
+	upper_margin: 32,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
+}, {
+#endif
+	name: "dmt1600x1200_60",
+	pixclock: 162000000,
+	xres: 1600,
+	yres: 1200,
+	pclk_redg: 1,
+	hsyn_acth: 1,
+	vsyn_acth: 1,
+	oepol_actl: 0,
+	hsync_len: 192,
+	left_margin: 304,
+	right_margin: 64,
+	vsync_len: 3,
+	upper_margin: 46,
+	lower_margin: 1,
+	active: 1,
+	crt: 1
 }, {
 	name: "sharp_vga",
 	pixclock: 1,
@@ -1097,12 +1330,11 @@ static u32 fb_cvt_hperiod(struct fb_cvt_data *cvt)
 }
 
 /* returns ideal duty cycle * 1000 */
-static u32 fb_cvt_ideal_duty_cycle(struct fb_cvt_data *cvt)
+static u32 fb_cvt_ideal_duty_cycle(u32 h_period_est)
 {
 	u32 c_prime = (FB_CVT_GTF_C - FB_CVT_GTF_J) *
 		(FB_CVT_GTF_K) + 256 * FB_CVT_GTF_J;
 	u32 m_prime = (FB_CVT_GTF_K * FB_CVT_GTF_M);
-	u32 h_period_est = cvt->hperiod;
 
 	return (1000 * c_prime  - ((m_prime * h_period_est)/1000))/256;
 }
@@ -1114,16 +1346,13 @@ static u32 fb_cvt_hblank(struct fb_cvt_data *cvt)
 	if (cvt->flags & FB_CVT_FLAG_REDUCED_BLANK)
 		hblank = FB_CVT_RB_HBLANK;
 	else {
-		u32 ideal_duty_cycle = fb_cvt_ideal_duty_cycle(cvt);
+		u32 ideal_duty_cycle = fb_cvt_ideal_duty_cycle(cvt->hperiod);
 		u32 active_pixels = cvt->active_pixels;
 
 		if (ideal_duty_cycle < 20000)
-			hblank = (active_pixels * 20000)/
-				(100000 - 20000);
-		else {
-			hblank = (active_pixels * ideal_duty_cycle)/
-				(100000 - ideal_duty_cycle);
-		}
+			ideal_duty_cycle = 20000;
+		hblank = (active_pixels * ideal_duty_cycle)/
+			(100000 - ideal_duty_cycle);
 	}
 
 	hblank &= ~((2 * FB_CVT_CELLSIZE) - 1);
@@ -1385,6 +1614,608 @@ static int fb_find_edid(struct lcd_panel_info_t *panel)
 #define fb_find_edid(a) 1
 #endif
 
+#ifdef CONFIG_GP_HSYNC
+#define HMASK (1 << (CONFIG_GP_HSYNC & 0x1f))
+#define VMASK (1 << (CONFIG_GP_VSYNC & 0x1f))
+volatile u32 *gpio_get_in_ptr(u32 gp);
+volatile u32 *gpio_get_stat_ptr(u32 gp, int edge);
+
+struct v_aspect_ratio {
+	unsigned char vsync_len;
+	unsigned char num;
+	unsigned char den;
+	unsigned char yres_div256;
+};
+static const struct v_aspect_ratio cvt_vsync_len_to_aspect_ratio[] = {
+	{4, 4, 3, 0},		/* 1.333 : 1 */
+	{5, 16, 9, 0},		/* 1.777 : 1 */
+	{6, 8, 5, 0},		/* 1.6   : 1 */
+	{7, 5, 4, 1024/256},	/* 1.25  : 1 */
+	{7, 5, 3, 0},		/* 1.666 : 1, 768/256 */
+	{0, 0, 0, 0}
+};
+
+int get_xres_guess(int yres)
+{
+	int xres;
+	if ((yres % 83) == 0)
+		xres = (yres * 147) / 83;
+	else if ((yres % 27) == 0)
+		xres = (yres * 4) / 3;
+	else if ((yres % 9) == 0)
+		xres = (yres * 16) / 9;
+	else if ((yres % 5) == 0)
+		xres = (yres * 8) / 5;
+	else if ((yres % 128) == 0)
+		xres = (yres * 25) / 16;	//still a multiple of 8
+	else
+		xres = (yres * 4) / 3;
+	return (xres + 4) & ~7;	//round to multiple of 8
+}
+int get_xres(int yres, int vsync_len)
+{
+	int xres = -1;
+	const struct v_aspect_ratio *p = cvt_vsync_len_to_aspect_ratio;
+	while (p->vsync_len) {
+		if (vsync_len == p->vsync_len) {
+			if ((p->yres_div256 == 0) ||
+					((yres >> 8) == p->yres_div256)) {
+				xres = (yres * p->num + (p->den << 2)) / (p->den << 3);
+				return xres << 3;
+			}
+		}
+		p++;
+	}
+	return get_xres_guess(yres);
+}
+
+int count_hsync_while_vsync_val(int hsync_active, int vsync, ulong ticks,
+		volatile u32 *phstat,
+		volatile u32 *phsync,
+		volatile u32 *pvsync)
+{
+	int hcnt = 0;
+	ulong elapsed;
+	u32 check = 0x10000;
+	do {
+		if (*phstat & HMASK) {
+			if ((*phsync ^ hsync_active) & HMASK) {
+				/* hsync is inactive now*/
+				*phstat = HMASK;
+				hcnt++;
+			}
+		}
+		if ((*pvsync ^ vsync) & VMASK)
+			break;
+		if (check==0) {
+			elapsed = get_timer(ticks);
+			if (elapsed > CFG_HZ)
+				return -1;
+			check = 0x10000;
+		}
+		check--;
+	} while (1);
+
+	/* if HSYNC about to count */
+	if (*phstat & HMASK) {
+		do {
+			if ((*phsync ^ hsync_active) & HMASK) {
+				/* hsync is inactive now*/
+				*phstat = HMASK;
+				hcnt++;
+				break;
+			}
+			if (check==0) {
+				elapsed = get_timer(ticks);
+				if (elapsed > CFG_HZ)
+					return -1;
+				check = 0x10000;
+			}
+			check--;
+		} while (1);
+	}
+	return hcnt;
+}
+
+//#define MEASURE_HSYNC_DUTY_CYCLE	//no need to do this, use 8% rounded down
+#ifdef MEASURE_HSYNC_DUTY_CYCLE
+int count_while_high(volatile u32 *phsync, ulong ticks)
+{
+	u32 check = 0x10000;
+	u32 high = 0;
+	do {
+		if (check==0) {
+			ulong elapsed = get_timer(ticks);
+			if (elapsed > (CFG_HZ >> 1))
+				return -1;
+			check = 0x10000;
+		}
+		check--;
+		if (!(*phsync & HMASK))
+			break;
+		high++;
+		if (!(*phsync & HMASK))
+			break;
+		high++;
+		if (!(*phsync & HMASK))
+			break;
+		high++;
+		if (!(*phsync & HMASK))
+			break;
+		high++;
+	} while (1);
+	return high;
+}
+int count_while_low(volatile u32 *phsync, ulong ticks)
+{
+	u32 check = 0x10000;
+	u32 low = 0;
+	do {
+		if (check==0) {
+			ulong elapsed = get_timer(ticks);
+			if (elapsed > (CFG_HZ >> 1))
+				return -1;
+			check = 0x10000;
+		}
+		check--;
+		if (*phsync & HMASK)
+			break;
+		low++;
+		if (*phsync & HMASK)
+			break;
+		low++;
+		if (*phsync & HMASK)
+			break;
+		low++;
+		if (*phsync & HMASK)
+			break;
+		low++;
+	} while (1);
+	return low;
+}
+u32 measure_hsync_duty_cycle(volatile u32 *phsync, u32 hsync_active)
+{
+	u32 frac;
+	u32 hsync_low_cnt = 1;
+	u32 hsync_high_cnt = 1;
+	u32 check = 0x10000;
+	ulong ticks = get_timer(0);
+	if (hsync_active) {
+		count_while_low(phsync, ticks);		/* returns when high */
+		count_while_high(phsync, ticks);	/* returns when low */
+	} else {
+		count_while_high(phsync, ticks);	/* returns when low */
+		count_while_low(phsync, ticks);		/* returns when high */
+	}
+	/* hsync just went inactive */
+
+	/* count for 1/4 second */
+	do {
+		if (check==0) {
+			ulong elapsed = get_timer(ticks);
+			check = 0x10000;
+			if (elapsed > (CFG_HZ >> 2))	/* sample for 1/4 second */
+				break;
+		}
+		check--;
+		if (*phsync & HMASK)
+			hsync_high_cnt++;
+		else
+			hsync_low_cnt++;
+		if (*phsync & HMASK)
+			hsync_high_cnt++;
+		else
+			hsync_low_cnt++;
+		if (*phsync & HMASK)
+			hsync_high_cnt++;
+		else
+			hsync_low_cnt++;
+		if (*phsync & HMASK)
+			hsync_high_cnt++;
+		else
+			hsync_low_cnt++;
+	} while (1);
+
+	/* count till hsync inactive edge */
+	if (hsync_active) {
+		hsync_low_cnt += count_while_low(phsync, ticks);	/* returns when high */
+		hsync_high_cnt += count_while_high(phsync, ticks);	/* returns when low */
+	} else {
+		hsync_high_cnt += count_while_high(phsync, ticks);	/* returns when low */
+		hsync_low_cnt += count_while_low(phsync, ticks);	/* returns when high */
+	}
+	{
+		u32 duty;
+		u32 duty_int;
+		u64 t = (hsync_active) ? hsync_high_cnt : hsync_low_cnt;
+		int power2 = 0;
+		u32 total = hsync_high_cnt + hsync_low_cnt;
+		while ((t & (1ULL << 63)) == 0) {
+			power2++;
+			t <<= 1;
+		}
+		t = t / total;
+		if (power2 > 32) {
+			t >>= (power2 - 32);
+			power2 = 32;
+		}
+		frac = (u32)t;
+		t *= 100;
+		duty_int = (u32)(t >> power2);
+		t &= ((1ULL << power2) - 1);
+		t *= 10000;
+		duty = (u32)(t >> power2);
+		printf("hsync_high_cnt=%i hsync_low_cnt=%i duty=%i.%04i%% frac=%08x\n",
+				hsync_high_cnt, hsync_low_cnt, duty_int, duty, frac);
+	}
+	return frac;
+}
+#endif
+
+int get_hsync_polarity(volatile u32 *phsync, volatile u32 *pvsync)
+{
+	u32 vsync;
+	u32 check = 0x10000;
+	u32 hsync_low_cnt = 0;
+	u32 hsync_high_cnt = 0;
+	u32 vsync_cnt = 0;
+
+	/* calc HSYNC duty cycle */
+	ulong ticks = get_timer(0);
+
+	/* count hsync until vsync changes twice */
+	vsync = *pvsync & VMASK;
+	do {
+		if (check==0) {
+			ulong elapsed = get_timer(ticks);
+			if (elapsed > (CFG_HZ >> 2))
+				break;
+			check = 0x10000;
+		}
+		check--;
+		if (*phsync & HMASK)
+			hsync_high_cnt++;
+		else
+			hsync_low_cnt++;
+		if ((*pvsync ^ vsync) & VMASK) {
+			vsync ^= VMASK;
+			vsync_cnt++;
+			if (vsync_cnt >= 2)
+				break;
+		}
+	} while (1);
+	if (0) printf("hsync_high_cnt=%i hsync_low_cnt=%i\n",
+			hsync_high_cnt, hsync_low_cnt);
+	if ((hsync_high_cnt == 0) || (hsync_low_cnt == 0))
+		return -1;
+	return (hsync_high_cnt < hsync_low_cnt) ? 1 : 0;
+}
+
+unsigned query_pixel_Clock(unsigned long mhz);
+static inline u32 cvt_len(u32 len, u32 real_clk, u32 ideal_clk)
+{
+#define FRAC_BITS 1
+	u64 tmp = len << FRAC_BITS;
+	tmp *= real_clk;
+	tmp /= ideal_clk;
+	tmp += 1 << (FRAC_BITS-1);
+	tmp >>= FRAC_BITS;
+	return (u32)tmp;
+}
+
+static u32 calc_pixclock(u32 htotal, u32 hperiod)
+{
+/*
+ *  ((htotal pixels/line) / (hperiod ns/line)) * (1000000000 ns/sec)  = pixels/sec
+ */
+	u64 tmp;
+	tmp = htotal;
+	tmp *= 1000000000;
+	tmp += hperiod >> 1;	/* round */
+	tmp /= hperiod;
+	return (u32)tmp;
+}
+
+int calc_gtf_settings(struct lcd_panel_info_t *panel, u32 v_total, u32 hperiod)
+{
+	u64 tmp;
+	u32 ideal_duty_cycle;	//div 10**8 = frac
+	u32 hsync;
+	u32 hblank;
+	u32 htotal;
+//	u32 v_period = hperiod * v_total;
+	panel->lower_margin = 1;
+#define MIN_VSYNC_PLUS_BP 550000	/* min time of vsync + back porch (nanosec) */
+
+/* C' and M' are part of the Blanking Duty Cycle computation */
+
+#define C_PRIME           30
+#define M_PRIME           300
+	panel->name = "calc_gtf";
+	panel->upper_margin = ((MIN_VSYNC_PLUS_BP + (hperiod >> 1)) / hperiod)
+		- panel->vsync_len;
+	panel->yres = v_total - panel->lower_margin - panel->upper_margin - panel->vsync_len;
+
+// divided by 10**8 gives fraction
+	ideal_duty_cycle = (C_PRIME * 1000000) - ((M_PRIME * hperiod));
+	panel->xres = get_xres_guess(panel->yres);
+
+	tmp = ideal_duty_cycle;
+	tmp *= panel->xres;
+	tmp += (100000000 - ideal_duty_cycle) << 3;	/* round */
+	tmp /= (100000000 - ideal_duty_cycle) << 4;
+	hblank = (u32)tmp;
+	hblank <<= 4;
+
+	htotal =  panel->xres + hblank;
+	hsync = (htotal * 2 + (25*4)) / (25*8);	//8%
+	hsync <<= 3;
+
+	panel->left_margin = hblank >> 1;
+	panel->right_margin = (hblank >> 1) - hsync;
+	panel->hsync_len = hsync;
+	panel->pixclock = calc_pixclock(htotal, hperiod);
+	return 0;
+}
+
+static int scan_for_dmt_entry(struct lcd_panel_info_t *panel, u32 v_total, u32 hperiod)
+{
+	const struct lcd_panel_info_t *p = lcd_panels_;
+	const struct lcd_panel_info_t *best = NULL;
+	u32 best_error = ~0;
+	int i;
+	u32 htotal;
+	for (i = 0; i < num_lcd_panels; i++, p++ ) {
+		u32 htot, vtot;
+		u32 cur_hperiod;
+		u32 error;
+		u64 tmp;
+		if (p->name[0] != 'd') continue;
+		if (p->name[1] != 'm') continue;
+		if (p->name[2] != 't') continue;
+		if (p->hsyn_acth != panel->hsyn_acth) continue;
+		if (p->vsyn_acth != panel->vsyn_acth) continue;
+		if (p->vsync_len != panel->vsync_len) continue;
+		vtot = p->upper_margin + p->yres + p->lower_margin + p->vsync_len;
+		if (vtot != v_total) continue;
+		htot = p->left_margin + p->xres + p->right_margin + p->hsync_len;
+		tmp = htot;
+		tmp *= 1000000000;
+		tmp /= p->pixclock;		//nanoseconds/line
+		cur_hperiod = (u32)tmp;
+		error = (cur_hperiod >= hperiod) ? (cur_hperiod - hperiod) :
+				(hperiod - cur_hperiod);
+		if (best_error > error) {
+			best = p;
+			best_error = error;
+		}
+	}
+	if (!best) {
+		return -1;
+	}
+	panel->name = "calc_dmt";
+	panel->xres = best->xres;
+	panel->hsync_len = best->hsync_len;
+	panel->left_margin = best->left_margin;
+	panel->right_margin = best->right_margin;
+
+	panel->yres = best->yres;
+	panel->upper_margin = best->upper_margin;
+	panel->lower_margin = best->lower_margin;
+	htotal = panel->xres + panel->hsync_len +
+			panel->left_margin + panel->right_margin;
+	panel->pixclock = calc_pixclock(htotal, hperiod);
+	printf("found %s, error=%i ns, hperiod=%i ns\n", best->name, best_error, hperiod);
+	return 0;
+}
+
+void calc_cvt_settings(struct lcd_panel_info_t *panel, u32 v_total, u32 hperiod)
+{
+	u32 v_period = hperiod * v_total;
+	u32 reduced = 0;
+	panel->lower_margin = 3;
+	if (panel->hsyn_acth && !panel->vsyn_acth) {
+		reduced = 1;
+		v_period -= FB_CVT_RB_MIN_VBLANK * 1000;
+		panel->yres = v_period / hperiod;
+		panel->name = "calc_cvtr";
+	} else {
+		v_period -= FB_CVT_MIN_VSYNC_BP * 1000;
+		panel->yres = v_period / hperiod;
+		panel->yres -= FB_CVT_MIN_VPORCH;
+		panel->name = "calc_cvt";
+	}
+
+	panel->upper_margin = v_total - panel->vsync_len - panel->lower_margin - panel->yres;
+	panel->xres = get_xres(panel->yres, panel->vsync_len);
+	{
+		u32 htotal;
+		u32 hblank  = FB_CVT_RB_HBLANK;
+		panel->hsync_len = 32;
+		if (!reduced) {
+			u32 ideal_duty_cycle = fb_cvt_ideal_duty_cycle(hperiod);
+			u32 active_pixels = panel->xres;
+
+			if (ideal_duty_cycle < 20000)
+				ideal_duty_cycle = 20000;
+			hblank = (active_pixels * ideal_duty_cycle)/
+				(100000 - ideal_duty_cycle);
+			hblank &= ~((2 * FB_CVT_CELLSIZE) - 1);
+		}
+		htotal =  panel->xres + hblank;
+		panel->pixclock = calc_pixclock(htotal, hperiod);
+		panel->left_margin = hblank >> 1;
+		if (!reduced) {
+			u32 t;
+			u64 tmp = hperiod;
+			tmp *= 2;	/* (2/25) 8% width */
+			tmp /= 25;	/* nanosecond width of sync pulse */
+			tmp *= panel->pixclock;
+			tmp /= 1000000000;	/* # of clocks */
+			t = (u32)tmp;
+			t &= ~(FB_CVT_CELLSIZE - 1);
+			panel->hsync_len = t;
+		}
+		panel->right_margin = hblank - panel->left_margin - panel->hsync_len;
+
+//panel now has CVT settings
+	}
+#define ROUND_QM(a) (((a)+125000)/250000)*250000
+	panel->pixclock = ROUND_QM(panel->pixclock);
+}
+
+static int calc_settings_from_hsync_vsync(struct lcd_panel_info_t *panel)
+{
+	u32 shift;
+	u32 ideal_clk;
+	u32 real_clk;
+	u32 v_total;
+	u32 vsync;
+	int hsync_cnt1, hsync_cnt2;
+	ulong ticks;
+	ulong elapsed;
+	u32 hperiod;
+	u32 hsync_active;
+#ifdef MEASURE_HSYNC_DUTY_CYCLE
+	u32 frac;
+#endif
+
+	volatile u32 *phsync = gpio_get_in_ptr(CONFIG_GP_HSYNC);
+	volatile u32 *pvsync = gpio_get_in_ptr(CONFIG_GP_VSYNC);
+	/*
+	 * this enables/disables rising/falling edge interrupts
+	 * and returns a pointer to the interrupt status register
+	 */
+	volatile u32 *phstat = gpio_get_stat_ptr(CONFIG_GP_HSYNC, 3);
+	int ret = get_hsync_polarity(phsync, pvsync);
+	if (ret < 0)
+		return ret;
+	hsync_active =	(ret) ? HMASK : 0;
+
+#ifdef MEASURE_HSYNC_DUTY_CYCLE
+	frac = measure_hsync_duty_cycle(phsync, hsync_active);
+#endif
+	ticks = get_timer(0);
+	vsync = *pvsync & VMASK;
+	hsync_cnt1 = count_hsync_while_vsync_val(hsync_active, vsync, ticks, phstat, phsync, pvsync);
+	ticks = get_timer(0);
+	if (hsync_cnt1 < 0)
+		return hsync_cnt1;
+
+	hsync_cnt1 = count_hsync_while_vsync_val(hsync_active, vsync ^ VMASK, ticks, phstat, phsync, pvsync);
+	if (hsync_cnt1 < 0)
+		return hsync_cnt1;
+
+	hsync_cnt2 = count_hsync_while_vsync_val(hsync_active, vsync, ticks, phstat, phsync, pvsync);
+	elapsed = get_timer(ticks);
+	gpio_get_stat_ptr(CONFIG_GP_HSYNC, 0);
+	if (hsync_cnt2 < 0)
+		return hsync_cnt2;
+	if (hsync_cnt1 > hsync_cnt2) {
+		int tmp = hsync_cnt1;
+		hsync_cnt1 = hsync_cnt2;
+		hsync_cnt2 = tmp;
+		vsync ^= VMASK;
+	}
+	if (0) printf("hsync_cnt1=%i hsync_cnt2=%i\n",
+			hsync_cnt1, hsync_cnt2);
+	v_total = hsync_cnt1 + hsync_cnt2;
+	panel->active = 1;
+	panel->crt = 1;
+	panel->rotation = 0 ;
+	panel->hsyn_acth = (hsync_active) ? 1 : 0;
+	panel->vsyn_acth = (vsync) ? 0 : 1;
+	panel->vsync_len =  hsync_cnt1;
+
+	{
+		/*
+		 * elasped is # of jiffies/vertical sync period
+		 * convert from jiffies to ns
+		 */
+		u32 v_period;
+		u64 v = elapsed;
+		v *= 1000000000;
+		v += CFG_HZ >> 1;	/* round */
+		v_period = (u32)(v / CFG_HZ);
+		hperiod = (v_period + (v_total >> 1)) / v_total;
+	}
+
+//Check if DMT timings should be used
+	do {
+		if (((panel->hsyn_acth ^ panel->vsyn_acth) == 0) ||
+				(panel->vsync_len < 4)) {
+			if (scan_for_dmt_entry(panel, v_total, hperiod)==0)
+				break;
+			if ((panel->hsyn_acth == 0) && (panel->vsyn_acth == 1) && (panel->vsync_len == 3))
+				if (calc_gtf_settings(panel, v_total, hperiod)==0)
+					break;
+			printf("*** warning!!! **** weird panel, hsync=%u, vsync=%u, vsync_len=%u, v_total=%u, hperiod=%u ns\n",
+				panel->hsyn_acth, panel->vsyn_acth, panel->vsync_len, v_total, hperiod);
+		}
+		calc_cvt_settings(panel, v_total, hperiod);
+	} while (0);
+
+	ideal_clk = panel->pixclock;
+	shift = 0;
+	while (1) {
+		real_clk = query_pixel_Clock(ideal_clk);
+		if (real_clk == 0)
+			return -1;
+		printf("ideal_clk=%u, real_clk=%u\n", ideal_clk, real_clk);
+		if ((ideal_clk > 112000000) &&
+				(ideal_clk > ((real_clk * 9) >> 3))) {
+			/* ideal_clk is 12.5% more than real clock, scale down */
+			ideal_clk >>= 1;
+			shift++;
+			continue;
+		}
+		break;
+	}
+
+	panel->pixclock = ideal_clk;
+	if (shift) {
+		/*
+		 * all settings start as multiples of 8,
+		 * so just zeros are shifted out
+		 */
+		panel->xres >>= shift;
+		panel->hsync_len >>= shift;
+		panel->left_margin >>= shift;
+		panel->right_margin >>= shift;
+	}
+#if 0
+	{
+		u32 new_htotal = cvt_len(htotal, real_clk, ideal_clk);
+		u32 new_xres = cvt_len(panel->xres, real_clk, ideal_clk);
+		panel->xres = new_xres & ~7;	/* Keep multiple of 8*/
+		panel->hsync_len = cvt_len(panel->hsync_len, real_clk, ideal_clk);
+		panel->left_margin = cvt_len(panel->left_margin, real_clk, ideal_clk);
+		panel->left_margin += (new_xres & 7) >> 1;
+		panel->right_margin = new_htotal -
+			(panel->xres + panel->hsync_len + panel->left_margin);
+		panel->pixclock = calc_pixclock(new_htotal, hperiod);
+	}
+#endif
+
+#ifdef MEASURE_HSYNC_DUTY_CYCLE
+	{
+		u32 t;
+		u64 tmp = hperiod;
+		tmp *= frac;
+		tmp >>= 32;	/* nanosecond width of sync pulse */
+		tmp *= panel->pixclock;
+		tmp /= 500000000;	/* # of clocks */
+		t = (u32)((tmp + 1) >> 1);
+//		t += FB_CVT_CELLSIZE >> 1;
+//		t &= ~(FB_CVT_CELLSIZE - 1);
+		printf("measured val=%i, using =%i\n", t, panel->hsync_len);
+	}
+#endif
+	return 0;
+}
+#else
+#define calc_settings_from_hsync_vsync(a) 1
+#endif
 
 #define UPCASE(c) ((c)&~0x20)
 int parse_panel_info( char const *panelInfo, // input
@@ -1446,7 +2277,13 @@ int parse_panel_info( char const *panelInfo, // input
 	  panel->crt = (UPCASE(*nameEnd) == 'C') ? 1 : 0;
 	  if (fb_find_edid(panel)) {
 		 printf( "Error finding edid\n" );
-		 goto bail;
+		 return 0;
+	  }
+	  return 1;
+      } else if ('C' == UPCASE(*panelInfo)) {
+	  if (calc_settings_from_hsync_vsync(panel)) {
+		 printf( "Error calc from hsync\n" );
+		 return 0;
 	  }
 	  return 1;
       }

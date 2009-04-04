@@ -111,55 +111,245 @@ void disable_lcd_panel( void )
 }
 
 #define NUM_WINDOWS 4
+#define OSC_RATE 27000000
 
-static unsigned encPerPixel = 1 ;
+#if 1
+#define DDR2_MIN	(140000000 * 2)	/* after div2 */
+#define	DDR2_MAX	(200000000 * 2)
+#else
+#define DDR2_MIN	(161000000 * 2)	/* after div2 */
+#define	DDR2_MAX	(163000000 * 2)
+#endif
 
-static void setPixClock( unsigned long mhz )
+//#define MAX_VPBE	75018754	//75 Mhz Max clock input to back end (13.33ns/clock)
+#define MAX_VPBE	112000000	//112 Mhz Max clock input to back end
+
+static int check_ddr2(unsigned mrate)
 {
-	unsigned highError, lowError ;
-	unsigned long divisor, high, low ;
-	unsigned long pllIn = 27000000*(REGVALUE(PLL2_PLLM)+1);
-	char *enc_spec = getenv( "encperpix" );
-	unsigned enc = 1;
-	if (enc_spec){
-		enc = simple_strtoul(enc_spec,0,0);
-		if( 0 == enc ){
-			printf( "Invalid enc_per_pixel" );
-			enc = 1 ;
-		}
+	unsigned rate;
+	unsigned div = ((mrate - 1) / DDR2_MAX) + 1;
+	if (div > 16)
+		return 0;
+	rate = mrate /div;
+//	printf("%s: rate:%u div:%u\n", __func__, rate, div);
+	return (rate < DDR2_MIN) ? 0 : div;
+}
+
+struct clk_factors {
+	u32 mult;
+	u32 div;
+	u32 enc_mult;
+	u32 enc_div;
+	u32 error;
+};
+
+static int relatively_prime(u32 a, u32 b)
+{
+	u32 c;
+	if (a < b) {
+		c = a;
+		a = b;
+		b = c;
 	}
 	do {
-		divisor = pllIn/(enc*mhz);
-		if (divisor <= 16)
+		if (b == 1)
+			return 1;
+		c = a % b;
+		if (c == 0)
 			break;
-		if (enc == 1)
-			enc = 2;
-		else if ((divisor & 1) == 0)
-			enc <<= 1;
-		else if ((divisor % 3) == 0)
-			enc *= 3;
-		else if ((divisor % 5) == 0)
-			enc *= 5;
-		else if ((divisor % 7) == 0)
-			enc *= 7;
-		else
-			enc += 2;
+		a = b;
+		b = c;
 	} while (1);
+	return 0;
+}
 
-	// choose nearest
-	if( divisor < 16 ){
-		high = pllIn/(enc*divisor);
-		low = pllIn/(enc*(divisor+1));
-		highError = high-mhz ;
-		lowError = mhz-low ;
-		if( lowError < highError )
-			divisor++ ;
+int new_best(struct clk_factors *best, struct clk_factors *test)
+{
+	if (best->error > test->error) {
+		if (best->enc_div != 1)
+			return 1;
+		if (test->enc_div == 1)
+			return 1;
+		if (((best->error * 3)/4) > test->error)
+			return 1;
+		/*
+		 * Best error is larger, but not more than 33% larger
+		 * and Best has advantage of a normal pixel clock
+		 */
+		return 0;
 	}
-	printf( "Pixel clock %lu/%u/%u == %lu\n", pllIn, divisor, enc, pllIn/(enc*divisor) );
-	divisor-- ; // register value is divisor-1
-	REGVALUE(PLL2_DIV1) = 0x8000 + divisor ;
-	REGVALUE(PLL2_CMD) = 1 ;
-	encPerPixel = enc;
+	if (best->error < test->error) {
+		if (test->enc_div != 1)
+			return 0;
+		if (best->enc_div == 1)
+			return 0;
+		if (((test->error * 3)/4) > best->error)
+			return 0;
+		/*
+		 * Test error is larger, but not more than 33% larger
+		 * and Test has advantage of a normal pixel clock
+		 */
+		return 1;
+	}
+	if (best->enc_div != test->enc_div) {
+		if (best->enc_div == 1)
+			return 0;
+		if (test->enc_div == 1)
+			return 1;
+		/* This is not needed */
+		if (0) if ((test->enc_div > best->div) &&
+				relatively_prime(test->enc_div,test->enc_mult)) {
+			return 1;
+		}
+	}
+	return 0;
+}
+//VENC_DCLKCTL encodes 1-64 clks, but VENC_OSDCLK0 encodes only 1-16 clks,
+#define MAX_ENC_DIV 16
+
+#define MAX_ENC_MULT 1	//was MAX_ENC_DIV - 1, but doesn't look good on CRTS
+static unsigned query_clk_settings(u32 mhz, struct clk_factors *pbest)
+{
+	struct clk_factors best;
+	struct clk_factors cur;
+	u32 mrate;
+	u32 enc_mult_start = 1;
+	u32 enc_mult_end = MAX_ENC_MULT;
+	u32 enc_div_start = 1;
+	u32 enc_div_end = MAX_ENC_DIV;
+	best.error = ~0;
+	best.mult = 0;
+	best.div = 0;
+	best.enc_mult = 0;
+	best.enc_div = 0;
+	char *enc_spec = getenv( "encperpix" );
+
+	if (enc_spec){
+		u32 m = 1;
+		u32 d;
+		char *endptr ;
+		d = simple_strtoul(enc_spec, &endptr, 0);
+		if ((endptr != enc_spec) &&  *endptr) {
+			enc_spec = endptr+1 ;
+			m = simple_strtoul(enc_spec, &endptr, 0);
+			if (m > d) {
+				u32 tmp = m;
+				m = d;
+				d = tmp;
+			}
+		}
+		if (d) {
+			if (d > 64) {
+				printf("Invalid encperpix(%u:%u)\n", m, d);
+			} else {
+				printf("forcing encperpix=%u:%u\n", m, d);
+				enc_mult_start = m;
+				enc_mult_end = m;
+				enc_div_start = d;
+				enc_div_end = d;
+			}
+		}
+	}
+	cur.mult = (DDR2_MIN + OSC_RATE -1) / OSC_RATE;
+	mrate = cur.mult * OSC_RATE;
+	for (; cur.mult <= 32; cur.mult++, mrate += OSC_RATE) {
+		if (!check_ddr2(mrate))
+			continue;
+		cur.div = (mrate + MAX_VPBE - 1)/MAX_VPBE;
+		for (; cur.div <= 16; cur.div++) {
+			u32 vpbe = mrate / cur.div;
+			cur.enc_mult = enc_mult_start;
+//			printf("vpbe=%u, mhz=%u\n", vpbe, mhz);
+			for (; cur.enc_mult <= enc_mult_end; cur.enc_mult++) {
+				u32 rate;
+				u64 vm = vpbe;
+				vm *= cur.enc_mult;
+				cur.enc_div = (u32)(vm / mhz);
+				if (cur.enc_div > enc_div_end)
+					cur.enc_div = enc_div_end;
+				if (cur.enc_div < enc_div_start)
+					cur.enc_div = enc_div_start;
+				if (cur.enc_div <= cur.enc_mult) {
+					cur.enc_div = cur.enc_mult;
+					if (cur.enc_mult != enc_mult_start) {
+						cur.enc_div++;
+						if (cur.enc_div > enc_div_end)
+							break;
+					}
+				}
+				do {
+					rate = (u32)(vm / cur.enc_div);
+					cur.error = (rate > mhz) ? (rate - mhz) : (mhz - rate);
+					if (0) printf("mult:%u div:%u enc:%u:%u error:%u\n",
+						cur.mult, cur.div, cur.enc_mult, cur.enc_div, cur.error);
+					if (new_best(&best, &cur)) {
+						if (0) printf("%s: mult:%u div:%u enc:%u:%u error:%u\n", __func__,
+							cur.mult, cur.div, cur.enc_mult, cur.enc_div, cur.error);
+						best = cur;
+					}
+					cur.enc_div++;
+				} while ((rate > mhz) && (cur.enc_div <= enc_div_end));
+				if (vpbe <= mhz)
+					break;
+			}
+			if (vpbe <= mhz)
+				break;
+		}
+	}
+	*pbest = best;
+	mrate = 0;
+	if (best.mult) {
+		u64 m = OSC_RATE;
+		m *= (best.mult * best.enc_mult);
+		m /= (best.div * best.enc_div);
+		mrate = (u32)m;
+	}
+	return mrate;
+}
+
+u32 query_pixel_Clock(u32 mhz)
+{
+	struct clk_factors clk;
+	return query_clk_settings(mhz, &clk);
+}
+void reset_pll2(u32 mult, u32 div, u32 ddr2_div);
+
+static int setPixClock(u32 mhz, u32 *penc_mult, u32 *penc_div)
+{
+	struct clk_factors clk;
+	u32 pixel_clk = query_clk_settings(mhz, &clk);
+	if (pixel_clk) {
+		u32 mrate = OSC_RATE * clk.mult;
+		u32 ddr2_div = check_ddr2(mrate);
+		u32 ddr2_clk =  (mrate / ddr2_div) >> 1;
+		printf( "Pixel clock %u, mult = %u, div = %u, enc = %u:%u, DDR2 clock = %u, div = %u\n",
+				pixel_clk, clk.mult, clk.div, clk.enc_mult, clk.enc_div, ddr2_clk, ddr2_div);
+
+#define GOSET	1
+#define GOSTAT	1
+		udelay(1);	/* cache routine */
+		clk.mult--;
+		clk.div--;
+		ddr2_div--;
+
+		if (REGVALUE(PLL2_PLLM) != clk.mult) {
+			reset_pll2(clk.mult, clk.div, ddr2_div);
+		} else if (REGVALUE(PLL2_DIV1) != (clk.div | 0x8000)) {
+			/*
+			 * Changing only the pixel clock divisor
+			 */
+			while (REGVALUE(PLL2_STAT) & GOSTAT);
+			REGVALUE(PLL2_DIV1) = clk.div | 0x8000;
+
+			REGVALUE(PLL2_CMD) = GOSET;
+			while (REGVALUE(PLL2_STAT) & GOSTAT);
+		}
+		*penc_mult = clk.enc_mult;
+		*penc_div = clk.enc_div;
+	} else {
+		printf( "%s: no clock found\n", __func__);
+	}
+	return pixel_clk;
 }
 
 #ifdef CONFIG_CMD_I2C
@@ -190,17 +380,19 @@ static int ths_write(u_int32_t addr, int alen, u_int8_t *buf, int len)
 
 #endif
 
+#define TO_ENC(pixels, enc_mult, enc_div) (((pixels) * (enc_div)) / (enc_mult))
 struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 {
 	unsigned i ;
 	unsigned short val[4];
-	int bit;
-	int gbit;
+	unsigned dclkctl;
 	unsigned stride = ((info->xres + 0x1f) & ~0x1f);
 	unsigned fbBytes =  stride * info->yres ;
 	struct lcd_t *lcd = (struct lcd_t *)malloc(sizeof(struct lcd_t));
 	unsigned short totalh, totalv ;
 	unsigned hstart, vstart;
+	u32 enc_mult = 0;
+	u32 enc_div = 0;
 
         DECLARE_GLOBAL_DATA_PTR;
 	memcpy(&lcd->info, info,sizeof(lcd->info));
@@ -221,7 +413,12 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 
 	REGVALUE(VPSS_CLKCTL) = 0x18 ;
 
-	setPixClock(info->pixclock);
+	/*
+	 * turn off video unit, DDR2 may be disabled while
+	 * clock is changing
+	 */
+	REGVALUE(VENC_VMOD) = 0;
+	setPixClock(info->pixclock, &enc_mult, &enc_div);
 
 	REGVALUE(OSD_MODE) = 0 ;
 	REGVALUE(OSD_OSDWIN0MD) = 0 ;
@@ -247,20 +444,20 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	hstart = info->hsync_len + info->left_margin;
 	vstart = info->vsync_len + info->upper_margin;
 	REGVALUE(OSD_BASEPX) = hstart;
+//	REGVALUE(OSD_BASEPX) = TO_ENC(hstart, enc_mult, enc_div);
 	REGVALUE(OSD_BASEPY) = vstart;
 
 	/* Reset video encoder module */
-	REGVALUE(VENC_VMOD) = 0 ;
 	REGVALUE(VPSS_CLKCTL) = 0x09 ;	//disable DAC clock
 	REGVALUE(VPBE_PCR) = 0 ;		//not divided by 2
 	REGVALUE(VENC_VIDCTL) =((info->pclk_redg^1)<<14)|(1<<13);
 	REGVALUE(VENC_SYNCCTL) = ((info->vsyn_acth <<3 ) | (info->hsyn_acth << 2)) ^ 0x0f;
-	REGVALUE(VENC_HSPLS) = info->hsync_len*encPerPixel;
+	REGVALUE(VENC_HSPLS) = TO_ENC(info->hsync_len, enc_mult, enc_div);
 	REGVALUE(VENC_VSPLS) = info->vsync_len ;
         totalh = info->xres+info->hsync_len+info->left_margin+info->right_margin ;
-	REGVALUE(VENC_HINT) = (totalh-1)*encPerPixel;
-	REGVALUE(VENC_HSTART) = hstart * encPerPixel;
-	REGVALUE(VENC_HVALID) = info->xres*encPerPixel;
+	REGVALUE(VENC_HINT) = TO_ENC((totalh-1), enc_mult, enc_div);
+	REGVALUE(VENC_HSTART) = TO_ENC(hstart, enc_mult, enc_div);
+	REGVALUE(VENC_HVALID) = TO_ENC(info->xres, enc_mult, enc_div);
         totalv = info->yres+info->vsync_len+info->upper_margin+info->lower_margin ;
 	REGVALUE(VENC_VINT) = (totalv-1);
 
@@ -276,19 +473,96 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	val[1] = 0;
 	val[2] = 0;
 	val[3] = 0;
-	gbit = (encPerPixel>>1);
-	bit = (encPerPixel>>1);
-	while (bit < 64) {
-		val[bit>>4] |= (1<<(bit&0xf));
-		bit++;
-		gbit++;
-		if (gbit>=encPerPixel) {
-			gbit = (encPerPixel>>1);
-			bit += gbit;
+	dclkctl = ((64 / enc_div) * enc_div) - 1;
+	if ((enc_mult * 2) <= enc_div) {
+/*
+ * Example mul = 5, div = 14, 2.8 width cell, actual waveform
+ * |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  | 10  | 11  | 12  | 13  |
+ * |     |     |11111|11111|22222|22222|33333|33333|44444|44444|55555|55555|66666|66666|
+ * |01234|56789|01234|56789|01234|56789|01234|56789|01234|56789|01234|56789|01234|56789|
+ * |    _|__1__|_    |    _|_1___|     |  ___|1___ |     | ___1|___  |     |___1_|__   |
+ * |  0  |  1  |  0  |  0  |  1  |  0  |  1  |  1  |  0  |  1  |  1  |  0  |  1  |  0  |
+ *
+ * Example mul = 2, div = 7
+ * |0 |1 |2 |3 |4 |5 |6 |
+ * |  |  |  |  |  |11|11|
+ * |01|23|45|67|89|01|23|
+ * |  |_1|_ |  | _|1_|  |
+ * |0 |1 |0 |0 |0 |1 |0 |
+ *
+ * Example mul = 2, div = 6
+ * |0 |1 |2 |3 |4 |5 |
+ * |  |  |  |  |  |11|
+ * |01|23|45|67|89|01|
+ * |  |1 |  |  |1 |  |
+ * |0 |1 |0 |0 |1 |0 |
+ *
+ * Example mul = 1, div = 3
+ * |0 |1 |2 |
+ * |  |  |  |
+ * |0 |1 |2 |
+ * |  |1 |  |
+ * |0 |1 |0 |
+ */
+		u32 setbits = enc_div >> 1;
+		u32 min = (enc_mult >> 1) + 1;
+		u32 bit = 0;
+		u32 gbit = setbits - (setbits >> 1);	//Start in middle of 1st bit
+		while (1) {
+			u32 bits_set_in_cell;
+			while (gbit >= enc_mult) {
+				gbit -= enc_mult;
+				bit++;
+			}
+			if (bit >= 64)
+				break;
+			bits_set_in_cell = (enc_mult - gbit);
+			if (bits_set_in_cell >= min)
+				val[bit>>4] |= (1<<(bit&0xf));
+			{
+				u32 tbit = bit+1;
+				u32 width = setbits - bits_set_in_cell;
+				while (width >= enc_mult) {
+					if (tbit >= 64)
+						break;
+					val[tbit>>4] |= (1<<(tbit&0xf));
+					width -= enc_mult;
+					tbit++;
+				}
+				if (tbit >= 64)
+					break;
+				if (width >= min)
+					val[tbit>>4] |= (1<<(tbit&0xf));
+			}
+			gbit += enc_div;
 		}
+	} else {
+/*
+ *
+ *
+ * Example mul = 7, div = 8, 1 means pixel clock here
+ * |   0   |   1   |   2   |   3   |   4   |   5   |   6   |   7   |
+ * |       |   1111|1111112|2222222|2233333|3333344|4444444|4555555|
+ * |0123456|7890123|4567890|1234567|8901234|5678901|2345678|9012345|
+ * |    1  |     1 |      1|       |1      | 1     |  1    |   1   |
+ * |   1   |   1   |   1   |   0   |   1   |   1   |   1   |   1   |
+ *
+ */
+		u32 bit = 0;
+		u32 gbit = enc_div >> 1;	//Start in middle of 1st bit
+		while (1) {
+			while (gbit >= enc_mult) {
+				gbit -= enc_mult;
+				bit++;
+			}
+			if (bit >= 64)
+				break;
+			val[bit>>4] |= (1<<(bit&0xf));
+			gbit += enc_div;
+		}
+		dclkctl |= (1 << 11);
 	}
-	bit -= gbit;
-	REGVALUE(VENC_DCLKCTL) = ((encPerPixel==1)?(1<<11):0) | (bit-1);
+	REGVALUE(VENC_DCLKCTL) = dclkctl;
 
 	REGVALUE(VENC_DCLKPTN0) = val[0];
 	REGVALUE(VENC_DCLKPTN1) = val[1];
@@ -301,14 +575,22 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(VENC_DCLKVS) = 0 ;
 	REGVALUE(VENC_DCLKVR) = totalv ;
 
-	val[0] = 0;
-	bit = 0;
-	while (bit < 16) {
-		val[0] |= (1<<bit);
-		bit+=encPerPixel;
+	if ((dclkctl & (1 << 11)) == 0) {
+		u32 bit = 0;
+		u32 gbit = 0;
+		val[0] = 0;
+		while (1) {
+			while (gbit >= enc_mult) {
+				gbit -= enc_mult;
+				bit++;
+			}
+			if (bit >= 16)
+				break;
+			val[0] |= (1 << bit);
+			gbit += enc_div;
+		}
 	}
-	if (bit>16) bit -= encPerPixel;
-	REGVALUE(VENC_OSDCLK0) = bit-1 ;
+	REGVALUE(VENC_OSDCLK0) = (enc_div <= 16) ? ((16 / enc_div) * enc_div) - 1 : 15;
 	REGVALUE(VENC_OSDCLK1) = val[0];
 	REGVALUE(VENC_OSDHAD) = 0 ;
 #ifdef CONFIG_CMD_I2C
