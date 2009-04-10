@@ -364,7 +364,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 			((hdly & 0x1f00) >> 8));
 /* hdly 7:0 */
 		buf[0x72 - 0x70] = (uchar)hdly;
-		vsync_length = (info->vsync_len);
+		vsync_length = info->vsync_len+1;
 /* vlength1 7:0 */
 		buf[0x73 - 0x70] = (uchar)vsync_length;
 		buf[0x74 - 0x70] = (uchar)
