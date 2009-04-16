@@ -5,6 +5,26 @@ else
    lecho "No logo present" ;
 fi
 
+if fatload mmc 0 a0008000 u-boot-hydrogen*.bin ; then
+        echo "u-boot loaded from $filename: $filesize bytes\n" ;
+        if cmp.b a0008000 0 $filesize ; then
+                lecho "U-Boot versions match" ;
+        else
+                lecho "U-Boot versions mismatch!!!" ;
+                lecho "Auto-upgrade in 10 seconds..." ;
+                for n in 10 9 8 7 6 5 4 3 2 1 ; do
+                        lecho \\\\c "$n" ;
+                        sleep 1 ;
+                done
+		protect off all ;
+		erase 0 3ffff ;
+		cp.b a0008000 0 $filesize ;
+                lecho "Programmed $filesize bytes" ;
+		sleep 5 ;
+                reset
+        fi
+fi
+
 if fatload mmc 0 a2000000 uim* ; then
    lecho 'load Linux'
    if fatload mmc 0 a2300000 mmcinitrd* ; then

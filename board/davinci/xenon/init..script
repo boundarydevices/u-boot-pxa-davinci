@@ -10,6 +10,7 @@ if fatload mmc 0 80008000 u-boot-xenon*.bin ; then
            cmp.b 0x80008000 0x80108000 $filesize ; then
                 lecho "U-Boot versions match" ;
         else
+		run xenonVid ;
                 lecho "U-Boot versions mismatch!!!" ;
                 lecho "Auto-upgrade in 10 seconds..." ;
                 for n in 10 9 8 7 6 5 4 3 2 1 ; do
