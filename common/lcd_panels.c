@@ -237,10 +237,10 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	rotation: 90
 }, {
 	name: "hitachi_hvga",
-	pixclock: (640+64+34+1)*(240+20+8+3)*68,
-	xres: 640,
-	yres: 240,
-	pclk_redg: 0,
+	pixclock: 14000000,
+	xres: 640,		//739=640+64+34+1
+	yres: 240,		//271=240+20+8+3
+	pclk_redg: 1,
 	hsyn_acth: 0,
 	vsyn_acth: 0,
 	oepol_actl: 0,
@@ -1884,7 +1884,7 @@ int get_hsync_polarity(volatile u32 *phsync, volatile u32 *pvsync)
 				break;
 		}
 	} while (1);
-	if (0) printf("hsync_high_cnt=%i hsync_low_cnt=%i\n",
+	if (1) printf("hsync_high_cnt=%i hsync_low_cnt=%i\n",
 			hsync_high_cnt, hsync_low_cnt);
 	if ((hsync_high_cnt == 0) || (hsync_low_cnt == 0))
 		return -1;
@@ -2140,6 +2140,8 @@ static int calc_settings_from_hsync_vsync(struct lcd_panel_info_t *panel)
 		hperiod = (v_period + (v_total >> 1)) / v_total;
 	}
 
+	printf("looking for hsync=%u, vsync=%u, vsync_len=%u, v_total=%u, hperiod=%u ns\n",
+		panel->hsyn_acth, panel->vsyn_acth, panel->vsync_len, v_total, hperiod);
 //Check if DMT timings should be used
 	do {
 		if (((panel->hsyn_acth ^ panel->vsyn_acth) == 0) ||
@@ -2282,7 +2284,8 @@ int parse_panel_info( char const *panelInfo, // input
 	  return 1;
       } else if ('C' == UPCASE(*panelInfo)) {
 	  if (calc_settings_from_hsync_vsync(panel)) {
-		 printf( "Error calc from hsync\n" );
+		 printf( "Error calc from hsync(gp%u) vsync(gp%u)\n",
+				 CONFIG_GP_HSYNC, CONFIG_GP_VSYNC);
 		 return 0;
 	  }
 	  return 1;
