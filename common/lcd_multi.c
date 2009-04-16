@@ -200,10 +200,15 @@ void lcd_puts(const char *s)
 	lcd_puts_panel(lcd, s);
 }
 
-int lcd_ClearScreen(void)
+static int lcd_ClearScreen(int reverse)
 {
 	struct lcd_t *lcd = getPanel(getCurrentPanel());
 	if (lcd && lcd->fbAddr ) {
+		if (reverse) {
+			unsigned char tchar = lcd->bg;
+			lcd->bg = lcd->fg;
+			lcd->fg = tchar;
+		}
 		memset( (char *)lcd->fbAddr, lcd->bg, lcd->fbMemSize);
 		lcd->x = 0;
 		lcd->y = 0;
@@ -213,11 +218,14 @@ int lcd_ClearScreen(void)
 
 static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 {
-	return lcd_ClearScreen();
+	int reverse = 0;
+	if (argc >= 2)
+		reverse = 1;
+	return lcd_ClearScreen(reverse);
 }
 
 U_BOOT_CMD(
-	cls,	1,	1,	lcd_clear,
+	cls,	2,	1,	lcd_clear,
 	"cls     - clear screen\n",
 	NULL
 );
