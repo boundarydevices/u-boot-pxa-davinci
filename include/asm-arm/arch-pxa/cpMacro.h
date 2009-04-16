@@ -186,9 +186,9 @@
 	addne	\rTmp0,\rTmp0,#1
 	mov		\rTmp1,\rTmp1,LSR #5		//bits 6,5 row address bits
 	and		\rTmp1,\rTmp1,#3
-	add		\rTmp0,\rTmp0,\rTmp1
+	add		\rTmp1,\rTmp0,\rTmp1
 
-	addcc	\rTmp1,\rTmp0,#1			//one more if 32 bits wide
+	addcc	\rTmp1,\rTmp1,#1			//one more if 32 bits wide
 	mov		\rTmp0,#1<<(1+8+11+1)		//offset of 1 bank bit, 8 column bits, 11 row bits, 1 for low/high byte select
 	mov		\rTmp0,\rTmp0, LSL \rTmp1
 .endm
