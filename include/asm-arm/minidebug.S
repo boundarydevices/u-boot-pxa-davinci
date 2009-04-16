@@ -2780,6 +2780,7 @@ Setup_TTBR:
 	GBLA	SKIP_LCD_SETUP
 	.set	SKIP_LCD_SETUP,0
 #endif
+//#define SKIP_LCD_SETUP
 #ifndef SKIP_LCD_SETUP
 Setup_Lcd:
 	sub	lr,r3,#0x20			//last 32 bytes are descriptor
