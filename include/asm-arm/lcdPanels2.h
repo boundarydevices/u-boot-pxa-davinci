@@ -2,19 +2,20 @@
 #define hitachi_qvga	0
 #define sharp_qvga		1
 #define okaya_qvga		2
-#define okaya_480x272	3
-#define hitachi_hvga	4
-#define hitachi_wvga	5
-#define sharp_vga		6
-#define qvga_portrait	7
-#define lcd_svga		8
-#define crt800x600		9
-#define crt1024x768		10
-#define hitachi_92		11
-#define tovis_w			12
-#define DP480X320		13
-#define DP320X240		14
-#define DL122X32		15
+#define okaya_480x272		3
+#define urt_480x272		4
+#define hitachi_hvga		5
+#define hitachi_wvga		6
+#define sharp_vga		7
+#define qvga_portrait		8
+#define lcd_svga		9
+#define crt800x600		10
+#define crt1024x768		11
+#define hitachi_92		12
+#define tovis_w			13
+#define DP480X320		14
+#define DP320X240		15
+#define DL122X32		16
 #define UNKNOWN		0xcc
 
 #ifdef __ARMASM
@@ -33,6 +34,9 @@
 #elif (DISPLAY_TYPE==okaya_480x272)
 #define DEF_P	okaya_480x272_P
 #define __DEF_DISPLAY_INDEX	okaya_480x272
+#elif (DISPLAY_TYPE==urt_480x272)
+#define DEF_P	urt_480x272_P
+#define __DEF_DISPLAY_INDEX	urt_480x272
 #elif (DISPLAY_TYPE==hitachi_hvga)		//6.2 inch display
 #define DEF_P	hitachi_hvga_P
 #define __DEF_DISPLAY_INDEX	hitachi_hvga
