@@ -253,7 +253,7 @@ LIBBOARD := $(addprefix $(obj),$(LIBBOARD))
 
 # Add GCC lib
 LIBGCC_DIRNAME := $(shell dirname "`$(CC) $(CFLAGS) -print-libgcc-file-name`")
-PLATFORM_LIBS += --no-warn-mismatch -L"$(LIBGCC_DIRNAME)" -lgcc
+PLATFORM_LIBS += --no-warn-mismatch -L"$(LIBGCC_DIRNAME)" 
 
 # The "tools" are needed early, so put this first
 # Don't include stuff already done in $(LIBS)

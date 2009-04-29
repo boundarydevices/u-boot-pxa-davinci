@@ -17,6 +17,7 @@
 #include "asm/arch/davinci_vpbe.h"
 #include "exports.h"
 #include "asm/arch/hardware.h"
+#include <div64.h>
 #ifdef CONFIG_CMD_I2C
 #include <i2c.h>
 #endif
@@ -264,7 +265,7 @@ static unsigned query_clk_settings(u32 mhz, struct clk_factors *pbest)
 				u32 rate;
 				u64 vm = vpbe;
 				vm *= cur.enc_mult;
-				cur.enc_div = (u32)(vm / mhz);
+				cur.enc_div = do_div(vm, mhz);
 				if (cur.enc_div > enc_div_end)
 					cur.enc_div = enc_div_end;
 				if (cur.enc_div < enc_div_start)
@@ -278,7 +279,7 @@ static unsigned query_clk_settings(u32 mhz, struct clk_factors *pbest)
 					}
 				}
 				do {
-					rate = (u32)(vm / cur.enc_div);
+					rate = do_div(vm, cur.enc_div);
 					cur.error = (rate > mhz) ? (rate - mhz) : (mhz - rate);
 					if (0) printf("mult:%u div:%u enc:%u:%u error:%u\n",
 						cur.mult, cur.div, cur.enc_mult, cur.enc_div, cur.error);
@@ -301,8 +302,7 @@ static unsigned query_clk_settings(u32 mhz, struct clk_factors *pbest)
 	if (best.mult) {
 		u64 m = OSC_RATE;
 		m *= (best.mult * best.enc_mult);
-		m /= (best.div * best.enc_div);
-		mrate = (u32)m;
+		mrate = do_div(m, (best.div * best.enc_div));
 	}
 	return mrate;
 }
