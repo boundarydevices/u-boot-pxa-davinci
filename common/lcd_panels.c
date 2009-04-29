@@ -2077,7 +2077,7 @@ static int calc_settings_from_hsync_vsync(struct lcd_panel_info_t *panel)
 	u32 frac;
 #endif
 
-	volatile u32 *phsync = gpio_get_in_ptr(CONFIG_GP_HSYNC);
+	volatile u32 *phsync = gpio_get_in_ptr(config_gp_hsync);
 	volatile u32 *pvsync = gpio_get_in_ptr(CONFIG_GP_VSYNC);
 	/*
 	 * this enables/disables rising/falling edge interrupts
@@ -2279,6 +2279,7 @@ int parse_panel_info( char const *panelInfo, // input
 		 return 0;
 	  }
 	  return 1;
+#ifdef CONFIG_GP_HSYNC
       } else if ('C' == UPCASE(*panelInfo)) {
 	  if (calc_settings_from_hsync_vsync(panel)) {
 		 printf( "Error calc from hsync(gp%u) vsync(gp%u)\n",
@@ -2286,6 +2287,7 @@ int parse_panel_info( char const *panelInfo, // input
 		 return 0;
 	  }
 	  return 1;
+#endif
       }
    }
    if( nameEnd && *nameEnd ){
