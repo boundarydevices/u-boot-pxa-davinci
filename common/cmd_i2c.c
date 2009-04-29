@@ -206,7 +206,7 @@ int do_i2c_md ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 		if (i2c_read(chip, addr, alen, linebuf, linebytes) != 0) {
 			puts ("Error reading the chip.\n");
-			break;
+			return -1;
 		} else {
 			printf("%04x:", addr);
 			cp = linebuf;
