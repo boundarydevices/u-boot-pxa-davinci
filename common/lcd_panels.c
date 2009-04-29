@@ -1913,7 +1913,7 @@ static u32 calc_pixclock(u32 htotal, u32 hperiod)
 	tmp = htotal;
 	tmp *= 1000000000;
 	tmp += hperiod >> 1;	/* round */
-	return do_div(tmp, hperiod);
+	return do_divq(tmp, hperiod);
 }
 
 int calc_gtf_settings(struct lcd_panel_info_t *panel, u32 v_total, u32 hperiod)
@@ -1943,7 +1943,7 @@ int calc_gtf_settings(struct lcd_panel_info_t *panel, u32 v_total, u32 hperiod)
 	tmp = ideal_duty_cycle;
 	tmp *= panel->xres;
 	tmp += (100000000 - ideal_duty_cycle) << 3;	/* round */
-	hblank = do_div(tmp, (100000000 - ideal_duty_cycle) << 4);
+	hblank = do_divq(tmp, (100000000 - ideal_duty_cycle) << 4);
 	hblank <<= 4;
 
 	htotal =  panel->xres + hblank;
@@ -1980,7 +1980,7 @@ static int scan_for_dmt_entry(struct lcd_panel_info_t *panel, u32 v_total, u32 h
 		htot = p->left_margin + p->xres + p->right_margin + p->hsync_len;
 		tmp = htot;
 		tmp *= 1000000000;
-		cur_hperiod = do_div(tmp, p->pixclock);		//nanoseconds/line
+		cur_hperiod = do_divq(tmp, p->pixclock);		//nanoseconds/line
 		error = (cur_hperiod >= hperiod) ? (cur_hperiod - hperiod) :
 				(hperiod - cur_hperiod);
 		if (best_error > error) {
@@ -2047,9 +2047,9 @@ void calc_cvt_settings(struct lcd_panel_info_t *panel, u32 v_total, u32 hperiod)
 			u32 t;
 			u64 tmp = hperiod;
 			tmp *= 2;	/* (2/25) 8% width */
-			tmp = do_div(tmp, 25);	/* nanosecond width of sync pulse */
+			tmp = do_divq(tmp, 25);	/* nanosecond width of sync pulse */
 			tmp *= panel->pixclock;
-			t = do_div(tmp, 1000000000);	/* # of clocks */
+			t = do_divq(tmp, 1000000000);	/* # of clocks */
 			t &= ~(FB_CVT_CELLSIZE - 1);
 			panel->hsync_len = t;
 		}
@@ -2133,7 +2133,7 @@ static int calc_settings_from_hsync_vsync(struct lcd_panel_info_t *panel)
 		u64 v = elapsed;
 		v *= 1000000000;
 		v += CFG_HZ >> 1;	/* round */
-		v_period = do_div(v, CFG_HZ);
+		v_period = do_divq(v, CFG_HZ);
 		hperiod = (v_period + (v_total >> 1)) / v_total;
 	}
 

@@ -36,4 +36,16 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
 	__rem;						\
  })
 
+# define do_divq(n,base) ({				\
+	uint64_t __n = (n);				\
+	uint32_t __base = (base);			\
+	uint32_t __rem;					\
+	(void)(((typeof((n)) *)0) == ((uint64_t *)0));	\
+	if (((n) >> 32) == 0) {			\
+		__n = (uint32_t)(__n) / __base;		\
+	} else						\
+		__rem = __div64_32(&(__n), __base);	\
+	__n;						\
+ })
+
 #endif /* _ASM_GENERIC_DIV64_H */
