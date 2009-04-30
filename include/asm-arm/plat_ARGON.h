@@ -43,8 +43,16 @@
 
 #ifdef __DEFINE_GPIO_OVERRIDES
 	SPEC_GP  10,IN,HIGH,0		//MMC card detect
+	SPEC_GP  11,OUT,HIGH,1          //Amber
+	SPEC_GP  12,OUT,HIGH,1          //Red
+	SPEC_GP  13,OUT,HIGH,1          //Green,custLED
 	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control (Argon/Okaya want GP16 low)
 	SPEC_GP  36,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4) 4 output Vbus Enable
+	SPEC_GP  51,OUT,HIGH,1          //trigger
 	SPEC_GP  88,IN,HIGH,1		//port 1 usb power over current
 	SPEC_GP  89,OUT,HIGH,0		//port 1 usb power enable (driver needs to enable usb power (LOW,2)
+	SPEC_GP  24,IN,HIGH,1           //Feedback
+	SPEC_GP  25,IN,HIGH,1           //Feedback2
+	SPEC_GP  26,OUT,HIGH,1          //Turnstile2
+	SPEC_GP  27,OUT,HIGH,1          //Doorlock,Turnstile
 #endif
