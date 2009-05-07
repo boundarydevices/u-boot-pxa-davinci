@@ -2077,7 +2077,7 @@ static int calc_settings_from_hsync_vsync(struct lcd_panel_info_t *panel)
 	u32 frac;
 #endif
 
-	volatile u32 *phsync = gpio_get_in_ptr(config_gp_hsync);
+	volatile u32 *phsync = gpio_get_in_ptr(CONFIG_GP_HSYNC);
 	volatile u32 *pvsync = gpio_get_in_ptr(CONFIG_GP_VSYNC);
 	/*
 	 * this enables/disables rising/falling edge interrupts
