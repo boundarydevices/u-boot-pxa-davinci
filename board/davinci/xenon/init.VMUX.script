@@ -1,0 +1,50 @@
+if fatload mmc 0 80008000 logo*.bmp ; then
+	bmp display 80008000 ;
+fi
+
+lecho && lecho $version
+
+if fatload mmc 0 80008000 u-boot-xenon*.bin ; then
+        echo "u-boot loaded from $filename: $filesize bytes\n" ;
+        if nand read.seq 0x80108000 c0000 0x$filesize &&
+           cmp.b 0x80008000 0x80108000 $filesize ; then
+                lecho "U-Boot versions match" ;
+        else
+		run xenonVid ;
+                lecho "U-Boot versions mismatch!!!" ;
+                lecho "Auto-upgrade in 10 seconds..." ;
+                for n in 10 9 8 7 6 5 4 3 2 1 ; do
+                        lecho \\\\c "$n" ;
+                        sleep 1 ;
+                done
+                nand erase c0000 $filesize ;
+                nand write.seq 80008000 c0000 $filesize ;
+                lecho "Programmed $filesize bytes" ;
+                reset
+        fi
+fi
+
+if fatload mmc 0 80800000 uImage ; then
+        lecho 'load initrd'
+	if fatload mmc 0 81000000 mmcinitrd* ; then
+		lecho "Booting Linux"
+                set bootargs "mem=200M $console root=/dev/ram0 "
+                set bootargs $bootargs "video=dm64xxfb:output=lcd "
+                set bootargs $bootargs "dav-dma=phys=200M+24M"
+                set bootargs $bootargs "mtdparts=davinci_nand.0:128k(ubdata),640k(spare0),1280k(ub),128896k(yaffs),128k(params)"
+		set bootargs $bootargs "eth=$ethaddr"
+                set bootargs $bootargs "mmc=bits:4"
+                set bootargs $bootargs "pic-ts=pudelay:$pudelay"
+		bootm 80800000 81000000
+	fi
+        lecho 'failed to load initrd' ;
+else
+	echo "No Linux kernel" ;
+fi
+
+lecho 'No Linux, try CE'
+if fatload mmc 0 80010000 nk*.nb0 ; then
+	go 80010000 ;
+else
+	echo "No WinCE image" ;
+fi
