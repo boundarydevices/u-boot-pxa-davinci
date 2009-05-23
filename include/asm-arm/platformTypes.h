@@ -12,11 +12,12 @@
 #define HALOGEN				10
 #define ARGON				11
 #define NEON270				12
-#define HYDROGEN			13
-#define MICROAVL			14
-#define OXYGEN				15
-#define MERCURY				16
-#define DAVINCI				17
+#define NEON270ASIX			13
+#define HYDROGEN			14
+#define MICROAVL			15
+#define OXYGEN				16
+#define MERCURY				17
+#define DAVINCI				18
 #endif
 
 #if (PLATFORM_TYPE==NEON)
@@ -43,6 +44,8 @@
 #include "plat_ARGON.h"
 #elif (PLATFORM_TYPE==NEON270)
 #include "plat_NEON270.h"
+#elif (PLATFORM_TYPE==NEON270ASIX)
+#include "plat_NEON270ASIX.h"
 #elif (PLATFORM_TYPE==HYDROGEN)
 #include "plat_HYDROGEN.h"
 #elif (PLATFORM_TYPE==MICROAVL)

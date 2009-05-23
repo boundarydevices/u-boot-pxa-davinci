@@ -23,10 +23,11 @@
 //					gap between	Address to	1st access	16-bit	non-burst(0),sram(1)
 //			1-fast		chip selects	data valid	delay		bus	4cycle(2),8cycle(3)
 //			0-slow		recovery	2nd burst access			VLIO(4)
-#define PLAT_CS0_MSC  (1<<15)+		(3<<12)+	(12<<8)+	((12-1)<<4)+		   0
-#define PLAT_CS1_MSC  (1<<15)+  (((0+1)>>1)<<12)+	((3-1)<<8)+	(13<<4)+		(PLAT_ROM_TYPE)	//fast device
-#define PLAT_CS3_MSC  (1<<15)+	(1<<12)+		(2<<8)+		((4-1)<<4)+	(0<<3) +  4		//SM501
-#define PLAT_CS4_MSC  (1<<15)+	(3<<12)+		(2<<8)+		((4-1)<<4)+	(0<<3) +  4		//SMC chip
+#define PLAT_CS0_MSC  (1<<15)+	(3<<12)+		(12<<8)+	((12-1)<<4)+		   0
+#define PLAT_CS1_MSC  (1<<15)+	(((0+1)>>1)<<12)+	((3-1)<<8)+	(13<<4)+		(PLAT_ROM_TYPE)	//fast device
+#define PLAT_CS2_MSC  (1<<15)+	(4<<12)+		((6-2)<<8)+	((4-1)<<4)+	(1<<3)+  4
+#define PLAT_CS3_MSC  (1<<15)+	(1<<12)+		(2<<8)+		((4-1)<<4)+	(0<<3)+  4		//SM501
+#define PLAT_CS4_MSC  (1<<15)+	(3<<12)+		(2<<8)+		((4-1)<<4)+	(0<<3)+  4		//SMC chip
 
 #define PLAT_BYTES_PER_PIXEL	2
 #define PLAT_PXALCD_SCRAMBLED	0

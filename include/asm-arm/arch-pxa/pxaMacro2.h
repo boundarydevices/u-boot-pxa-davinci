@@ -243,8 +243,8 @@ LNOP:
 #endif
 
 #if 1
-	.equiv	CS2_MSC, (1<<15)+   (4<<12)+           ((6-2)<<8)+         ((4-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB dma
-//	.equiv	CS2_MSC, (1<<15)+   (7<<12)+           ((16-1)<<8)+         ((16-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB dma
+	.equiv  CS2_MSC, PLAT_CS2_MSC
+//	.equiv	CS2_MSC, (1<<15)+   (4<<12)+           ((6-2)<<8)+         ((4-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB dma
 //											vlio min 2             vlio min 3
 	.equiv	CS3_MSC, PLAT_CS3_MSC
 //	.equiv	CS3_MSC, (1<<15)+   (7<<12)+           ((16-1)<<8)+        ((16-1)<<4)+        (1<<3) +       CHIP_MODE		//for USB dma

@@ -2281,8 +2281,12 @@ int parse_panel_info( char const *panelInfo, // input
 	  return 1;
       } else if ('C' == UPCASE(*panelInfo)) {
 	  if (calc_settings_from_hsync_vsync(panel)) {
+#ifdef CONFIG_GP_HSYNC
 		 printf( "Error calc from hsync(gp%u) vsync(gp%u)\n",
 				 CONFIG_GP_HSYNC, CONFIG_GP_VSYNC);
+#else
+		 printf( "Error CONFIG_GP_HSYNC not defined\n");
+#endif
 		 return 0;
 	  }
 	  return 1;

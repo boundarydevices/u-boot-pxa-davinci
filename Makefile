@@ -2679,6 +2679,10 @@ neon270_config	:	unconfig
 	@./mkconfig neon arm pxa neon
 	./Configure --PLATFORM_TYPE=NEON270 --DISPLAY_TYPE=hitachi_hvga
 
+neon270asix_config :	unconfig
+	@./mkconfig neon arm pxa neon
+	./Configure --PLATFORM_TYPE=NEON270ASIX --DISPLAY_TYPE=hitachi_hvga
+
 xaeniax_config	:	unconfig
 	@$(MKCONFIG) $(@:_config=) arm pxa xaeniax
 
