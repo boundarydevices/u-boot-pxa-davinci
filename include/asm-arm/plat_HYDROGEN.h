@@ -47,14 +47,4 @@
 	SPEC_GP  12,IN,HIGH,0		//AX88796B IRQ input
 	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control (Argon/Hydrogen - Okaya panel want GP16 low)
 	SPEC_GP  36,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4) 4 output Vbus Enable
-	/*
-	 * Set turnstile/doorlock GPIOs as inputs and let userspace override them
-	 */
-	SPEC_GP  94,IN,HIGH,0		// Red LED
-	SPEC_GP  89,IN,HIGH,0		// Green LED
-	SPEC_GP  117,IN,HIGH,0		// Amber LED
-	SPEC_GP  95,OUT,LOW,0		// Turnstile and/or Doorlock (internal pullup is enough to drive dry-contact)
-	SPEC_GP  23,IN,HIGH,0		// primary turnstile feedback
-	SPEC_GP  22,IN,HIGH,0		// secondary turnstile feedback
-
 #endif
