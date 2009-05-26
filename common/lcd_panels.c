@@ -2279,7 +2279,6 @@ int parse_panel_info( char const *panelInfo, // input
 		 return 0;
 	  }
 	  return 1;
-#ifdef CONFIG_GP_HSYNC
       } else if ('C' == UPCASE(*panelInfo)) {
 	  if (calc_settings_from_hsync_vsync(panel)) {
 #ifdef CONFIG_GP_HSYNC
@@ -2291,7 +2290,6 @@ int parse_panel_info( char const *panelInfo, // input
 		 return 0;
 	  }
 	  return 1;
-#endif
       }
    }
    if( nameEnd && *nameEnd ){
