@@ -679,7 +679,8 @@ static unsigned long const *findFrequency
       table -= ENTRIESPERFREQ ;
    }
 
-   printf( "frequency %lu -> %u, source 0x%08X, divisor 0x%08X\n", f, table[1], table[2] );
+   printf( "frequency %lu -> %u, source 0x%08X, divisor 0x%08X\n", frequency,
+		   f, table[1], table[2]);
    return table ;
 }
 
