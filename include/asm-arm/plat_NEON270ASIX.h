@@ -48,7 +48,10 @@
 					//out 1 means ready (D+ signal)
 	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control (Argon/Hydrogen/Microavl - Okaya panel want GP16 low)
 	SPEC_GP  22,IN,HIGH,0		//SM501 interrupt
-	SPEC_GP  23,OUT,HIGH,0		//lan91c111 reset (high active on chip, but inverted by transistor)
+	SPEC_GP  23,OUT,HIGH,2		//SSP CLK
+	SPEC_GP  24,OUT,HIGH,2		//SSP Chip Select
+	SPEC_GP  25,OUT,HIGH,2		//SSP Data Out
+	SPEC_GP  26,OUT,HIGH,1		//SSP Data In
 	SPEC_GP  36,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4) 4 output Vbus Enable
 	SPEC_GP  88,IN,HIGH,1		//port 1 usb power over current
 	SPEC_GP  89,OUT,HIGH,0		//port 1 usb power enable (driver needs to enable usb power (LOW,2)
