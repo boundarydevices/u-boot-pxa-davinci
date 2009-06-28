@@ -944,26 +944,28 @@ int eth_rx() {
 			printf("timeout during rx\n");
 			return 0;
 		}
+		break;
 	}
 	return 0;
 }
 
 int eth_send(volatile void *packet, int length) {
 	int tmo;
+	ulong start ;
 
 	PRINTK("### eth_send\n");
 
 	pkey = -1;
 
 	dp83902a_send((unsigned char *) packet, length, 666);
-	tmo = get_timer (0) + TOUT * CFG_HZ;
+	start = get_timer (0);
 	while(1) {
 		dp83902a_poll();
 		if (pkey != -1) {
 			PRINTK("Packet sucesfully sent\n");
 			return 0;
 		}
-		if (get_timer (0) >= tmo) {
+		if (get_timer (0)-start >= TOUT * CFG_HZ) {
 			printf("transmission error (timoeut)\n");
 			return 0;
 		}
