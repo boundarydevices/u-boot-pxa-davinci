@@ -58,3 +58,4 @@ select.mk
 u-boot
 *.zip
 tools/env_embedded.c
+tools/ce_boot
