@@ -24,16 +24,6 @@
 					/* (for checking the image size)	*/
 #define HASHES_PER_LINE	65		/* Number of "loading" hashes per line	*/
 
-/*
- *	TFTP operations.
- */
-#define TFTP_RRQ	1
-#define TFTP_WRQ	2
-#define TFTP_DATA	3
-#define TFTP_ACK	4
-#define TFTP_ERROR	5
-#define TFTP_OACK	6
-
 static IPaddr_t TftpServerIP;
 static int	TftpServerPort;		/* The UDP port at their end		*/
 static int	TftpOurPort;		/* The UDP port at our end		*/
