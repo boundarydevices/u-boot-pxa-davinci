@@ -34,6 +34,7 @@ COBJS-y += rarp.o
 COBJS-y += eth.o
 COBJS-y += nfs.o
 COBJS-y += sntp.o
+COBJS-y += ceload.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

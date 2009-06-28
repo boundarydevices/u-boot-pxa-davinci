@@ -452,3 +452,46 @@ U_BOOT_CMD(
 	"[NTP server IP]\n"
 );
 #endif
+
+#if defined(CONFIG_CMD_CELOAD)
+ 
+extern unsigned ce_load_max ;
+extern unsigned ce_load_min ;
+
+int do_ceload (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	int i ;
+	printf( "%s: %d args\n", __func__, argc );
+	for( i = 0 ; i < argc ; i++ ){
+		printf( "argv[%d] == %s\n", i, argv[i] );
+	}
+	if( 3 <= argc ){
+		ce_load_max = simple_strtoul(argv[2],0,0);
+		ce_load_min = 0 ;
+		if( 3 < argc ){
+                        ce_load_min = simple_strtoul(argv[3],0,0);
+		}
+                load_addr = simple_strtoul(argv[1], NULL, 16);
+		if( ce_load_min <= ce_load_max ){
+			if (NetLoop(CE_LOAD) >= 0) {
+				printf( "success\n" );
+				return 0 ;
+			} else
+				printf("ce_load failed: no host responding\n" );
+		} else
+                        printf ("Usage:\n%s\n", cmdtp->help);
+	}
+	else
+                printf ("Usage:\n%s\n", cmdtp->help);
+
+	return 1;
+}
+
+U_BOOT_CMD(
+	ceload,	4,	0,	do_ceload,
+	"ceload\t- load Windows CE via network\n",
+	"loadAddress maxsize [minsize]\n"
+	"Use this to load a Windows CE image through the platform builder\n"
+	"protocol (BOOTME+TFTP server)\n"
+);
+#endif

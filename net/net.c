@@ -71,6 +71,13 @@
  *			- own IP address
  *	We want:	- network time
  *	Next step:	none
+ *
+ * CE_LOAD:
+ *
+ *	Prerequisites:	- own ethernet address
+ *			- own IP address
+ *	We want:	- receive boot file over TFTP
+ *	Next step:	none
  */
 
 
@@ -144,6 +151,8 @@ IPaddr_t	NetServerIP;		/* Server IP addr (0 = unknown)		*/
 volatile uchar *NetRxPkt;		/* Current receive packet		*/
 int		NetRxPktLen;		/* Current rx packet length		*/
 unsigned	NetIPID;		/* IP packet ID				*/
+uchar		NetSenderMac[6];	/* Sender mac address (for receive handlers) */
+IPaddr_t	NetSenderIP;		/* IP addr of sender (0 = unknown)	*/
 uchar		NetBcastAddr[6] =	/* Ethernet bcast address		*/
 			{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 uchar		NetEtherNullAddr[6] =
@@ -353,6 +362,9 @@ restart:
 #if defined(CONFIG_CMD_SNTP)
 	case SNTP:
 #endif
+#if defined(CONFIG_CMD_CELOAD)
+	case CE_LOAD:
+#endif
 	case NETCONS:
 	case TFTP:
 		NetCopyIP(&NetOurIP, &bd->bi_ip_addr);
@@ -466,6 +478,11 @@ restart:
 #if defined(CONFIG_CMD_SNTP)
 		case SNTP:
 			SntpStart();
+			break;
+#endif
+#if defined(CONFIG_CMD_CELOAD)
+		case CE_LOAD:
+			CeLoadStart();
 			break;
 #endif
 		default:
@@ -1389,6 +1406,8 @@ NetReceive(volatile uchar * inpkt, int len)
 #ifdef ET_DEBUG
 		puts ("Got IP\n");
 #endif
+		memcpy(NetSenderMac,et->et_src,sizeof(NetSenderMac) );
+                memcpy(&NetSenderIP, (char *)et+26,sizeof(NetSenderIP));
 		if (len < IP_HDR_SIZE) {
 			debug ("len bad %d < %d\n", len, IP_HDR_SIZE);
 			return;
@@ -1549,6 +1568,7 @@ NetReceive(volatile uchar * inpkt, int len)
 
 static int net_check_prereq (proto_t protocol)
 {
+printf( "%s: checking prerequisites for protocol %d\n", __func__, protocol );
 	switch (protocol) {
 		/* Fall through */
 #if defined(CONFIG_CMD_PING)
@@ -1566,6 +1586,14 @@ static int net_check_prereq (proto_t protocol)
 			return (1);
 		}
 		goto common;
+#endif
+#if defined(CONFIG_CMD_CELOAD)
+	case CE_LOAD:
+		if (0 == NetOurIP) {
+			puts ("*** ERROR: No local IP\n");
+			return (1);
+		}
+		break;
 #endif
 #if defined(CONFIG_CMD_NFS)
 	case NFS:
