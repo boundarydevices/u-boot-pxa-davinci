@@ -94,6 +94,11 @@ write_str () {
 	fi
 }
 
+define_str() {
+    value=`eval echo '$'$2`
+    echo "#define $1 \"$value\"" >> $CONFIG_H
+}
+
 prompt () {
     eval $3=\"$2\"
 	/bin/echo -e "$1 [$2]: \c"
@@ -173,4 +178,7 @@ write_str CPU_CLOCK $choices
 cat << 'EOF' >> $CONFIG_H
 #include <asm/platformTypes.h>
 EOF
+
+define_str PLATFORM_NAME PLATFORM_TYPE
+
 echo "Configuration successful."
