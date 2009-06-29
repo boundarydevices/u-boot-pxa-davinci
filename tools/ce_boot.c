@@ -148,7 +148,7 @@ int main( int argc, char const * const argv[] )
 				printf( "child process %d\n", child );
 			}
 		}
-		else if( -EINTR != errno )
+		else if( EINTR != errno ) // EINTR is expected when children die 
 			fprintf( stderr, "recvfrom:%d:%m\n", errno );
         }
 
