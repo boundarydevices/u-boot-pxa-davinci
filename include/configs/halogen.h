@@ -47,6 +47,8 @@
 #define CFG_FLASH_PORT_WIDTH16
 #endif
 
+#define CPU_NAME "PXA270"
+
 #define CFG_FLASH_CFI_DRIVER
 #define CFG_FLASH_CFI
 #define CFG_MONITOR_BASE        TEXT_BASE
@@ -215,6 +217,8 @@
 #define CONFIG_KGDB_BAUDRATE	230400		/* speed to run kgdb serial port */
 #define CONFIG_KGDB_SER_INDEX	2		/* which serial port to use */
 #endif
+
+#define CONFIG_CMD_BDI
 
 /*
  * Miscellaneous configurable options
