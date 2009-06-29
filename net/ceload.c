@@ -11,6 +11,9 @@
 #include <rtc.h>
 #include "tftp.h"
 #include <zlib.h>
+#ifdef CFG_HUSH_PARSER
+#include <hush.h>
+#endif
 
 #if defined(CONFIG_CMD_NET) && defined(CONFIG_CMD_CELOAD)
 
@@ -33,6 +36,9 @@ static int do_adler ;
 static uLong adler_val ;
 unsigned ce_load_max ;
 unsigned ce_load_min ;
+static char const *progress_cmd ;
+static unsigned progress_counter ;
+static unsigned progress_divisor ;
 
 #define TFTP_PACKET_SIZE	512
 #define EDBG_PORT	980
@@ -77,6 +83,7 @@ static void
 ce_load_send (void)
 {
 	struct ce_bootme_packet pkt;
+	char *e ;
 
 	printf ("%s\n", __FUNCTION__);
 
@@ -92,8 +99,26 @@ ce_load_send (void)
 	pkt.data.minor = BOOTME_VER_MINOR ;
 	memcpy(pkt.data.mac,NetOurEther, sizeof(pkt.data.mac));
 	memcpy(&pkt.data.ip,&NetOurIP,sizeof(pkt.data.ip));
-	strcpy(pkt.data.platform, "MyPlatform");
-	strcpy(pkt.data.device_name, "MyDevice");
+	
+#if defined(CPU_NAME)
+	strncpy(pkt.data.device_name, CPU_NAME, sizeof(pkt.data.device_name)-1);
+#else
+	strncpy(pkt.data.device_name, "device", sizeof(pkt.data.device_name)-1);
+#endif
+	if( 0 != (e=getenv("device")) )
+		strncpy(pkt.data.device_name, e, sizeof(pkt.data.device_name)-1);
+
+	pkt.data.device_name[sizeof(pkt.data.device_name)-1] = 0 ;
+
+#if defined(PLATFORM_NAME)
+	strncpy(pkt.data.platform,PLATFORM_NAME, sizeof(pkt.data.platform)-1);
+#else
+	strncpy(pkt.data.platform,"platform", sizeof(pkt.data.platform)-1);
+#endif
+	if( 0 != (e=getenv("platform")) )
+		strncpy(pkt.data.platform, e, sizeof(pkt.data.platform)-1);
+	pkt.data.platform[sizeof(pkt.data.platform)-1] = 0 ;
+
 	pkt.data.cpu_id = CPUID_PXA270 ;
 	pkt.data.bootme_ver = BOOTME_VER ;
 	pkt.data.flags = BOOTME_FLAGS ;
@@ -114,16 +139,33 @@ ce_load_timeout (void)
 	if( STATE_SEND_BOOTME == load_state ){
 		if( 4 <= ++retries )
 			NetState = NETLOOP_FAIL;
-		else
-			ce_load_send ();
-	} else {
-			NetState = NETLOOP_FAIL;
-	}
-	return;
+		else {
+                        NetSetTimeout (CFG_HZ, ce_load_timeout);
+                        ce_load_send ();
+		}
+       } else {
+               NetState = NETLOOP_FAIL;
+       }
 }
 
 extern IPaddr_t NetSenderIP ;
 extern uchar    NetSenderMac[6];
+
+extern int do_run (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[]);
+
+static void do_progress( int advance )
+{
+	if( progress_cmd ){
+		progress_counter++ ;
+		if( 0 == (progress_counter % progress_divisor) ){
+#ifndef CFG_HUSH_PARSER
+			run_command(progress_cmd, 0);
+#else
+			parse_string_outer(progress_cmd, FLAG_PARSE_SEMICOLON | FLAG_EXIT_FROM_LOOP);
+#endif
+		}
+	}
+}
 
 static void
 ce_load_handler (uchar *pkt, unsigned dest, unsigned src, unsigned len)
@@ -167,6 +209,7 @@ ce_load_handler (uchar *pkt, unsigned dest, unsigned src, unsigned len)
 printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
                                         NetSendUDPPacket(NetSenderMac, NetSenderIP, src, EDBG_PORT, sizeof(tx_ack));
                                         NetSetTimeout (5 * CFG_HZ, ce_load_timeout);
+                                        do_progress(1);
 				}
 				else
 					printf( "%s: Error in WRQ request\n", __func__ );
@@ -189,6 +232,7 @@ printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
 			if( prev_block + 1 == block ){
 				unsigned offs = prev_block*TFTP_PACKET_SIZE ;
 				unsigned data_len = len-sizeof(op)-sizeof(block);
+				do_progress(1);
 				if( offs + data_len <= ce_load_max ){
 					uchar *data_start = pkt+sizeof(op)+sizeof(block);
 					uchar *out_start = (uchar *)load_addr + offs ;
@@ -212,13 +256,14 @@ printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
 							if( do_adler && ( ram_adler != adler_val ) ){
 								printf( "adler mismatch: 0x%08lx != 0x%08lx\n", ram_adler, adler_val );
 								NetState = NETLOOP_FAIL ;
-							} else
+							} else {
 								char buf [12];
 								sprintf(buf, "%p", load_addr);
 								setenv("loadaddr", buf);
 								sprintf(buf, "0x%lX", byteCount);
 								setenv("filesize", buf);
                                                                 NetState = NETLOOP_SUCCESS;
+							}
 						} else {
 							printf( "%s: less than minimum of %u bytes\n", __func__, ce_load_min );
                                                         NetState = NETLOOP_FAIL;
@@ -229,12 +274,16 @@ printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
                                         NetState = NETLOOP_FAIL;
 				}
 			}
-			else
+			else {
+				do_progress(0);
 				printf( "%s: expected block %u, got %u\n", __func__, ntohs(tx_ack.block)+1, block );
+			}
 			memcpy ((char *)NetTxPacket + NetEthHdrSize() + IP_HDR_SIZE, (char *)&tx_ack, sizeof(tx_ack));
 		}
-		else
+		else {
 			printf( "%s: rx %04x %02x %02x in state %u\n", __func__, op, pkt[0], pkt[1], load_state );
+			do_progress(0);
+		}
 		NetSendUDPPacket(NetSenderMac, NetSenderIP, src, EDBG_PORT, sizeof(tx_ack));
 		NetSetTimeout (2 * CFG_HZ, ce_load_timeout);
 	}
@@ -243,12 +292,23 @@ printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
 void
 CeLoadStart (void)
 {
+	char *e ;
 	printf ("%s\n", __FUNCTION__);
-	NetSetTimeout (2 * CFG_HZ, ce_load_timeout);
+	NetSetTimeout (1 * CFG_HZ, ce_load_timeout);
 	NetSetHandler(ce_load_handler);
 	memset (NetServerEther, 0, 6);
 
 	do_adler = (0 != getenv("ceload_adler"));
+	progress_cmd = getenv("ceload_progress");
+	if( 0 != (e = getenv("ceload_divisor")))
+		progress_divisor = simple_strtoul(e,0,0);
+	else
+		progress_divisor = 0 ;
+	if( 0 == progress_divisor ){
+                progress_divisor = 16 ;
+	}
+        progress_counter = 0 ;
+
         adler_val = 0 ;
         load_state = STATE_SEND_BOOTME ;
 	retries = 0 ;
