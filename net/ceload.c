@@ -204,6 +204,7 @@ ce_load_handler (uchar *pkt, unsigned dest, unsigned src, unsigned len)
 					tx_ack.block = 0 ;
 					load_state = STATE_RX_DATA ;
                                         server_port = src ;
+					server_ip = NetSenderIP ;
 					memcpy ((char *)NetTxPacket + NetEthHdrSize() + IP_HDR_SIZE, (char *)&tx_ack, sizeof(tx_ack));
                                         ip_to_string(NetSenderIP,senderIP);
 printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
@@ -262,6 +263,10 @@ printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
 								setenv("loadaddr", buf);
 								sprintf(buf, "0x%lX", byteCount);
 								setenv("filesize", buf);
+								sprintf(buf, "0x%x", server_port );
+								setenv("bootserverport", buf);
+                                                                ip_to_string (server_ip, buf);
+								setenv("bootserverip", buf);
                                                                 NetState = NETLOOP_SUCCESS;
 							}
 						} else {
