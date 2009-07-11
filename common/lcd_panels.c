@@ -834,7 +834,7 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	pixclock: 1,
 	xres: 800,
 	yres: 480,
-	pclk_redg: 1,
+	pclk_redg: 0,
 	hsyn_acth: 1,
 	vsyn_acth: 1,
 	oepol_actl: 0,
