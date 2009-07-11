@@ -16,6 +16,7 @@
 #ifdef CONFIG_LCD_MULTI
 
 #include "lcd_multi.h"
+#include "lcd_fixup.h"
 #include <common.h>
 #include <exports.h>
 #include <command.h>
@@ -268,7 +269,8 @@ struct lcd_t * addPanel(struct lcd_panel_info_t const *panel, const char *msg)
 	struct lcd_t *lcd = NULL;
 	int panel_num = getPanelCount();
 	if (panel_num < MAX_PANELS) {
-		lcd = newPanel(panel);
+                struct lcd_panel_info_t *fixedup = fixup_lcd_panel(numPanels_,panel);
+		lcd = newPanel(fixedup);
 		if (lcd) {
 			char buffer[32];
 			panels_[panel_num] = lcd ;
@@ -282,6 +284,8 @@ struct lcd_t * addPanel(struct lcd_panel_info_t const *panel, const char *msg)
 			}
 			print_panel_info(panel);
 		}
+		if( fixedup != panel )
+			free(fixedup);
 	}
 	return lcd;
 }

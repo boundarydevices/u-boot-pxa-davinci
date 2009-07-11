@@ -75,6 +75,7 @@
 #ifdef CONFIG_LCD_MULTI
 #include <lcd_multi.h>
 #endif
+#include "lcd_fixup.h"
 
 extern char console_buffer[];		/* console I/O buffer	*/
 
@@ -222,6 +223,9 @@ void build_panel_name(char* buffer, struct lcd_panel_info_t const *panel)
 
 int set_p(struct lcd_panel_info_t const *panel)
 {
+#if !defined(CONFIG_LCD_MULTI)
+        struct lcd_panel_info_t *fixedup ;
+#endif
 	char panelname[512];
 	build_panel_name(panelname, panel);
 #if defined(CONFIG_LCD_MULTI)
@@ -230,8 +234,9 @@ int set_p(struct lcd_panel_info_t const *panel)
 	printf( "error from addPanel()\n" );
 	return 0;
 #else
+	fixedup = fixup_lcd_panel(0,panel);
 	print_panel_info( panel );
-	set_lcd_panel(panel);
+	set_lcd_panel(fixedup);
 	lcd_puts(panelname);
 	return 1;
 #endif
