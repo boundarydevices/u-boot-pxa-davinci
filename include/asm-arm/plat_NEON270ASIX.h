@@ -3,8 +3,13 @@
 #define PLAT_SELECTED		1
 #define PLAT_GAME		0
 #define PLAT_PHYS_FLASH_BASE	0x0
-#define PLAT_AX88796_BASE	0x08000000
-#define PLAT_SM501_BASE		0x04000000	//1st run of few boards was at 0x04000000
+#if 0
+#define PLAT_AX88796_BASE	0x08000000	//1st run
+#define PLAT_SM501_BASE		0x04000000	//1st run
+#else
+#define PLAT_AX88796_BASE	0x04000000
+#define PLAT_SM501_BASE		0x0c000000
+#endif
 #define PLAT_PXA_LCD		1
 #define PLAT_HAS_BTUART		1
 #define PLAT_HAS_STUART		1
@@ -23,10 +28,15 @@
 //			1-fast		chip selects	data valid	delay		bus	4cycle(2),8cycle(3)
 //			0-slow		recovery	2nd burst access			VLIO(4)
 #define PLAT_CS0_MSC  (1<<15)+	(((0+1)>>1)<<12)+	((3-1)<<8)+	(13<<4)+		(PLAT_ROM_TYPE)	//fast device
-#define PLAT_CS1_MSC  (1<<15)+	(1<<12)+		(2<<8)+		((4-1)<<4)+	(0<<3)+  4		//SM501
-#define PLAT_CS2_MSC  (1<<15)+	(1<<12)+		(3<<8)+		((5-1)<<4)+	(1<<3)+  1		//AX88796B, SRAM interface
-#define PLAT_CS3_MSC  (1<<15)+	(4<<12)+		((6-2)<<8)+	((4-1)<<4)+	(1<<3)+	 4		//for USB dma
-#define PLAT_CS4_MSC  (1<<15)+	(3<<12)+		(2<<8)+		((5-1)<<4)+	(0<<3)+  4		//SMC chip
+#if 0
+#define PLAT_CS1_MSC  (1<<15)+	(1<<12)+		(2<<8)+		((4-1)<<4)+	(0<<3)+  4		//SM501 on 1st run
+#else
+#define PLAT_CS1_MSC  (1<<15)+	(1<<12)+		(3<<8)+		((5-1)<<4)+	(1<<3)+  1		//AX88796B, SRAM interface
+#endif
+
+#define PLAT_CS2_MSC  (1<<15)+	(1<<12)+		(3<<8)+		((5-1)<<4)+	(1<<3)+  1		//nc, AX88796B on 1st run
+#define PLAT_CS3_MSC  (1<<15)+	(1<<12)+		(2<<8)+		((4-1)<<4)+	(0<<3)+  4		//SM501
+#define PLAT_CS4_MSC  (1<<15)+	(3<<12)+		(2<<8)+		((5-1)<<4)+	(0<<3)+  4		//nc
 
 #define PLAT_BYTES_PER_PIXEL	3
 #define PLAT_PXALCD_SCRAMBLED	0
@@ -46,7 +56,7 @@
 	SPEC_GP  10,IN,HIGH,0		//MMC card detect
 	SPEC_GP  12,IN,HIGH,0		//float means USB Slave not ready to accept data
 					//out 1 means ready (D+ signal)
-	SPEC_GP  16,OUT,HIGH,0		//LCD backlight brightness control (Argon/Hydrogen/Microavl - Okaya panel want GP16 low)
+	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control (Argon/Hydrogen/Microavl - Okaya panel want GP16 low)
 	SPEC_GP  22,IN,HIGH,0		//SM501 interrupt
 	SPEC_GP  23,OUT,HIGH,2		//SSP CLK
 	SPEC_GP  24,OUT,HIGH,2		//SSP Chip Select
