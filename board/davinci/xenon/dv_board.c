@@ -52,6 +52,7 @@ extern phy_t	phy;
 #define GP_INT_STAT		0x24
 #define GPIO_DISPLAY_SELECT 45
 #define GPIO_THS_ENABLE 42
+#define GPIO_CAMERA_ENABLE 18
 
 void gpio_set_val(u32 gp, int val)
 {
@@ -243,6 +244,8 @@ int board_init(void)
 
 #ifdef CONFIG_CMD_I2C
 	gpio_set_val(GPIO_THS_ENABLE, 0);
+	gpio_set_val(GPIO_CAMERA_ENABLE, 0);
+	gpio_set_val(GPIO_CAMERA_ENABLE, 1);
 #endif
 #ifdef CONFIG_GP_HSYNC
 	gpio_set_dir(CONFIG_GP_HSYNC, DIR_IN);
