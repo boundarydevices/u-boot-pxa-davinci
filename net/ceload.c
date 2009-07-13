@@ -20,6 +20,7 @@
 enum load_state_t {
 	STATE_SEND_BOOTME,
 	STATE_RX_DATA,
+	STATE_WAIT_JUMP,
 };
 
 static enum load_state_t load_state ;
@@ -84,8 +85,6 @@ ce_load_send (void)
 {
 	struct ce_bootme_packet pkt;
 	char *e ;
-
-	printf ("%s\n", __FUNCTION__);
 
 	memset (&pkt, 0, sizeof(pkt));
 
@@ -161,7 +160,7 @@ static void do_progress( int advance )
 #ifndef CFG_HUSH_PARSER
 			run_command(progress_cmd, 0);
 #else
-			parse_string_outer(progress_cmd, FLAG_PARSE_SEMICOLON | FLAG_EXIT_FROM_LOOP);
+			parse_string_outer((char *)progress_cmd, FLAG_PARSE_SEMICOLON | FLAG_EXIT_FROM_LOOP);
 #endif
 		}
 	}
@@ -173,7 +172,7 @@ ce_load_handler (uchar *pkt, unsigned dest, unsigned src, unsigned len)
 //	printf ("%s: packet received: port 0x%x, %u bytes\n", __FUNCTION__, dest, len );
 	if(EDBG_PORT != dest)
 		return ;
-	if( getenv("dumppackets") ){
+	if( 0 != getenv("dumppackets") ){
 		int i ;
 		uchar const *next = pkt ;
 		for( i = 0 ; i < len ; i++ ){
@@ -204,6 +203,7 @@ ce_load_handler (uchar *pkt, unsigned dest, unsigned src, unsigned len)
 					tx_ack.block = 0 ;
 					load_state = STATE_RX_DATA ;
                                         server_port = src ;
+					server_ip = NetSenderIP ;
 					memcpy ((char *)NetTxPacket + NetEthHdrSize() + IP_HDR_SIZE, (char *)&tx_ack, sizeof(tx_ack));
                                         ip_to_string(NetSenderIP,senderIP);
 printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
@@ -219,7 +219,7 @@ printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
 		}
 		else
 			printf( "%s: too short %u\n", __func__, len );
-	} else {
+	} else if (STATE_RX_DATA == load_state) {
 		ushort op ;
 		memcpy(&op, pkt, sizeof(op));
 		op = ntohs(op);
@@ -262,7 +262,11 @@ printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
 								setenv("loadaddr", buf);
 								sprintf(buf, "0x%lX", byteCount);
 								setenv("filesize", buf);
-                                                                NetState = NETLOOP_SUCCESS;
+								sprintf(buf, "0x%x", server_port );
+								setenv("bootserverport", buf);
+                                                                ip_to_string (server_ip, buf);
+								setenv("bootserverip", buf);
+                                                                load_state = STATE_WAIT_JUMP ;
 							}
 						} else {
 							printf( "%s: less than minimum of %u bytes\n", __func__, ce_load_min );
@@ -286,6 +290,10 @@ printf( "%s: receiving %s from sender %s\n", __func__, filename, senderIP );
 		}
 		NetSendUDPPacket(NetSenderMac, NetSenderIP, src, EDBG_PORT, sizeof(tx_ack));
 		NetSetTimeout (2 * CFG_HZ, ce_load_timeout);
+	} else {
+                memcpy ((char *)NetTxPacket + NetEthHdrSize() + IP_HDR_SIZE, pkt, len);
+                NetSendUDPPacket(NetSenderMac, NetSenderIP, src, EDBG_PORT, len);
+		NetState = NETLOOP_SUCCESS;
 	}
 }
 
@@ -293,7 +301,6 @@ void
 CeLoadStart (void)
 {
 	char *e ;
-	printf ("%s\n", __FUNCTION__);
 	NetSetTimeout (1 * CFG_HZ, ce_load_timeout);
 	NetSetHandler(ce_load_handler);
 	memset (NetServerEther, 0, 6);

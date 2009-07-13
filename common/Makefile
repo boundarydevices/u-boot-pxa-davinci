@@ -129,6 +129,7 @@ COBJS-y += fpga.o
 COBJS-y += hush.o
 COBJS-y += kgdb.o
 COBJS-y += lcd.o
+COBJS-y += lcd_fixup.o
 COBJS-y += lcd_multi.o
 COBJS-y += lcd_panels.o
 COBJS-y += lists.o

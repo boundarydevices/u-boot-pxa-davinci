@@ -96,6 +96,9 @@
 #if defined(CONFIG_CMD_SNTP)
 #include "sntp.h"
 #endif
+#if defined(CONFIG_CMD_CELOAD)
+#include "ceload.h"
+#endif
 
 #if defined(CONFIG_CMD_NET)
 
