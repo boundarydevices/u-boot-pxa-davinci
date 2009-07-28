@@ -98,7 +98,7 @@
 /*
  * select serial console configuration
  */
-#define CONFIG_FFUART	       1       /* we use FFUART on NEON */
+#define CONFIG_STUART	       1       /* we use STUART on NEON270 ASIX boards supplied to rite-solutions */
 
 /* allow to overwrite serial and ethaddr */
 //#define CONFIG_ENV_OVERWRITE
