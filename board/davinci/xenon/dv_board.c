@@ -54,6 +54,9 @@ extern phy_t	phy;
 #define GPIO_THS_ENABLE 42
 #define GPIO_CAMERA_ENABLE 18
 
+#define GPIO_BACKLIGHT_CTL 42
+#define GPIO_BACKLIGHT_PWM 45
+
 void gpio_set_val(u32 gp, int val)
 {
 	u32 mask = (1 << (gp & 0x1f));
@@ -242,6 +245,8 @@ int board_init(void)
 
 	timer_init();
 
+	gpio_set_val(GPIO_BACKLIGHT_CTL, 1);
+	gpio_set_val(GPIO_BACKLIGHT_PWM, 1);
 #ifdef CONFIG_CMD_I2C
 	gpio_set_val(GPIO_THS_ENABLE, 0);
 	gpio_set_val(GPIO_CAMERA_ENABLE, 0);
