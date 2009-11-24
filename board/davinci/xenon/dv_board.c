@@ -246,6 +246,7 @@ int board_init(void)
 	timer_init();
 
 	gpio_set_val(GPIO_BACKLIGHT_CTL, 1);
+	gpio_set_val(GPIO_BACKLIGHT_PWM, 0);	/* need a pulse after enable */
 	gpio_set_val(GPIO_BACKLIGHT_PWM, 1);
 #ifdef CONFIG_CMD_I2C
 	gpio_set_val(GPIO_THS_ENABLE, 0);
