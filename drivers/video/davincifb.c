@@ -593,8 +593,8 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(VENC_OSDCLK0) = (enc_div <= 16) ? ((16 / enc_div) * enc_div) - 1 : 15;
 	REGVALUE(VENC_OSDCLK1) = val[0];
 	REGVALUE(VENC_OSDHAD) = 0 ;
-#ifdef CONFIG_CMD_I2C
 
+#if PLAT_HAS_THS == 1
 	if( i2c_probe(THS8200_ADDR) == 0){
 		unsigned char byte ;
 		unsigned vsync_length ;

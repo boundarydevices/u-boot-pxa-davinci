@@ -2436,6 +2436,11 @@ davinci_dvevm_config :	unconfig
 
 davinci_xenon_config :	unconfig
 	@$(MKCONFIG) $(@:_config=) arm arm926ejs xenon davinci davinci
+	./Configure --PLATFORM_TYPE=XENON --DISPLAY_TYPE=hitachi_hvga --SOFTWARE_TYPE=LINUX --INCLUDE_MINIDEBUG=n
+
+davinci_vmux_config :	unconfig
+	@$(MKCONFIG) $(@:_config=) arm arm926ejs xenon davinci davinci
+	./Configure --PLATFORM_TYPE=VMUX --DISPLAY_TYPE=hitachi_hvga --SOFTWARE_TYPE=LINUX --INCLUDE_MINIDEBUG=n
 
 davinci_schmoogie_config :	unconfig
 	@$(MKCONFIG) $(@:_config=) arm arm926ejs schmoogie davinci davinci

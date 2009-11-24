@@ -52,6 +52,10 @@ extern phy_t	phy;
 #define GP_INT_STAT		0x24
 #define GPIO_DISPLAY_SELECT 45
 #define GPIO_THS_ENABLE 42
+#define GPIO_CAMERA_ENABLE 18
+
+#define GPIO_BACKLIGHT_CTL 42
+#define GPIO_BACKLIGHT_PWM 45
 
 void gpio_set_val(u32 gp, int val)
 {
@@ -241,8 +245,17 @@ int board_init(void)
 
 	timer_init();
 
+#if PLAT_HAS_THS == 0
+	gpio_set_val(GPIO_BACKLIGHT_CTL, 1);
+#endif
+	gpio_set_val(GPIO_BACKLIGHT_PWM, 0);	/* need a pulse after enable */
+	gpio_set_val(GPIO_BACKLIGHT_PWM, 1);
 #ifdef CONFIG_CMD_I2C
+#if PLAT_HAS_THS == 1
 	gpio_set_val(GPIO_THS_ENABLE, 0);
+#endif
+	gpio_set_val(GPIO_CAMERA_ENABLE, 0);
+	gpio_set_val(GPIO_CAMERA_ENABLE, 1);
 #endif
 #ifdef CONFIG_GP_HSYNC
 	gpio_set_dir(CONFIG_GP_HSYNC, DIR_IN);
@@ -279,8 +292,10 @@ int misc_init_r (void)
 	setenv ("videostd", ((i  & 0x80) ? "pal" : "ntsc"));
 #endif
 	setenv ("version", version_string );
+#if PLAT_HAS_THS == 1
 #ifdef CONFIG_CMD_I2C
 	gpio_set_val(GPIO_DISPLAY_SELECT, getenv("vmux_select_davinci") ? 0 : 1);
+#endif
 #endif
 	return(0);
 }

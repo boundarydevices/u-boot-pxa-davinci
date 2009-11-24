@@ -17,7 +17,8 @@
 #define MICROAVL			15
 #define OXYGEN				16
 #define MERCURY				17
-#define DAVINCI				18
+#define XENON				18
+#define VMUX				19
 #endif
 
 #if (PLATFORM_TYPE==NEON)
@@ -54,6 +55,8 @@
 #include "plat_MICROAVL.h"
 #elif (PLATFORM_TYPE==MERCURY)
 #include "plat_MERCURY.h"
-#elif (PLATFORM_TYPE==DAVINCI)
-#include "plat_DAVINCI.h"
+#elif (PLATFORM_TYPE==XENON)
+#include "plat_XENON.h"
+#elif (PLATFORM_TYPE==VMUX)
+#include "plat_VMUX.h"
 #endif

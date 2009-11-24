@@ -49,6 +49,7 @@
 /*=======*/
 /* Board */
 /*=======*/
+#include "select.h"
 #define DV_EVM
 #define CONFIG_DAVINCI_MMC
 #define CONFIG_DAVINCI_FB
