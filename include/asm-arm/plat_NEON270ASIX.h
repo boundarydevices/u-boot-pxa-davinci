@@ -63,6 +63,7 @@
 	SPEC_GP  25,OUT,HIGH,2		//SSP Data Out
 	SPEC_GP  26,OUT,HIGH,1		//SSP Data In
 	SPEC_GP  36,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4) 4 output Vbus Enable
+	SPEC_GP  44,IN,HIGH,0		//BT_CTS, used for ASIX (AX88796) ethernet interrupt (low actice)
 	SPEC_GP  88,IN,HIGH,1		//port 1 usb power over current
 	SPEC_GP  89,OUT,HIGH,0		//port 1 usb power enable (driver needs to enable usb power (LOW,2)
 	SPEC_GP  93,OUT,LOW,0		//smartcard eject

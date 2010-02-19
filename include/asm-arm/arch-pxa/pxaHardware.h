@@ -102,9 +102,15 @@
 #define OWER	0x18		//OS timer Watchdog Match enable register
 #define OIER	0x1c
 
+#if (PLAT_IS_PXA27X)
+//3250000 ticks/seconds = 3.2500 ticks/usec = 1 tick/.307692307692 usec
+#define TICK_PER_USEC_WHOLE 3
+#define TICK_PER_USEC_FRAC 0x40000000
+#else
 //3686400 ticks/seconds = 3.6864 ticks/usec = 1 tick/.271267361111 usec
 #define TICK_PER_USEC_WHOLE 3
 #define TICK_PER_USEC_FRAC 0xAFB7E910
+#endif
 //////////////////////////////////////////////////////////////////////////////////////////
 
 //#define PWR_MANAGER_BASE 0x40F00000
