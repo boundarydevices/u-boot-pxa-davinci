@@ -1434,13 +1434,13 @@ static u32 fb_cvt_pixclock(struct fb_cvt_data *cvt)
 	else
 		pixclock = (cvt->htotal * 1000000)/cvt->hperiod;
 
-	printf( "pixclock == %lu (refresh %u, vtot %u, htot %u\n", pixclock, cvt->f_refresh, cvt->vtotal, cvt->htotal );
+	printf( "pixclock == %u (refresh %u, vtot %u, htot %u\n", pixclock, cvt->f_refresh, cvt->vtotal, cvt->htotal );
 
 	pixclock /= 250;
 	pixclock *= 250;
 	pixclock *= 1000;
 
-	printf( " == %lu\n", pixclock );
+	printf( " == %u\n", pixclock );
 	return pixclock;
 }
 
