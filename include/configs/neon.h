@@ -168,22 +168,25 @@
 #ifdef CONFIG_CMD_I2CTEST
 #define CONFIG_BOOTDELAY	0
 #define CONFIG_BOOTCOMMAND	\
-"if i2ctest ; then " \
-	"lecho \"i2ctest succeeded\" ; " \
-	"while not mmcdet ; do cls ; lecho \"insert SD card\" ; sleep 1 ; done ; " \
-	"lecho \"SD card Detected\" ; " \
-	"while mmcwp ; do cls ; lecho \"remove write protect\" ; sleep 1 ; done ; " \
-	"lecho \"not write protected\" ; " \
-	"mmcinit ; " \
-	"if fatload mmc 0 A0030000 bnk.nb0 ; then g A0030000 ; else lecho \"file bnk.nb0 not found\" ; fi ; " \
-"else lecho \"i2ctest failed\" ; fi ; "
+	"if [ mmcinit || mmcinit ] ; then " \
+		"if fatload mmc 0 a0001000 init.scr ; then " \
+			"autoscr a0001000 ; " \
+		"else " \
+			"lecho 'error init.scr' ; " \
+		"fi ; " \
+	"else " \
+		"lecho 'error sd card' ; " \
+	"fi ; " \
+	"sleep 2 ; " \
+	"md 0 ; " \
+	"reset"
 #if (PLATFORM_TYPE==NEONB)
 #define CONFIG_BOOTDELAY	1
 #endif
 
 #else
 
-#define CONFIG_BOOTDELAY	3
+#define CONFIG_BOOTDELAY	0
 #define CONFIG_BOOTCOMMAND	"if [ mmcinit || mmcinit ]; then fatload mmc 0 a0001000 init.scr && autoscr a0001000 ; fi"
 #endif
 
@@ -195,9 +198,11 @@
 #define CONFIG_CMD_GUNZIP
 #define CONFIG_CMDLINE_EDITING
 
+#if 0
 #define	CONFIG_AUTOBOOT_KEYED		/* Enable password protection */
 #define	CONFIG_AUTOBOOT_PROMPT		"\nEnter password - autoboot in %d sec...\n"
 #define	CONFIG_AUTOBOOT_DELAY_STR	"\x1b\x1b\x1b"
+#endif
 
 #include "lcdPanelChoice.h"
 
@@ -294,7 +299,7 @@
 /*
  * Environment is saved in flash at offset 1MB
  */
-#define CFG_ENV_IS_IN_FLASH	1
+#define CFG_ENV_IS_IN_FLASH	0
 #define CFG_FLASH_BASE     0
 #define CFG_ENV_ADDR		   ((CFG_FLASH_BASE)+0x100000)	/* Addr of Environment Sector	*/
 #define CFG_ENV_OFFSET     ((CFG_ENV_ADDR)-(CFG_FLASH_BASE))
