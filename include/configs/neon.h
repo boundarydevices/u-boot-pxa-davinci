@@ -183,8 +183,20 @@
 
 #else
 
-#define CONFIG_BOOTDELAY	3
-#define CONFIG_BOOTCOMMAND	"if [ mmcinit || mmcinit ]; then fatload mmc 0 a0001000 init.scr && autoscr a0001000 ; fi"
+#define CONFIG_BOOTDELAY	0
+#define CONFIG_BOOTCOMMAND	\
+	"if [ mmcinit || mmcinit ] ; then " \
+		"if fatload mmc 0 a0001000 init.scr ; then " \
+			"autoscr a0001000 ; " \
+		"else " \
+			"lecho 'error init.scr' ; " \
+		"fi ; " \
+	"else " \
+		"lecho 'error sd card' ; " \
+	"fi ; " \
+	"sleep 2 ; " \
+	"md 0 ; " \
+	"reset"
 #endif
 
 #define CONFIG_BOOTARGS		"console=ttyS0,115200 DEBUG=1 ENV=/etc/bashrc init=/linuxrc rw mtdparts=phys:1024k(armboot),256k(params),-(rootfs1) root=/dev/mtdblock3 rootfstype=cramfs"
@@ -195,9 +207,11 @@
 #define CONFIG_CMD_GUNZIP
 #define CONFIG_CMDLINE_EDITING
 
+#if 0
 #define	CONFIG_AUTOBOOT_KEYED		/* Enable password protection */
 #define	CONFIG_AUTOBOOT_PROMPT		"\nEnter password - autoboot in %d sec...\n"
 #define	CONFIG_AUTOBOOT_DELAY_STR	"\x1b\x1b\x1b"
+#endif
 
 #include "lcdPanelChoice.h"
 
@@ -294,7 +308,7 @@
 /*
  * Environment is saved in flash at offset 1MB
  */
-#define CFG_ENV_IS_IN_FLASH	1
+#define CFG_ENV_IS_IN_FLASH	0
 #define CFG_FLASH_BASE     0
 #define CFG_ENV_ADDR		   ((CFG_FLASH_BASE)+0x100000)	/* Addr of Environment Sector	*/
 #define CFG_ENV_OFFSET     ((CFG_ENV_ADDR)-(CFG_FLASH_BASE))
