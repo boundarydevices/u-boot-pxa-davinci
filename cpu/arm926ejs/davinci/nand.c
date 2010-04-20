@@ -139,6 +139,15 @@ static struct nand_oobinfo davinci_nand_oobinfo = {
 #error "Either CFG_NAND_LARGEPAGE or CFG_NAND_SMALLPAGE must be defined!"
 #endif
 
+struct nand_oobinfo davinci_nand_oobinfo_ubl = {
+	.useecc = MTD_NANDECC_AUTOPLACE,
+	.eccbytes = 16,
+	.eccpos = {0x08, 0x09, 0x0a, 0x0b, 0x18, 0x19, 0x1a, 0x1b,
+		   0x28, 0x29, 0x2a, 0x2b, 0x38, 0x39, 0x3a, 0x3b},
+	/* The 1st two bytes of spare are reserved for factory bad block markers */
+	.oobfree = { {2, 6}, {0x0c,0x0c}, {0x1c,0x0c}, {0x2c,0x0c}, {0x3c,0x04}}
+};
+
 
 static u_int32_t nand_davinci_readecc(struct mtd_info *mtd, u_int32_t chipNum)
 {
@@ -244,28 +253,46 @@ static int nand_davinci_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u
 		}
 	}
 #endif
-	tmp = (tmp&0x0fff)|((tmp&0x0fff0000)>>4);	/* squeeze 0 middle bits out so that it fits in 3 bytes */
-	tmp = ~tmp;									/* invert so that erased block ecc is correct */
-	*ecc_code++ = (u_char)(tmp);
-	*ecc_code++ = (u_char)(tmp >> 8);
-	*ecc_code++ = (u_char)(tmp >> 16);
+	if (mtd->oobinfo.eccbytes == 16) {
+		/* this is RBL format */
+		ecc_code[3] = (u_char)(tmp);
+		ecc_code[2] = (u_char)(tmp >> 8);
+		ecc_code[1] = (u_char)(tmp >> 16);
+		ecc_code[0] = (u_char)(tmp >> 24);
+	} else {
+		tmp = (tmp&0x0fff)|((tmp&0x0fff0000)>>4);	/* squeeze 0 middle bits out so that it fits in 3 bytes */
+		tmp = ~tmp;					/* invert so that erased block ecc is correct */
+		*ecc_code++ = (u_char)(tmp);
+		*ecc_code++ = (u_char)(tmp >> 8);
+		*ecc_code++ = (u_char)(tmp >> 16);
+	}
 	return(0);
 }
 
-
 static int nand_davinci_correct_data(struct mtd_info *mtd, u_char *dat, u_char *read_ecc, u_char *calc_ecc)
 {
-	u_int32_t	eccNand = read_ecc[0] | (read_ecc[1]<<8) | (read_ecc[2]<< 16);
-	u_int32_t	eccCalc = calc_ecc[0] | (calc_ecc[1]<<8) | (calc_ecc[2]<< 16);
-	u_int32_t	diff = eccCalc ^ eccNand;
+	u_int32_t eccNand, eccCalc, diff;
+	int shift;
+	if (mtd->oobinfo.eccbytes == 16) {
+		/* this is RBL format */
+		eccNand = (read_ecc[0]<<24) | (read_ecc[1]<<16) | (read_ecc[2]<<8) | read_ecc[3];
+		eccCalc = (calc_ecc[0]<<24) | (calc_ecc[1]<<16) | (calc_ecc[2]<<8) | calc_ecc[3];
+		diff = eccCalc ^ eccNand;
+		shift = 16;
+	} else {
+		eccNand = read_ecc[0] | (read_ecc[1]<<8) | (read_ecc[2]<< 16);
+		eccCalc = calc_ecc[0] | (calc_ecc[1]<<8) | (calc_ecc[2]<< 16);
+		diff = eccCalc ^ eccNand;
+		shift = 12;
+	}
 	if (diff) {
-		if ((((diff>>12)^diff)&0xfff)==0xfff) {
+		if ((((diff>>shift)^diff)&0xfff)==0xfff) {
 			/* Correctable error */
-			if ( (diff>>(12+3)) < mtd->eccsize ) {
-				DEBUG (MTD_DEBUG_LEVEL0, "Correcting single bit ECC error at offset: %d, bit: %d\n", diff>>(12+3), ((diff>>12)&7));
-				dat[diff>>(12+3)] ^= (1 << ((diff>>12)&7));
+			if ( (diff>>(shift+3)) < mtd->eccsize ) {
+				DEBUG (MTD_DEBUG_LEVEL0, "Correcting single bit ECC error at offset: %d, bit: %d\n", diff>>(shift+3), ((diff>>shift)&7));
+				dat[diff>>(shift+3)] ^= (1 << ((diff>>shift)&7));
 			} else {
-				DEBUG (MTD_DEBUG_LEVEL0, "ECC UNCORRECTED_ERROR, illegal byte # %d\n",diff>>(12+3));
+				DEBUG (MTD_DEBUG_LEVEL0, "ECC UNCORRECTED_ERROR, illegal byte # %d\n",diff>>(shift+3));
 				return(-1);
 			}
 		} else if (!(diff & (diff-1))) {

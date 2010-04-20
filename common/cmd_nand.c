@@ -176,6 +176,93 @@ out:
 }
 extern ulong eccReadMask;	/* bitmask off ecc err groups*/
 
+extern struct nand_oobinfo davinci_nand_oobinfo_ubl;
+#define	UBL_MAGIC_SAFE 0xA1ACED00
+struct ubl_header {
+	unsigned magic;		/* 0xA1ACED00 */
+	unsigned entry_point;	/* 0x100 */
+	unsigned page_cnt;	/* max 0x3800/ 2048 */
+	unsigned start_block;	/* 1,2,3,4,5 */
+	unsigned start_page;	/* 1 */
+};
+
+int ubl_nand(nand_info_t *nand, ulong off, size_t* pSize, u_char *buf,int read)
+{
+	int ret;
+	ulong endoff = 0;
+	struct ubl_header *hdr = (struct ubl_header *)buf;
+	unsigned size = 0x4000;
+	unsigned start_block_save = 0;
+	unsigned const erase_group_size = 0x20000;
+	struct nand_chip *nc = nand->priv;
+	struct nand_oobinfo oobinfo_save = nand->oobinfo;
+	struct nand_oobinfo *autooob_save = nc->autooob;
+	unsigned eccbytes_save = nc->eccbytes;
+	unsigned first_size;
+
+	if ((!read) && (hdr->magic == UBL_MAGIC_SAFE)) {
+		start_block_save = hdr->start_block;
+		size = (hdr->page_cnt + 1) * 2048;
+		if (size >= 0x4000) {
+			size = 0x4000;
+			printf("size too big, limited to 0x3800 bytes\n");
+		}
+	}
+	first_size = size;
+	if (read)
+		first_size = 0x800;
+	*pSize = size;
+
+	if (off == 0) {
+		/*
+		 * don't write to environment variable block
+		 * instead treat as request to access standard UBL blocks 1-5
+		 */
+		off = 1 * erase_group_size;
+		if (!read)
+			endoff = off + (5 * erase_group_size);
+	}
+	nand->oobinfo = davinci_nand_oobinfo_ubl;
+	nc->autooob = &davinci_nand_oobinfo_ubl;
+	nc->eccbytes = davinci_nand_oobinfo_ubl.eccbytes / nc->eccsteps;
+	do {
+		unsigned size1 = first_size;
+		unsigned size2;
+		printf("%s ubl @offset=%x\n", read? "reading" : "writing", off);
+		ret = (read) ? nand_read(nand, off, &size1, buf) :
+			nand_write(nand, off, &size1, buf);
+		if (ret)
+			printf("error %x, r/w ubl @offset=%x\n", ret, off);
+		if (read && (hdr->magic == UBL_MAGIC_SAFE)) {
+			size = (hdr->page_cnt + 1) * 2048;
+			if (size >= 0x4000) {
+				size = 0x4000;
+				printf("size too big, limited to 0x3800 bytes\n");
+			}
+		}
+		size2 = (size > first_size) ? size - first_size : 0;
+		if (size2) {
+			ret = (read) ? nand_read(nand, off + size1, &size2, buf + size1) :
+				nand_write(nand, off + size1, &size2, buf + size1);
+			if (ret)
+				printf("error %x, r/w ubl @offset=%x\n", ret, off + size1);
+		}
+		*pSize = size1 + size2;
+
+		off += erase_group_size;
+		if (off >= endoff)
+			break;
+		if (start_block_save == 1)
+			hdr->start_block++;
+	} while (1);
+	if (start_block_save == 1)
+		hdr->start_block = 1;
+	nand->oobinfo = oobinfo_save;
+	nc->autooob = autooob_save;
+	nc->eccbytes = eccbytes_save;
+	return ret;
+}
+
 int seq_nand(nand_info_t *nand, ulong off, size_t* pSize, u_char *buf,int bRead)
 {
 	ulong pageSize = nand->oobblock;
@@ -506,11 +593,12 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 					opts.quiet      = quiet;
 					ret = nand_write_opts(nand, &opts);
 				}
-			} else {
-				if (strcmp(s, ".seq")) goto usage;
+			} else if (!strcmp(s, ".seq")) {
 				if (argc < 5) size=0;
 				ret = seq_nand(nand, off, &size, (u_char *)addr,read);
-			}
+			} else if (!strcmp(s, ".ubl")) {
+				ret = ubl_nand(nand, off, &size, (u_char *)addr,read);
+			} else goto usage;
 		} else if (s != NULL && !strcmp(s, ".oob")) {
 			/* read out-of-band data */
 			if (read)
@@ -629,9 +717,11 @@ U_BOOT_CMD(nand, 5, 0, do_nand,
 	"nand device [dev]     - show or set current device\n"
 	"nand read[.jffs2]     - addr off|partition size\n"
 	"nand read.seq         - addr off size\n"
+	"nand read.ubl         - addr off size\n"
 	"nand write[.jffs2]    - addr off|partition size - read/write `size' bytes starting\n"
 	"    at offset `off' to/from memory address `addr'\n"
 	"nand write.seq        - addr off size\n"
+	"nand write.ubl        - addr off size\n"
 	"nand erase [clean] [off size] - erase `size' bytes from\n"
 	"    offset `off' (entire device if not specified)\n"
 	"nand bad - show bad blocks\n"
