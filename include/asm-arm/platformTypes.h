@@ -15,7 +15,7 @@
 #define NEON270ASIX			13
 #define HYDROGEN			14
 #define HYDROGEN_TS			15
-#define HYDROGEN_BART			16
+#define HYDROGEN_FMI			16
 #define MICROAVL			17
 #define OXYGEN				18
 #define MERCURY				19
@@ -53,8 +53,8 @@
 #include "plat_HYDROGEN.h"
 #elif (PLATFORM_TYPE==HYDROGEN_TS)
 #include "plat_HYDROGEN_TS.h"
-#elif (PLATFORM_TYPE==HYDROGEN_BART)
-#include "plat_HYDROGEN_BART.h"
+#elif (PLATFORM_TYPE==HYDROGEN_FMI)
+#include "plat_HYDROGEN_FMI.h"
 #elif (PLATFORM_TYPE==MICROAVL)
 #include "plat_MICROAVL.h"
 #elif (PLATFORM_TYPE==OXYGEN)
