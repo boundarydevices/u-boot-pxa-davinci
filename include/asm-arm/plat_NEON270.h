@@ -39,6 +39,7 @@
 
 #define PLAT_GP_IN_MBREQ		115
 #define PLAT_GP_IN_VIO_READY		18
+#define PLAT_GP_LAN91C111_RESET		11
 #endif
 
 #ifdef __DEFINE_GPIO_OVERRIDES

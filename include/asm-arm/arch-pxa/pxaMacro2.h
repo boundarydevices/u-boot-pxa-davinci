@@ -589,7 +589,7 @@ LNOP:
 	mov	\rTemp,#0x30
 	str	\rTemp,[\rBase,#PSSR]
 
-	.if CPU_PXA270
+#if (PLAT_GP_LAN91C111_RESET==11)
 	BigMov	\rBase,GPIO_BASE
 	mov		\rTemp,#(1<<11)		//gp11 reset for SMSC lan91c111
 	str		\rTemp,[\rBase,#GPSR0]
@@ -598,12 +598,16 @@ LNOP:
 	bne		99b
 	mov	\rTemp,#(1<<11)		//gp11 reset for SMSC lan91c111
 	str	\rTemp,[\rBase,#GPCR0]
+#endif
 
 #if (PLAT_GP_IN_MBREQ==115)
+#if (PLAT_GP_LAN91C111_RESET==11)
+#else
+	BigMov	\rBase,GPIO_BASE
+#endif
 	BigMov	\rTemp,(AFVAL112)|(3<<((115-112)<<1))	//MBREQ alternate function 3
 	str	\rTemp,[\rBase,#GAFR3_U]
 #endif
-	.endif
 
 .endm
 
