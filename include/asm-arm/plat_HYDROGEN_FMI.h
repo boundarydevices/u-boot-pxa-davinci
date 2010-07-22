@@ -44,7 +44,7 @@
 
 #ifdef __DEFINE_GPIO_OVERRIDES
 	SPEC_GP  10,IN,HIGH,0		//MMC card detect
-	SPEC_GP  11,OUT,LOW,0		//RS485 tx enable, high active
+	SPEC_GP  13,OUT,LOW,0		//RS485 tx enable, high active
 	SPEC_GP  12,IN,HIGH,0		//AX88796B IRQ input
 //	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control (Argon/Hydrogen - Okaya panel want GP16 low)
 	SPEC_GP  36,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4) 4 output Vbus Enable
