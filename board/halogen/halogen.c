@@ -72,14 +72,27 @@ int board_init (void)
 	return 0;
 }
 int do_okw(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
+extern int get_rom_mac (char *v_rom_mac);
 
 int board_late_init(void)
 {
+#ifdef CONFIG_DRIVER_NE2000
+	char mac[6];
+	char asciimac[32];
+#endif
 	setenv("stdout", "serial");
 	setenv("stderr", "serial");
 #ifdef CONFIG_CMD_OKAYAWRITE
 	do_okw(NULL,0,1,NULL);
 #endif
+#ifdef CONFIG_DRIVER_NE2000
+		if( get_rom_mac( mac ) ){
+			sprintf(asciimac,"%02x:%02x:%02x:%02x:%02x:%02x",
+				mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+			setenv("macaddr",asciimac);
+		}
+#endif
+
 	return 0;
 }
 
