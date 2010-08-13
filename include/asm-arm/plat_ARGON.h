@@ -40,6 +40,7 @@
 
 #define PLAT_GP_IN_MBREQ		-1
 #define PLAT_GP_IN_VIO_READY		18
+#define PLAT_GP_LAN91C111_RESET		11
 #endif
 
 #ifdef __DEFINE_GPIO_OVERRIDES
@@ -50,7 +51,7 @@
 	SPEC_GP  16,OUT,LOW,0		//LCD backlight brightness control (Argon/Okaya want GP16 low)
 	SPEC_GP  36,IN,HIGH,0		//(in alt 1:FF_DCD) (out alt 1:USB_P2_4) 4 output Vbus Enable
 	SPEC_GP  51,OUT,HIGH,1          //trigger
-	SPEC_GP  88,IN,HIGH,1		//port 1 usb power over current
+//	SPEC_GP  88,IN,HIGH,1		//port 1 usb power over current
 	SPEC_GP  89,OUT,HIGH,0		//port 1 usb power enable (driver needs to enable usb power (LOW,2)
 	SPEC_GP  24,IN,HIGH,1           //Feedback
 	SPEC_GP  25,IN,HIGH,1           //Feedback2

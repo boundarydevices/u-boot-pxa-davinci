@@ -121,7 +121,8 @@ struct FieldData
 #define TYPE_USHORT_NOT_ZERO 1
 #define TYPE_USHORT 2
 #define TYPE_FLAG 3
-#define TYPE_STRING 4
+#define TYPE_0_3 4
+#define TYPE_STRING 5
 	unsigned char type;
 };
 #define OFFSETOF(a) ((unsigned)(&((struct lcd_panel_info_t*)NULL)->a))
@@ -132,9 +133,9 @@ struct FieldData fields[] = {
 	{"xres",	OFFSETOF(xres),		TYPE_USHORT_NOT_ZERO},
 	{"yres",	OFFSETOF(yres),		TYPE_USHORT_NOT_ZERO},
 	{"pclk_redg",	OFFSETOF(pclk_redg),	TYPE_FLAG},
-	{"hsyn_acth",	OFFSETOF(hsyn_acth),	TYPE_FLAG},
-	{"vsyn_acth",	OFFSETOF(vsyn_acth),	TYPE_FLAG},
-	{"oepol_actl",	OFFSETOF(oepol_actl),	TYPE_FLAG},
+	{"hsyn_acth",	OFFSETOF(hsyn_acth),	TYPE_0_3},
+	{"vsyn_acth",	OFFSETOF(vsyn_acth),	TYPE_0_3},
+	{"oepol_actl",	OFFSETOF(oepol_actl),	TYPE_0_3},
 	{"hsync_len",	OFFSETOF(hsync_len),	TYPE_USHORT_NOT_ZERO},
 	{"left_margin",	OFFSETOF(left_margin),	TYPE_USHORT},
 	{"right_margin",OFFSETOF(right_margin),	TYPE_USHORT},
@@ -181,9 +182,10 @@ static struct lcd_panel_info_t const *prompt_for_panel( void )
 					*((unsigned short*)(panel_byte+pF->offset)) = value ;
 				} else if (pF->type==TYPE_ULONG) {
 					*((unsigned long*)(panel_byte+pF->offset)) = value ;
-				} else if (pF->type==TYPE_FLAG) {
-					if (value > 1) {
-						printf("%s can only be 0 or 1\n",pF->name);
+				} else if ((pF->type==TYPE_FLAG) || (pF->type == TYPE_0_3)) {
+					ulong max = (pF->type==TYPE_FLAG) ? 1 : 3;
+					if (value > max) {
+						printf("%s can only be 0 - %i\n",pF->name, max);
 						continue;
 					}
 					*((unsigned char*)(panel_byte+pF->offset)) = value;

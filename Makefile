@@ -2668,6 +2668,10 @@ hydrogen_config	:	unconfig
 	@./mkconfig halogen arm pxa halogen
 	./Configure --PLATFORM_TYPE=HYDROGEN --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=urt_480x272
 
+hydrogen_fmi_config	:	unconfig
+	@./mkconfig halogen arm pxa halogen
+	./Configure --PLATFORM_TYPE=HYDROGEN_FMI --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=chimei_800x480
+
 microavl_config	:	unconfig
 	@./mkconfig halogen arm pxa halogen
 	./Configure --PLATFORM_TYPE=MICROAVL --SOFTWARE_TYPE=WINCE --DISPLAY_TYPE=okaya_qvga

@@ -236,6 +236,23 @@ static struct lcd_panel_info_t const lcd_panels_[] = {
 	active: 1,
 	crt:0
 }, {
+	name: "chimei_800x480",
+	pixclock: 24000000,
+	xres: 800,
+	yres: 480,
+	pclk_redg: 1,
+	hsyn_acth: 2,	/* 2 means off, always low, only OE(DE)(L_BIAS) is used */
+	vsyn_acth: 2,	/* 2 means off, always low */
+	oepol_actl: 0,
+	hsync_len: 18,
+	left_margin: 24,
+	right_margin: 90,
+	vsync_len: 2,
+	upper_margin: 4,
+	lower_margin: 4,
+	active: 1,
+	crt:0
+}, {
 	name: "qvga_portrait",
 	pixclock: 0,
 	xres: 240,

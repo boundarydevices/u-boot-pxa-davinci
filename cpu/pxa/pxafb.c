@@ -388,6 +388,17 @@ static int pxafb_init_mem (void *lcdbase, vidinfo_t *vid)
 	return 0;
 }
 
+static unsigned test_polarity(unsigned val, unsigned polarity, unsigned gp)
+{
+	if (polarity < 2)
+		val |= (2 << ((gp - 64)*2));
+	else if (polarity & 1)
+		GPSR2 = (1 << (gp - 64));
+	else
+		GPCR2 = (1 << (gp - 64));
+	return val;
+}
+
 static void pxafb_setup_gpio (vidinfo_t *vid)
 {
 	u_long lccr0;
@@ -431,13 +442,19 @@ static void pxafb_setup_gpio (vidinfo_t *vid)
 	/* 16 bit interface */
 	else if (!(lccr0 & LCCR0_CMS) && ((lccr0 & LCCR0_SDS) || (lccr0 & LCCR0_PAS)))
 	{
+		unsigned val;
 		debug("Setting GPIO for 16 bit data\n");
-		/* bits 58-77 */
+		/* bits 58-63 : LDD0 - LDD5 */
 		GPDR1 |= (0x3f << 26);
+		/* bits 64-77 : LDD6 - LDD15, vsync, hsync, pclk, OE(lbias)*/
 		GPDR2 |= 0x00003fff;
 
 		GAFR1_U = (GAFR1_U & ~(0xfff << 20)) | (0xaaa << 20);
-		GAFR2_L = (GAFR2_L & 0xf0000000) | 0x0aaaaaaa;
+		val = (GAFR2_L & 0xf0000000) | 0x020aaaaa;
+		val = test_polarity(val, vid->vl_vsp, 74);
+		val = test_polarity(val, vid->vl_hsp, 75);
+		val = test_polarity(val, vid->vl_oepol_actl, 77);
+		GAFR2_L = val;
 	}
 	else
 	{
@@ -478,9 +495,9 @@ static int pxafb_init (vidinfo_t *vid)
 #if defined( CONFIG_PXA270 )
 
 #if (PLAT_BYTES_PER_PIXEL==3)
-#define PALETTE_SELECT	0x00010000 ;        // 18-bits to panel
+#define PALETTE_SELECT	0x00010000	// 18-bits to panel
 #else
-#define PALETTE_SELECT	0x00008000 ;        // 16-bits to panel, default
+#define PALETTE_SELECT	0x00008000	// 16-bits to panel, default
 #endif
 
 	LCCR4 = PALETTE_SELECT;
@@ -569,7 +586,6 @@ static int pxafb_init (vidinfo_t *vid)
 	debug("fbi->dmadesc_fblow->ldcmd = 0x%lx\n", fbi->dmadesc_fblow->ldcmd);
 	debug("fbi->dmadesc_fbhigh->ldcmd = 0x%lx\n", fbi->dmadesc_fbhigh->ldcmd);
 	debug("fbi->dmadesc_palette->ldcmd = 0x%lx\n", fbi->dmadesc_palette->ldcmd);
-
 	return 0;
 }
 
@@ -580,14 +596,8 @@ static int pxafb_init (vidinfo_t *vid)
 
 #ifdef CONFIG_LCDPANEL
 
-unsigned int get_lclk(void)
+unsigned get_lclk(void)
 {
-//    pfreq == LCLK/(2*(PCD+1))
-//    pfreq*(2*(PCD+1)) == LCLK
-//    2*(PCD+1) == LCLK/pfreq
-//    (PCD+1) == LCLK/(pfreq*2)
-//    PCD == (LCLK/(pfreq*2)) - 1 ;
-//
 	unsigned l = CCCR & 0x1F ;
 	unsigned lclk;
 	if (l<2) l = 2;
@@ -596,11 +606,38 @@ unsigned int get_lclk(void)
 	return lclk;
 }
 
-static inline unsigned int get_pcd(unsigned long pixclock)
+/*
+	pfreq == LCLK/(n*(PCD+1))		//n = 1 or 2
+	pfreq*(n*(PCD+1)) == LCLK
+	n*(PCD+1) == LCLK/pfreq
+ */
+static inline unsigned get_lclk_div(unsigned pixclock)
 {
-   unsigned lclk = get_lclk();
-   unsigned long pcd = (lclk/(2*pixclock)) - 1;
-   return pcd & 0xFF ;
+	unsigned lclk = get_lclk();
+	unsigned lclk_div = lclk/pixclock;
+	if (lclk_div > 512)
+		lclk_div = 512;
+	if (lclk_div < 2)
+		lclk_div = 2;
+#ifdef CONFIG_PXA270
+	return lclk_div;
+#else
+	return lclk_div & ~1;
+#endif
+}
+
+static inline unsigned int pcd_field(unsigned lclk_div)
+{
+	if ((lclk_div > 256) || !(lclk_div & 1))
+		return (lclk_div >> 1) - 1;
+	return (lclk_div - 1);
+}
+
+static inline unsigned int pcddiv_field(unsigned lclk_div)
+{
+	if ((lclk_div > 256) || !(lclk_div & 1))
+		return 0;
+	return (1 << 31);
 }
 
 #if defined(CONFIG_LCD_MULTI)
@@ -644,6 +681,9 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    unsigned stride = (((panel->xres * NBITS(LCD_BPP)) >> 3) + 3) & ~3;
    unsigned fbMemSize = stride * panel->yres;
    int fix = 0;
+   unsigned lclk_div;
+   unsigned ppf;
+   unsigned pclk;
 
    panel_info.vl_col = panel->xres ;
    panel_info.vl_row = panel->yres ;
@@ -681,20 +721,26 @@ void set_lcd_panel( struct lcd_panel_info_t const *panel )
    pxafb_init_mem( (void *)panel_info.pxa.screen, &panel_info);
    pxafb_init(&panel_info);
 
+   ppf = (panel_info.vl_col + panel_info.vl_hpw + panel_info.vl_blw + panel_info.vl_elw) *
+	 (panel_info.vl_row + panel_info.vl_vpw + panel_info.vl_bfw + panel_info.vl_efw);
    if ( pixClock < 10) {
-	  pixClock = (panel_info.vl_col+panel_info.vl_hpw+panel_info.vl_blw+panel_info.vl_elw)*
-				 (panel_info.vl_row+panel_info.vl_vpw+panel_info.vl_bfw+panel_info.vl_efw)*55;
+	  pixClock = ppf * 55;
    }
    panel_info.pxa.reg_lccr3 &= ~0xFF ;
-   panel_info.pxa.reg_lccr3 |= get_pcd( pixClock );
-
+   lclk_div = get_lclk_div(pixClock);
+   panel_info.pxa.reg_lccr3 |= pcd_field(lclk_div);
+#ifdef CONFIG_PXA270
+   LCCR4 = PALETTE_SELECT | pcddiv_field(lclk_div);
+#endif
+   pclk = get_lclk() / lclk_div;
+   printf("pclk = %i, lclk_div = %i, VSync = %i hz\n", pclk, lclk_div, pclk / ppf);
    debug( "set panel to %s\n"
           "pcd == 0x%08lx\n"
           "lclk == %i\n"
           "palette at %p\n"
           "frame buffer at %p\n"
           , panel->name ? panel->name : "<Unnamed>"
-          , get_pcd( pixClock )
+          , pcd_field(lclk_div)
           , get_lclk()
           , panel_info.pxa.palette
           , panel_info.pxa.screen
