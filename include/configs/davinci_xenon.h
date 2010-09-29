@@ -271,4 +271,6 @@
 #define	CONFIG_AUTOBOOT_PROMPT		"\nEnter password - autoboot in %d sec...\n"
 #define	CONFIG_AUTOBOOT_DELAY_STR	"\x1b\x1b\x1b"
 
+#define CONFIG_CMD_SETEXPR
+
 #endif /* __CONFIG_H */
