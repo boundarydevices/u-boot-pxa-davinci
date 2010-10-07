@@ -302,8 +302,8 @@ printf("%s: reading environment from offset 0x%x\n", __func__, offset );
 					return 0 ;
 				}
 			}
-			offset -= blocksize;
 		}
+		offset -= blocksize;
 	}
 #endif
 
