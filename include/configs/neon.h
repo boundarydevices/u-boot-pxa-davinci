@@ -307,7 +307,8 @@
 /*
  * Environment is saved in flash at offset 1MB
  */
-#define CFG_ENV_IS_IN_FLASH	0
+#undef CFG_ENV_IS_IN_FLASH
+#define CFG_ENV_IS_NOWHERE
 #define CFG_FLASH_BASE     0
 #define CFG_ENV_ADDR		   ((CFG_FLASH_BASE)+0x100000)	/* Addr of Environment Sector	*/
 #define CFG_ENV_OFFSET     ((CFG_ENV_ADDR)-(CFG_FLASH_BASE))
