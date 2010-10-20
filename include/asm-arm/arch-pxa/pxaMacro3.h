@@ -521,10 +521,6 @@ ReturnWithIndirection:
 	BigMov	\rBase,0x40a00000	//OSTIMER_BASE
 	/* We set OWE:WME (watchdog enable) and wait until timeout happens  */
 
-	ldr	\rVal, [\rBase, #OWER]
-	orr	\rVal, \rVal, #0x0001			/* bit0: WME                */
-	str	\rVal, [\rBase, #OWER]
-
 	/* OS timer does only wrap every 1165 seconds, so we have to set    */
 	/* the match register as well.                                      */
 
@@ -532,4 +528,10 @@ ReturnWithIndirection:
 	add	\rVal, \rVal, #0x800			/* let OSMR3 match after    */
 	add	\rVal, \rVal, #0x800			/* 4096*(1/3.6864MHz)=1ms   */
 	str	\rVal, [\rBase, #OSMR3]
+
+	/* now enable */
+	ldr	\rVal, [\rBase, #OWER]
+	orr	\rVal, \rVal, #0x0001			/* bit0: WME                */
+	str	\rVal, [\rBase, #OWER]
+
 .endm
