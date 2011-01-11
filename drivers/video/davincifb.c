@@ -420,6 +420,10 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(VENC_VMOD) = 0;
 	setPixClock(info->pixclock, &enc_mult, &enc_div);
 
+	REGVALUE(0x01C67010) &= 0xFFFFFF7F;   //config GPIO7 as output
+	REGVALUE(0x01C67018) = 0x00000080;    //set GPIO7 high
+	printf("GPIO7 set (backlight enabled)\n");
+	
 	REGVALUE(OSD_MODE) = 0 ;
 	REGVALUE(OSD_OSDWIN0MD) = 0 ;
 
