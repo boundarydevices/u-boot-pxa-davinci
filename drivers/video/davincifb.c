@@ -224,7 +224,8 @@ static unsigned query_clk_settings(u32 mhz, struct clk_factors *pbest)
 	best.enc_mult = 0;
 	best.enc_div = 0;
 	char *enc_spec = getenv( "encperpix" );
-
+	unsigned force27 = getenv( "force27" ) ? 1 : 0;
+	unsigned max_div = 16;
 	if (enc_spec){
 		u32 m = 1;
 		u32 d;
@@ -257,7 +258,11 @@ static unsigned query_clk_settings(u32 mhz, struct clk_factors *pbest)
 		if (!check_ddr2(mrate))
 			continue;
 		cur.div = (mrate + MAX_VPBE - 1)/MAX_VPBE;
-		for (; cur.div <= 16; cur.div++) {
+		if (force27) {
+			cur.div = cur.mult;
+			max_div = (cur.mult < 16) ? cur.mult : 16;
+		}
+		for (; cur.div <= max_div; cur.div++) {
 			u32 vpbe = mrate / cur.div;
 			cur.enc_mult = enc_mult_start;
 //			printf("vpbe=%u, mhz=%u\n", vpbe, mhz);
@@ -452,8 +457,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(OSD_BASEPY) = vstart;
 
 	/* Reset video encoder module */
-//	REGVALUE(VPSS_CLKCTL) = 0x09 ;	//disable DAC clock
-        REGVALUE(VPSS_CLKCTL) = 0x08 ;  //force 27 MHz video clock
+	REGVALUE(VPSS_CLKCTL) = getenv( "force27" ) ? 0x08 : 0x09 ;	//disable DAC clock
 	REGVALUE(VPBE_PCR) = 0 ;		//not divided by 2
 	REGVALUE(VENC_VIDCTL) =((info->pclk_redg^1)<<14)|(1<<13);
 	REGVALUE(VENC_SYNCCTL) = ((info->vsyn_acth <<3 ) | (info->hsyn_acth << 2)) ^ 0x0f;
