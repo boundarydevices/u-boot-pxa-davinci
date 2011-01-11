@@ -2,78 +2,42 @@ if fatload mmc 0 80008000 logo*.bmp ; then
 	bmp display 80008000 ;
 fi
 
-lecho && lecho $version
+mii write 0 0x14 0xc1f2
 
-stexpr blocksize 0x20000 + 0
-mw.b 0x82000000 0xff 0x$blocksize
-if fatload mmc 0 82000000 davinciUBL* ; then
-	echo "Read 0x$filesize bytes of UBL" ;
-	stexpr offset 0x20000 + 0
-	for blocknum in 1 2 3 4 5 ; do
-		echo "offset $offset, blocknum $blocknum, blocksize $blocksize" ;
-		nand read.ubl 0x82100000 0x$offset $filesize ;
-		mw.l 0x8200000c $blocknum
-		if cmp.b 0x82100000 0x82000000 $filesize ; then
-			echo "UBL copy $blocknum matched" ;
-		else
-			nand erase 0x$offset 0x$blocksize ;
-			nand write.ubl 0x82000000 0x$offset 0x$blocksize ;
-			echo "UBL copy $blocknum updated" ;
-		fi
-		stexpr offset 0x$offset + 0x20000
-	done
-else
-	echo "No UBL found" ;
-fi
-setenv blocksize
-setenv blocknum
-setenv offset
+lecho
+lecho MAC: $ethaddr
+lecho $version
 
-if fatload mmc 0 82000000 u-boot-xenon*.bin ; then
+if fatload mmc 0 80008000 u-boot-xenon*.bin ; then
         echo "u-boot loaded from $filename: $filesize bytes\n" ;
-        setenv updated
-	stexpr offset 0xc0000 + 0
-	for copy in 1 2 3 4 5 ; do
-		if nand read.seq 0x80108000 0x$offset 0x$filesize &&
-		   cmp.b 82000000 0x80108000 $filesize ; then
-			lecho "version $copy matches" ;
-		else
-			if test -z "$updated" ; then
-				lecho "U-Boot versions mismatch!!!" ;
-				lecho "Auto-upgrade in 10 seconds..." ;
-				for n in 10 9 8 7 6 5 4 3 2 1 ; do
-					lecho \\\\c "$copy" ;
-					sleep 1 ;
-				done
-			fi
-			nand erase 0x$offset $filesize ;
-			nand write.seq 82000000 0x$offset $filesize ;
-			lecho "Programmed $filesize bytes to copy $copy" ;
-			setenv updated "1"
-		fi
-		stexpr offset 0x$offset + 0x80000
-	done
-
-	if test -n "$updated" ; then
-		reset ;		
-	fi
+        if nand read.seq 0x80108000 c0000 0x$filesize &&
+           cmp.b 0x80008000 0x80108000 $filesize ; then
+                lecho "U-Boot versions match" ;
+        else
+                lecho "U-Boot versions mismatch!!!" ;
+                lecho "Auto-upgrade in 10 seconds..." ;
+                for n in 10 9 8 7 6 5 4 3 2 1 ; do
+                        lecho \\\\c "$n" ;
+                        sleep 1 ;
+                done
+                nand erase c0000 $filesize ;
+                nand write.seq 80008000 c0000 $filesize ;
+                lecho "Programmed $filesize bytes" ;
+                reset
+        fi
 fi
-setenv blocksize
-setenv blocknum
-setenv offset
-setenv copy
 
 if fatload mmc 0 80800000 uImage ; then
         lecho 'load initrd'
 	if fatload mmc 0 81000000 mmcinitrd* ; then
 		lecho "Booting Linux"
-                setenv bootargs "mem=200M console=ttyS0,115200n8 root=/dev/ram0 "
-                setenv bootargs $bootargs "video=dm64xxfb:output=lcd "
-                setenv bootargs $bootargs "dav-dma=phys=200M+24M"
-                setenv bootargs $bootargs "mtdparts=davinci_nand.0:128k(ubdata),640k(spare0),1280k(ub),128896k(yaffs),128k(params)"
-		setenv bootargs $bootargs "eth=$ethaddr"
-                setenv bootargs $bootargs "mmc=bits:4"
-                setenv bootargs $bootargs "pic-ts=pudelay:$pudelay"
+                set bootargs "mem=200M console=ttyS0,115200n8 root=/dev/ram0 "
+                set bootargs $bootargs "video=dm64xxfb:output=lcd"
+                set bootargs $bootargs "dav-dma=phys=200M+24M"
+                set bootargs $bootargs "mtdparts=davinci_nand.0:128k(ubdata),640k(spare0),1280k(ub),128896k(yaffs),128k(params)"
+		set bootargs $bootargs "eth=$ethaddr"
+                set bootargs $bootargs "mmc=bits:4"
+                set bootargs $bootargs "snd_soc_core.pmdown_time=2000000000"
 		bootm 80800000 81000000
 	fi
         lecho 'failed to load initrd' ;
