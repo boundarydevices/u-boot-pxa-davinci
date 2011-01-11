@@ -452,7 +452,8 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(OSD_BASEPY) = vstart;
 
 	/* Reset video encoder module */
-	REGVALUE(VPSS_CLKCTL) = 0x09 ;	//disable DAC clock
+//	REGVALUE(VPSS_CLKCTL) = 0x09 ;	//disable DAC clock
+        REGVALUE(VPSS_CLKCTL) = 0x08 ;  //force 27 MHz video clock
 	REGVALUE(VPBE_PCR) = 0 ;		//not divided by 2
 	REGVALUE(VENC_VIDCTL) =((info->pclk_redg^1)<<14)|(1<<13);
 	REGVALUE(VENC_SYNCCTL) = ((info->vsyn_acth <<3 ) | (info->hsyn_acth << 2)) ^ 0x0f;
