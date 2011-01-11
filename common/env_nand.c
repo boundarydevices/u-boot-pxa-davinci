@@ -228,7 +228,6 @@ int saveenv(void)
 #else /* ! CFG_ENV_OFFSET_REDUND */
 int saveenv(void)
 {
-	size_t total;
 	int ret = 0;
 	nand_erase_options_t nand_erase_options;
 
@@ -242,15 +241,30 @@ int saveenv(void)
 		return 1;
 	puts ("Erasing Nand...\n");
 	if (nand_erase_opts(&nand_info[0], &nand_erase_options))
-		return 1;
-
-	puts ("Writing to Nand... ");
-	total = CFG_ENV_SIZE;
-	if (writeenv(CFG_ENV_OFFSET, (u_char *)env_ptr)) {
-		puts("FAILED!\n");
-		return 1;
+		ret = 1;
+	else {
+		puts ("Writing to Nand... ");
+		if (writeenv(CFG_ENV_OFFSET, (u_char *)env_ptr)) {
+			puts("FAILED!\n");
+			ret = 1;
+		}
 	}
-
+#ifdef CFG_ENV_REDUNDANT_N
+	nand_erase_options.offset = nand_info[0].size - nand_info[0].erasesize ;
+	while (nand_erase_options.offset > nand_info[0].size - CFG_ENV_REDUNDANT_N*nand_info[0].erasesize) {
+		printf("%s: save environment to offset 0x%x\n", __func__, nand_erase_options.offset);
+		if (nand_erase_opts(&nand_info[0], &nand_erase_options))
+			ret = 1;
+		else {
+			printf ("Writing to redundant Nand 0x%x", nand_erase_options.offset );
+			if (writeenv(nand_erase_options.offset, (u_char *)env_ptr)) {
+				puts("FAILED!\n");
+				ret = 1;
+			}
+		}
+                nand_erase_options.offset -= nand_info[0].erasesize ;
+	}
+#endif
 	puts ("done\n");
 	return ret;
 }
@@ -259,29 +273,41 @@ int saveenv(void)
 
 int readenv (size_t offset, u_char * buf)
 {
-	size_t end = offset + CFG_ENV_RANGE;
-	size_t amount_loaded = 0;
 	size_t blocksize;
 
-	u_char *char_ptr;
+	if (CFG_ENV_SIZE != nand_info[0].erasesize) {
+		printf( "%s/%s: configuration error\n", __FILE__, __func__ );
+		return 1 ;
+	}
 
-	blocksize = nand_info[0].erasesize;
+printf("%s: reading environment from offset 0x%x\n", __func__, offset );
 
-	while (amount_loaded < CFG_ENV_SIZE && offset < end) {
-		if (nand_block_isbad(&nand_info[0], offset)) {
-			offset += blocksize;
-		} else {
-			char_ptr = &buf[amount_loaded];
-			if (nand_read(&nand_info[0], offset, &blocksize, char_ptr))
-				return 1;
-			offset += blocksize;
-			amount_loaded += blocksize;
+	blocksize = CFG_ENV_SIZE ;
+	if (!nand_block_isbad(&nand_info[0], offset)) {
+		if (0 == nand_read(&nand_info[0], offset, &blocksize, buf)) {
+			env_t *env = (env_t *)buf ;
+			if (env->crc ==crc32(0, env->data, ENV_SIZE)) {
+				return 0 ;
+			}
 		}
 	}
-	if (amount_loaded != CFG_ENV_SIZE)
-		return 1;
+#ifdef CFG_ENV_REDUNDANT_N
+	offset = nand_info[0].size - nand_info[0].erasesize ;
+	while (offset > nand_info[0].size - CFG_ENV_REDUNDANT_N*nand_info[0].erasesize) {
+		printf( "%s: try redundant 0x%x\n", __func__, offset );
+		if (!nand_block_isbad(&nand_info[0], offset)) {
+			if (0 == nand_read(&nand_info[0], offset, &blocksize, buf)){
+				env_t *env = (env_t *)buf ;
+				if (env->crc ==crc32(0, env->data, ENV_SIZE)) {
+					return 0 ;
+				}
+			}
+		}
+		offset -= blocksize;
+	}
+#endif
 
-	return 0;
+	return 1 ;
 }
 
 #ifdef CFG_ENV_OFFSET_REDUND

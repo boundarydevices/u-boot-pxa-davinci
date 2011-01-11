@@ -2339,6 +2339,8 @@ int nand_scan (struct mtd_info *mtd, int maxchips)
 	nand_maf_id = this->read_byte(mtd);
 	nand_dev_id = this->read_byte(mtd);
 
+	printk (KERN_ERR "%s: mfg %x, id %x\n", __func__, nand_maf_id, nand_dev_id);
+
 	/* Print and store flash device information */
 	for (i = 0; nand_flash_ids[i].name != NULL; i++) {
 
