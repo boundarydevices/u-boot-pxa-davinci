@@ -11,6 +11,9 @@
  * $Log$
  *
  * Copyright Boundary Devices, Inc. 2007
+ *
+ * Modified to select 27 MHz video clock at all times
+ * Modified to set GPIO7 high to turn on SMG backlight
  */
 #include <common.h>
 #include "lcd_multi.h"
@@ -133,10 +136,12 @@ static void setPixClock( unsigned long mhz )
 		if( lowError < highError )
 			divisor++ ;
 	}
-	printf( "Pixel clock %lu/%u/%u == %lu\n", pllIn, divisor, encPerPixel, pllIn/(encPerPixel*divisor) );
+//	printf( "Pixel clock %lu/%u/%u == %lu\n", pllIn, divisor, encPerPixel, pllIn/(encPerPixel*divisor) );
 	divisor-- ; // register value is divisor-1
 	REGVALUE(PLL2_DIV1) = 0x8000 + divisor ;
 	REGVALUE(PLL2_CMD) = 1 ;
+
+        printf("Pixel clock set to 27 MHz\n");
 }
 
 struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
@@ -153,7 +158,7 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	i = gd->bd->bi_dram[0].size;
 	if (i > (128<<20)) i = (128<<20);
 	lcd->fbAddr = (void *)( gd->bd->bi_dram[0].start + i - fbBytes );
-        memset(lcd->fbAddr,0,fbBytes);
+        memset(lcd->fbAddr,0xff,fbBytes);
 
 	lcd->fg = 0 ;
 	lcd->bg = 255 ;
@@ -166,6 +171,10 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 	REGVALUE(VPSS_CLKCTL) = 0x18 ;
 
 	setPixClock(info->pixclock);
+
+	REGVALUE(0x01C67010) &= 0xFFFFFF7F;   //config GPIO7 as output
+	REGVALUE(0x01C67018) = 0x00000080;    //set GPIO7 high
+	printf("GPIO7 set (backlight enabled)\n");
 
 	REGVALUE(OSD_MODE) = 0 ;
 	REGVALUE(OSD_OSDWIN0MD) = 0 ;
@@ -193,7 +202,8 @@ struct lcd_t *newPanel( struct lcd_panel_info_t const *info )
 
 	/* Reset video encoder module */
 	REGVALUE(VENC_VMOD) = 0 ;
-	REGVALUE(VPSS_CLKCTL) = 0x09 ;	//disable DAC clock
+//      REGVALUE(VPSS_CLKCTL) = 0x09 ;  //disable DAC clock
+        REGVALUE(VPSS_CLKCTL) = 0x08 ;  //force 27 MHz video clock
 	REGVALUE(VPBE_PCR) = 0 ;		//not divided by 2
 	REGVALUE(VENC_VIDCTL) =((info->pclk_redg^1)<<14)|(1<<13);
 	REGVALUE(VENC_SYNCCTL) = (info->vsyn_acth<<3)|(info->hsyn_acth<<2)|0x03;
