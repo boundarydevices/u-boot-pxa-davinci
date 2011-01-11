@@ -27,9 +27,8 @@ int do_strcpy(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	char *endptr ;
 	unsigned long addr ;
-	unsigned len ;
-        char *src = 0 ;
-
+	int arg ;
+	
 	if( 3 > argc ){
 		goto bail ;
         }
@@ -39,26 +38,25 @@ int do_strcpy(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		goto bail ;
 	}
 
-        src = argv[2];
-        if( '$' == *src ){
-           src = getenv( src+1 );
-           if( !src ){
-              printf( "Invalid variable <%s>\n", argv[2] );
-              goto bail ;
-           }
-        }
-
-	if( 3 == argc ){
-		len = strlen(src) + 1;
-	}
-	else {
-		len = simple_strtoul(argv[3],&endptr,10);
-		if( !endptr || (0!=*endptr) ){
-			printf( "invalid string <%s> %p %c\n", argv[3], endptr, endptr[0] );
-			goto bail ;
+	for (arg = 2 ; arg < argc ; arg++) {
+		char *src = argv[arg];
+		char *dest = (char *)addr ;
+		unsigned len ;
+		if( '$' == *src ){
+			src = getenv( src+1 );
+			if( !src ){
+				printf( "Invalid variable <%s>\n", argv[arg] );
+				goto bail ;
+			}
 		}
-	}
-	strncpy((void *)addr, src, len);
+                len = strlen(src);
+		memcpy(dest, src, len);
+		dest[len] = '\0' ;
+		dest += strlen(dest); // in case it's shorter
+		*dest++ = ' ' ;
+		addr = (unsigned long)dest ;
+        }
+	*((char *)addr) = 0 ;
 	return 0 ;
 
 bail:

@@ -115,6 +115,7 @@
 #else
 #define CFG_ENV_SECT_SIZE	2048	/* Env sector Size */
 #define CFG_ENV_SIZE		SZ_128K
+#define CFG_ENV_REDUNDANT_N	5
 #endif
 #define CONFIG_SKIP_LOWLEVEL_INIT	/* U-Boot is loaded by a bootloader */
 //#define CONFIG_SKIP_RELOCATE_UBOOT	/* to a proper address, init done */
@@ -269,5 +270,7 @@
 #define	CONFIG_AUTOBOOT_KEYED		/* Enable password protection */
 #define	CONFIG_AUTOBOOT_PROMPT		"\nEnter password - autoboot in %d sec...\n"
 #define	CONFIG_AUTOBOOT_DELAY_STR	"\x1b\x1b\x1b"
+
+#define CONFIG_CMD_SETEXPR
 
 #endif /* __CONFIG_H */

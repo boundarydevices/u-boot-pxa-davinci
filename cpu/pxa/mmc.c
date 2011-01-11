@@ -968,6 +968,8 @@ int mmc_init__(int verbose)
 	uchar *resp;
 	mmc_cid_t *cid ;
 	mmc_csd_t *csd ;
+	unsigned serialNumber ;
+	char cSerial[16];
 #ifdef CONFIG_IMX31
 	gpio_sdhc_active(0);
 #endif
@@ -1066,6 +1068,9 @@ int mmc_init__(int verbose)
 		cid->id[0], cid->id[1], cid->id[2],
 		cid->sn[0], cid->sn[1], cid->sn[2]);
 	sprintf((char*)mmc_dev.revision,"%x %x",cid->hwrev, cid->fwrev);
+	memcpy (&serialNumber,resp+4,sizeof(serialNumber));
+	sprintf (cSerial,"%08x", serialNumber);
+	setenv("serial",cSerial);
 
 	/* fill in device description */
 	mmc_dev.if_type = IF_TYPE_MMC;
