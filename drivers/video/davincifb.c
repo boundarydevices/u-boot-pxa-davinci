@@ -144,6 +144,22 @@ struct clk_factors {
 	u32 error;
 };
 
+int best_ddr2_speed(struct clk_factors *a, struct clk_factors *b)
+{
+	unsigned a_rate = OSC_RATE * a->mult;
+	unsigned a_div = check_ddr2(a_rate);
+	unsigned b_rate = OSC_RATE * b->mult;
+	unsigned b_div = check_ddr2(b_rate);
+	unsigned a_ddr, b_ddr;
+	if (!b_div)
+		return 0;
+	if (!a_div)
+		return 1;
+	a_ddr = a_rate / a_div;
+	b_ddr = b_rate / a_div;
+	return (a_ddr > b_ddr) ? 0 : 1;
+}
+
 static int relatively_prime(u32 a, u32 b)
 {
 	u32 c;
@@ -203,7 +219,7 @@ int new_best(struct clk_factors *best, struct clk_factors *test)
 			return 1;
 		}
 	}
-	return 0;
+	return best_ddr2_speed(best, test);
 }
 //VENC_DCLKCTL encodes 1-64 clks, but VENC_OSDCLK0 encodes only 1-16 clks,
 #define MAX_ENC_DIV 16
