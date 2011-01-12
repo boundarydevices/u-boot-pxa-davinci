@@ -156,8 +156,19 @@ int best_ddr2_speed(struct clk_factors *a, struct clk_factors *b)
 	if (!a_div)
 		return 1;
 	a_ddr = a_rate / a_div;
-	b_ddr = b_rate / a_div;
-	return (a_ddr > b_ddr) ? 0 : 1;
+	b_ddr = b_rate / b_div;
+	if (a_ddr == b_ddr) {
+		if (a->enc_div == b->enc_div) {
+			if (a->enc_mult <= b->enc_mult) {
+				if (a->div == b->div)
+					return (a->mult <= b->mult) ? 0 : 1;
+				return (a->div <= b->div) ? 0 : 1;
+			}
+			return (a->enc_mult <= b->enc_mult) ? 0 : 1;
+		}
+		return (a->enc_div <= b->enc_div) ? 0 : 1;
+	}
+	return (a_ddr >= b_ddr) ? 0 : 1;
 }
 
 static int relatively_prime(u32 a, u32 b)
@@ -208,10 +219,10 @@ int new_best(struct clk_factors *best, struct clk_factors *test)
 		 */
 		return 1;
 	}
-	if (best->enc_div != test->enc_div) {
-		if (best->enc_div == 1)
+	if (0) if (best->enc_div != test->enc_div) {
+		if ((best->enc_div == 1) && (test->enc_div != 1))
 			return 0;
-		if (test->enc_div == 1)
+		if ((test->enc_div == 1) && (best->enc_div != 1))
 			return 1;
 		/* This is not needed */
 		if (0) if ((test->enc_div > best->div) &&
