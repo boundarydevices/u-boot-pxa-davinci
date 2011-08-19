@@ -98,7 +98,7 @@
 /*
  * select serial console configuration
  */
-#define CONFIG_BTUART	       1       /* use BTUART */
+#define CONFIG_STUART	       1       /* use BTUART */
 
 /* allow to overwrite serial and ethaddr */
 //#define CONFIG_ENV_OVERWRITE
