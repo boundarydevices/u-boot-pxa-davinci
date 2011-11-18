@@ -274,15 +274,48 @@ int saveenv(void)
 int readenv (size_t offset, u_char * buf)
 {
 	size_t blocksize;
+	size_t offsetinit;
+
+	offsetinit = offset;
 
 	if (CFG_ENV_SIZE != nand_info[0].erasesize) {
 		printf( "%s/%s: configuration error\n", __FILE__, __func__ );
 		return 1 ;
 	}
 
-printf("%s: reading environment from offset 0x%x\n", __func__, offset );
+	printf("%s: verifying environment at offset 0x%x\n", __func__, offset );
 
 	blocksize = CFG_ENV_SIZE ;
+	if (!nand_block_isbad(&nand_info[0], offset)) {
+		if (0 == nand_read(&nand_info[0], offset, &blocksize, buf)) {
+			env_t *env = (env_t *)buf ;
+			if (env->crc !=crc32(0, env->data, ENV_SIZE)) {
+				puts ("CRC error!\n");
+				*(ulong *)0x80000f00 = 0x6C696146;
+			}
+		}
+	}
+#ifdef CFG_ENV_REDUNDANT_N
+	offset = nand_info[0].size - nand_info[0].erasesize ;
+	while (offset > nand_info[0].size - CFG_ENV_REDUNDANT_N*nand_info[0].erasesize) {
+		printf( "%s: verifying redundant 0x%x\n", __func__, offset );
+		if (!nand_block_isbad(&nand_info[0], offset)) {
+			if (0 == nand_read(&nand_info[0], offset, &blocksize, buf)){
+				env_t *env = (env_t *)buf ;
+				if (env->crc !=crc32(0, env->data, ENV_SIZE)) {
+					puts ("CRC error!\n");
+					*(ulong *)0x80000f00 = 0x6C696146;
+				}
+			}
+		}
+		offset -= blocksize;
+	}
+#endif
+
+	offset = offsetinit;
+
+	printf("%s: reading environment from offset 0x%x\n", __func__, offset );
+
 	if (!nand_block_isbad(&nand_info[0], offset)) {
 		if (0 == nand_read(&nand_info[0], offset, &blocksize, buf)) {
 			env_t *env = (env_t *)buf ;
