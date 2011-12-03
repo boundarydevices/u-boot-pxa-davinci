@@ -60,6 +60,15 @@
 #define CFG_ENV_RANGE	CFG_ENV_SIZE
 #endif
 
+static unsigned const num_env_sectors =
+#if defined(CFG_ENV_OFFSET_REDUND)
+	2 ;
+#elif defined(CFG_ENV_REDUNDANT_N)
+	(CFG_ENV_REDUNDANT_N+1);
+#else
+	1 ;
+#endif
+
 int nand_legacy_rw (struct nand_chip* nand, int cmd,
 	    size_t start, size_t len,
 	    size_t * retlen, u_char * buf);
@@ -229,42 +238,66 @@ int saveenv(void)
 int saveenv(void)
 {
 	int ret = 0;
+	unsigned i ;
+	unsigned env_offsets[num_env_sectors];
 	nand_erase_options_t nand_erase_options;
-
 	nand_erase_options.length = CFG_ENV_RANGE;
 	nand_erase_options.quiet = 0;
 	nand_erase_options.jffs2 = 0;
 	nand_erase_options.scrub = 0;
-	nand_erase_options.offset = CFG_ENV_OFFSET;
-
-	if (CFG_ENV_RANGE < CFG_ENV_SIZE)
-		return 1;
-	puts ("Erasing Nand...\n");
-	if (nand_erase_opts(&nand_info[0], &nand_erase_options))
-		ret = 1;
-	else {
-		puts ("Writing to Nand... ");
-		if (writeenv(CFG_ENV_OFFSET, (u_char *)env_ptr)) {
-			puts("FAILED!\n");
-			ret = 1;
-		}
-	}
-#ifdef CFG_ENV_REDUNDANT_N
-	nand_erase_options.offset = nand_info[0].size - nand_info[0].erasesize ;
-	while (nand_erase_options.offset > nand_info[0].size - CFG_ENV_REDUNDANT_N*nand_info[0].erasesize) {
-		printf("%s: save environment to offset 0x%x\n", __func__, nand_erase_options.offset);
-		if (nand_erase_opts(&nand_info[0], &nand_erase_options))
-			ret = 1;
-		else {
-			printf ("Writing to redundant Nand 0x%x", nand_erase_options.offset );
-			if (writeenv(nand_erase_options.offset, (u_char *)env_ptr)) {
-				puts("FAILED!\n");
-				ret = 1;
-			}
-		}
-                nand_erase_options.offset -= nand_info[0].erasesize ;
-	}
+#if 1
+	int first_mismatch = 1 ;
 #endif
+
+	env_offsets[0] = CFG_ENV_OFFSET;
+	for (i = 1 ; i < num_env_sectors; i++) {
+#ifdef CFG_ENV_REDUNDANT_N
+		env_offsets[i] = nand_info[0].size
+			       - ((CFG_ENV_REDUNDANT_N-i+1)*nand_info[0].erasesize);
+#endif
+	}
+
+	for (i = 0 ; i < num_env_sectors ; i++ ) {
+		unsigned char buf[CFG_ENV_SIZE];
+		size_t blocksize = CFG_ENV_SIZE ;
+		int isbad = 1 ;
+		int const offset = env_offsets[i];
+		printf("save environment to offset 0x%x (env at %p)\n", offset, env_ptr);
+		if (!nand_block_isbad(&nand_info[0], offset)) {
+			if (0 == nand_read(&nand_info[0], offset, &blocksize, buf)) {
+				if (0 == memcmp(env_ptr,buf,sizeof(*env_ptr))) {
+					isbad = 0 ;
+				} else {
+					printf ("%s: data mismatch at offset %x\n", __func__, offset);
+#if 1
+					if (first_mismatch) {
+                                                print_buffer (0,env_ptr, 1, 1024, 80);
+						first_mismatch = 0 ;
+					}
+                                        print_buffer (0,buf, 1, 1024, 80);
+#endif
+				}
+			} else
+				printf ("%s: error reading from offset %x\n", __func__, offset);
+		} else
+			printf ("%s: offset %x marked as bad\n", __func__, offset);
+		if (isbad) {
+			nand_erase_options.offset = offset ;
+			if (nand_erase_opts(&nand_info[0], &nand_erase_options)) {
+				printf("%s: error erasing block at offset %x\n", __func__, offset);
+			}
+			else {
+				printf ("%s: writing to nand 0x%x\n", __func__, offset );
+				if (writeenv(nand_erase_options.offset, (u_char *)env_ptr)) {
+					puts("FAILED!\n");
+					ret = 1;
+				} else
+					printf("%s: saved to offset 0x%x\n", __func__, offset);
+			}
+		} else {
+			printf("no change\n");
+		}
+	}
 	puts ("done\n");
 	return ret;
 }
