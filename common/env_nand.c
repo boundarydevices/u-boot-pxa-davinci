@@ -235,6 +235,40 @@ int saveenv(void)
 	return ret;
 }
 #else /* ! CFG_ENV_OFFSET_REDUND */
+
+static int envsize(env_t const *e) {
+	int len = 0 ;
+	unsigned char const*next = e->data ;
+	int numzeros = 0 ;
+	while ((ENV_SIZE > len) && (2 > numzeros)) {
+		if (0 == *next++) {
+			++numzeros ;
+		} else
+			numzeros = 0 ;
+		len++ ;
+	}
+	return len ;
+}
+
+static void print_env_blk (env_t const *e) {
+	int len = 0 ;
+	int start = 0 ;
+	unsigned char const *next = e->data ;
+	int numzeros = 0 ;
+
+	while ((ENV_SIZE > len) && (2 > numzeros)) {
+		if (0 == *next++) {
+			if (0 == numzeros) {
+				printf("%s\n", e->data+start);
+				start = len+1 ;
+			}
+			++numzeros ;
+		} else
+			numzeros = 0 ;
+		len++ ;
+	}
+}
+
 int saveenv(void)
 {
 	int ret = 0;
@@ -248,7 +282,11 @@ int saveenv(void)
 #if 1
 	int first_mismatch = 1 ;
 #endif
+	int const envlen = envsize(env_ptr);
+	memset(env_ptr->data+envlen,0,sizeof(env_ptr->data)-envlen); // clear tail-end
+	env_ptr->crc = crc32(0, env_ptr->data, ENV_SIZE);
 
+	printf("Environment length: %u of %u\n", envlen, sizeof(env_ptr->data));
 	env_offsets[0] = CFG_ENV_OFFSET;
 	for (i = 1 ; i < num_env_sectors; i++) {
 #ifdef CFG_ENV_REDUNDANT_N
@@ -271,10 +309,12 @@ int saveenv(void)
 					printf ("%s: data mismatch at offset %x\n", __func__, offset);
 #if 1
 					if (first_mismatch) {
-                                                print_buffer (0,env_ptr, 1, 1024, 80);
+						printf("-------- current environment\n");
+						print_env_blk(env_ptr);
 						first_mismatch = 0 ;
 					}
-                                        print_buffer (0,buf, 1, 1024, 80);
+					printf("-------- environment copy %d\n",i);
+					print_env_blk((env_t const *)buf);
 #endif
 				}
 			} else
