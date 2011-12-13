@@ -64,7 +64,7 @@ static unsigned const num_env_sectors =
 #if defined(CFG_ENV_OFFSET_REDUND)
 	2 ;
 #elif defined(CFG_ENV_REDUNDANT_N)
-	(CFG_ENV_REDUNDANT_N+1);
+	(CFG_ENV_REDUNDANT_N);
 #else
 	1 ;
 #endif
@@ -291,7 +291,7 @@ int saveenv(void)
 	for (i = 1 ; i < num_env_sectors; i++) {
 #ifdef CFG_ENV_REDUNDANT_N
 		env_offsets[i] = nand_info[0].size
-			       - ((CFG_ENV_REDUNDANT_N-i+1)*nand_info[0].erasesize);
+			       - ((CFG_ENV_REDUNDANT_N-i)*nand_info[0].erasesize);
 #endif
 	}
 
